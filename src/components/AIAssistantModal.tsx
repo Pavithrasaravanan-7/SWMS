@@ -22,7 +22,7 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const res = await fetch('/api/swms/ai-audit', { 
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/swms/ai-audit`, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -187,3 +187,5 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
     </div>
   );
 };
+
+

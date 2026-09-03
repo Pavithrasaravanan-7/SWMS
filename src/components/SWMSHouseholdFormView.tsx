@@ -339,7 +339,7 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
     };
 
     try {
-      const res = await fetch('/api/swms/submit', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/swms/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submissionPayload)
@@ -1282,3 +1282,5 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
     </div>
   );
 };
+
+
