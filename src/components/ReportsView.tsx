@@ -61,13 +61,15 @@ import {
 import { 
   reportsIcon,
   vehicleAssignmentIcon,
-  vehicleAssignmentFallbackIcon
+  vehicleAssignmentFallbackIcon,
+  cmPhoto,
+  cmFallbackPhoto,
+  ccmcLogo,
+  ccmcFallbackLogo
 } from '../constants/branding';
 
 const REPORTS_ICON_URL = reportsIcon;
 const VEHICLE_ASSIGNMENT_ICON_URL = vehicleAssignmentIcon;
-import ccmcLogo from '../assets/ccmc_logo.jpg';
-import cmPhoto from '../assets/cm_stalin.jpg';
 
 interface ReportsViewProps {
   records: CollectionRecord[];
@@ -148,7 +150,54 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     }, 350);
   };
 
-  const getReportTitle = (type: ReportType): string => {
+  const translateStatus = (st: string, l: 'en' | 'ta' = lang): string => {
+    if (l !== 'ta') return st;
+    switch (st) {
+      case 'Collected': return 'சேகரிக்கப்பட்டது';
+      case 'Not Collected': return 'சேகரிக்கப்படவில்லை';
+      case 'Completed': return 'நிறைவடைந்தது';
+      case 'In Progress': return 'செயல்பாட்டில் உள்ளது';
+      case 'Pending': return 'நிலுவையில் உள்ளது';
+      case 'GPS Active': return 'ஜி.பி.எஸ் செயலில்';
+      case 'Offline': return 'ஆஃப்லைன்';
+      case 'Road Construction Block': return 'சாலைப் பணி தடை';
+      case 'Gate Locked': return 'கேட் பூட்டப்பட்டுள்ளது';
+      case 'Vehicle Breakdown': return 'வாகனக் கோளாறு';
+      case 'N/A': return 'இல்லை';
+      default: return st;
+    }
+  };
+
+  const translateZone = (z: string, l: 'en' | 'ta' = lang): string => {
+    if (l !== 'ta') return z;
+    if (z.includes('North')) return 'வடக்கு மண்டலம்';
+    if (z.includes('South')) return 'தெற்கு மண்டலம்';
+    if (z.includes('East')) return 'கிழக்கு மண்டலம்';
+    if (z.includes('West')) return 'மேற்கு மண்டலம்';
+    if (z.includes('Central')) return 'மத்திய மண்டலம்';
+    if (z === 'All') return 'அனைத்து மண்டலங்களும்';
+    return z;
+  };
+
+  const getReportTitle = (type: ReportType, l: 'en' | 'ta' = lang): string => {
+    if (l === 'ta') {
+      switch (type) {
+        case 'vehicle-assignment':
+          return 'வாகனத்திற்கு ஒதுக்கப்பட்ட வார்டு பட்டியல் மற்றும் விவரங்கள்';
+        case 'daily':
+          return 'தினசரி திடக்கழிவு சேகரிப்பு அறிக்கை';
+        case 'zone':
+          return 'மண்டலம் வாரியான தணிக்கை அறிக்கை';
+        case 'street':
+          return 'தெரு வாரியான சேகரிப்பு அறிக்கை';
+        case 'worker':
+          return 'தூய்மைப் பணியாளர் செயல்பாட்டு அறிக்கை';
+        case 'vehicle':
+          return 'வாகன பயணங்கள் மற்றும் பயன்பாட்டு அறிக்கை';
+        default:
+          return 'மாநகராட்சி தணிக்கை அறிக்கை';
+      }
+    }
     switch (type) {
       case 'vehicle-assignment':
         return 'Vehicle Assigned Ward List & Fleet Details';
@@ -167,30 +216,84 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     }
   };
 
+  // Helper to render crisp Tamil typography onto Canvas for jsPDF
+  const createTextCanvasImage = (
+    text: string,
+    widthPx: number = 600,
+    heightPx: number = 50,
+    fontSize: number = 14,
+    fontWeight: string = 'bold',
+    color: string = '#FFFFFF',
+    align: 'left' | 'center' | 'right' = 'left',
+    bgColor: string = 'transparent'
+  ): string => {
+    const canvas = document.createElement('canvas');
+    const dpr = 2.5;
+    canvas.width = Math.max(widthPx * dpr, 10);
+    canvas.height = Math.max(heightPx * dpr, 10);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+
+    ctx.scale(dpr, dpr);
+    if (bgColor && bgColor !== 'transparent') {
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, widthPx, heightPx);
+    }
+
+    ctx.fillStyle = color;
+    ctx.font = `${fontWeight} ${fontSize}px "Segoe UI", "Noto Sans Tamil", "Latha", "Tamil Sangam MN", Arial, sans-serif`;
+    ctx.textAlign = align;
+    ctx.textBaseline = 'middle';
+
+    const x = align === 'center' ? widthPx / 2 : align === 'right' ? widthPx - 4 : 4;
+    ctx.fillText(text, x, heightPx / 2);
+
+    return canvas.toDataURL('image/png');
+  };
+
   // Helper to extract exportable tabular data (for Excel, CSV, PDF)
   const getExportData = (forPDF = false) => {
     let headers: string[] = [];
     let rows: (string | number)[][] = [];
+    const isTa = lang === 'ta';
 
     if (activeReportType === 'vehicle-assignment' || activeReportType === 'vehicle') {
       if (forPDF) {
-        headers = [
-          'S.No',
-          'Vehicle No',
-          'Type',
-          'Zone',
-          'Ward',
-          'Assigned Route',
-          'Driver Name',
-          'Driver Contact',
-          'Target',
-          'Covered',
-          'Cov %',
-          'KM',
-          'Trips',
-          'GPS Status',
-          'Status',
-        ];
+        headers = isTa
+          ? [
+              'வ.எண்',
+              'வாகன எண்',
+              'வகை',
+              'மண்டலம்',
+              'வார்டு',
+              'ஒதுக்கப்பட்ட பாதை',
+              'ஓட்டுநர் பெயர்',
+              'தொடர்பு எண்',
+              'இலக்கு',
+              'சேகரிப்பு',
+              'சதவீதம் %',
+              'கி.மீ',
+              'பயணங்கள்',
+              'ஜி.பி.எஸ் நிலை',
+              'நிலை',
+            ]
+          : [
+              'S.No',
+              'Vehicle No',
+              'Type',
+              'Zone',
+              'Ward',
+              'Assigned Route',
+              'Driver Name',
+              'Driver Contact',
+              'Target',
+              'Covered',
+              'Cov %',
+              'KM',
+              'Trips',
+              'GPS Status',
+              'Status',
+            ];
         rows = filteredVehicleAssignmentReports.map((v, idx) => {
           const target = v.targetHouseholds || 250;
           const covered = v.coveredHouseholds || 230;
@@ -199,7 +302,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             idx + 1,
             v.vehicleNo,
             v.type,
-            v.zone,
+            translateZone(v.zone, lang),
             v.ward,
             (v.assignedStreets || []).slice(0, 2).join(', '),
             v.driverName,
@@ -209,31 +312,52 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             `${pct}%`,
             v.distanceCoveredKm,
             v.tripsToDumpYard,
-            v.gpsStatus || 'GPS Active',
-            v.status,
+            translateStatus(v.gpsStatus || 'GPS Active', lang),
+            translateStatus(v.status, lang),
           ];
         });
       } else {
-        headers = [
-          'S.No',
-          'Vehicle Plate No',
-          'Vehicle Type',
-          'Capacity',
-          'Zone',
-          'Primary Ward',
-          'All Assigned Wards',
-          'Assigned Streets / Route',
-          'Driver / Leader Name',
-          'Driver Contact',
-          'Shift Timing',
-          'Target Houses',
-          'Covered Houses',
-          'Coverage %',
-          'Distance (km)',
-          'Vellalore Trips',
-          'GPS Tracking Status',
-          'Operational Status',
-        ];
+        headers = isTa
+          ? [
+              'வ.எண்',
+              'வாகனப் பலகை எண்',
+              'வாகன வகை',
+              'கொள்ளளவு',
+              'மண்டலம்',
+              'முதன்மை வார்டு',
+              'ஒதுக்கப்பட்ட அனைத்து வார்டுகள்',
+              'ஒதுக்கப்பட்ட தெருக்கள் / பாதை',
+              'ஓட்டுநர் / தலைவர் பெயர்',
+              'ஓட்டுநர் தொடர்பு எண்',
+              'ஷிப்ட் நேரம்',
+              'இலக்கு வீடுகள்',
+              'சேகரிக்கப்பட்ட வீடுகள்',
+              'சேகரிப்பு சதவீதம் %',
+              'பயணித்த தூரம் (கி.மீ)',
+              'வெள்ளலூர் dump பயணங்கள்',
+              'ஜிபிஎஸ் கண்காணிப்பு நிலை',
+              'செயல்பாட்டு நிலை',
+            ]
+          : [
+              'S.No',
+              'Vehicle Plate No',
+              'Vehicle Type',
+              'Capacity',
+              'Zone',
+              'Primary Ward',
+              'All Assigned Wards',
+              'Assigned Streets / Route',
+              'Driver / Leader Name',
+              'Driver Contact',
+              'Shift Timing',
+              'Target Houses',
+              'Covered Houses',
+              'Coverage %',
+              'Distance (km)',
+              'Vellalore Trips',
+              'GPS Tracking Status',
+              'Operational Status',
+            ];
         rows = filteredVehicleAssignmentReports.map((v, idx) => {
           const target = v.targetHouseholds || 250;
           const covered = v.coveredHouseholds || 230;
@@ -243,7 +367,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             v.vehicleNo,
             v.type,
             v.capacity || 'Standard',
-            v.zone,
+            translateZone(v.zone, lang),
             v.ward,
             (v.assignedWards || [v.ward]).join(', '),
             (v.assignedStreets || []).join(' | '),
@@ -255,40 +379,46 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             `${pct}%`,
             v.distanceCoveredKm,
             v.tripsToDumpYard,
-            v.gpsStatus || 'GPS Active',
-            v.status,
+            translateStatus(v.gpsStatus || 'GPS Active', lang),
+            translateStatus(v.status, lang),
           ];
         });
       }
     } else if (activeReportType === 'daily' || activeReportType === 'street') {
-      headers = ['S.No', 'Date', 'Time', 'Zone', 'Ward', 'Street Name', 'Assigned Worker', 'Vehicle Plate', 'Status', 'Missed Reason'];
+      headers = isTa
+        ? ['வ.எண்', 'தேதி', 'நேரம்', 'மண்டலம்', 'வார்டு', 'தெரு பெயர்', 'ஒதுக்கப்பட்ட பணியாளர்', 'வாகன எண்', 'நிலை', 'காரணம் / குறிப்பு']
+        : ['S.No', 'Date', 'Time', 'Zone', 'Ward', 'Street Name', 'Assigned Worker', 'Vehicle Plate', 'Status', 'Missed Reason'];
       rows = filteredStreetReports.map((s, i) => [
         i + 1,
         selectedDate,
-        s.timeCompleted || 'Pending',
-        s.zone,
+        s.timeCompleted || (isTa ? 'நிலுவையில்' : 'Pending'),
+        translateZone(s.zone, lang),
         s.ward,
         s.streetName,
         s.workerName,
         s.vehicleNo,
-        s.status,
-        s.reasonIfNotCollected || 'N/A',
+        translateStatus(s.status, lang),
+        translateStatus(s.reasonIfNotCollected || 'N/A', lang),
       ]);
     } else if (activeReportType === 'zone') {
       if (forPDF) {
-        headers = ['S.No', 'Zone Name', 'Total Locations', 'Collected Points', 'Pending Points', 'Coverage %'];
+        headers = isTa
+          ? ['வ.எண்', 'மண்டல பெயர்', 'மொத்த இடங்கள்', 'சேகரிக்கப்பட்ட புள்ளிகள்', 'நிலுவையில் உள்ள புள்ளிகள்', 'சேகரிப்பு சதவீதம் %']
+          : ['S.No', 'Zone Name', 'Total Locations', 'Collected Points', 'Pending Points', 'Coverage %'];
         rows = zoneSummaries.map((z, idx) => [
           idx + 1,
-          z.zone,
+          translateZone(z.zone, lang),
           z.totalLocations,
           z.collectedCount,
           z.notCollectedCount,
           `${z.coveragePercentage}%`,
         ]);
       } else {
-        headers = ['Zone', 'Total Locations', 'Collected Points', 'Pending Points', 'Coverage %'];
+        headers = isTa
+          ? ['மண்டல பெயர்', 'மொத்த இடங்கள்', 'சேகரிக்கப்பட்ட புள்ளிகள்', 'நிலுவையில் உள்ள புள்ளிகள்', 'சேகரிப்பு சதவீதம் %']
+          : ['Zone', 'Total Locations', 'Collected Points', 'Pending Points', 'Coverage %'];
         rows = zoneSummaries.map((z) => [
-          z.zone,
+          translateZone(z.zone, lang),
           z.totalLocations,
           z.collectedCount,
           z.notCollectedCount,
@@ -297,28 +427,45 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       }
     } else if (activeReportType === 'worker') {
       if (forPDF) {
-        headers = [
-          'S.No',
-          'Worker ID',
-          'Sanitary Worker Name',
-          'Worker Mobile',
-          'Zone',
-          'Ward No',
-          'Assigned Route',
-          'Target',
-          'Done',
-          'Eff %',
-          'SI Name',
-          'SI Mobile',
-          'Shift Start',
-          'Status',
-        ];
+        headers = isTa
+          ? [
+              'வ.எண்',
+              'பணியாளர் ஐடி',
+              'தூய்மைப் பணியாளர் பெயர்',
+              'தொடர்பு எண்',
+              'மண்டலம்',
+              'வார்டு எண்',
+              'ஒதுக்கப்பட்ட பாதை',
+              'இலக்கு',
+              'முடிந்தது',
+              'திறன் %',
+              'எஸ்.ஐ பெயர்',
+              'எஸ்.ஐ தொடர்பு',
+              'ஷிப்ட் நேரம்',
+              'நிலை',
+            ]
+          : [
+              'S.No',
+              'Worker ID',
+              'Sanitary Worker Name',
+              'Worker Mobile',
+              'Zone',
+              'Ward No',
+              'Assigned Route',
+              'Target',
+              'Done',
+              'Eff %',
+              'SI Name',
+              'SI Mobile',
+              'Shift Start',
+              'Status',
+            ];
         rows = filteredWorkerReports.map((w, idx) => [
           idx + 1,
           w.id,
           w.name,
           w.phone,
-          w.zone,
+          translateZone(w.zone, lang),
           w.ward,
           w.assignedRoute,
           w.targetHouses,
@@ -327,36 +474,62 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           w.siName,
           w.siPhone || 'N/A',
           w.shiftStartTime,
-          w.completedHouses >= w.targetHouses ? 'Completed' : w.completedHouses > 0 ? 'In Progress' : 'Pending',
+          w.completedHouses >= w.targetHouses
+            ? translateStatus('Completed', lang)
+            : w.completedHouses > 0
+            ? translateStatus('In Progress', lang)
+            : translateStatus('Pending', lang),
         ]);
       } else {
-        headers = [
-          'S.No',
-          'Worker ID',
-          'Sanitary Worker Name',
-          'Worker Mobile No',
-          'Zone',
-          'Ward No',
-          'Assigned Route',
-          'Target Houses',
-          'Completed Houses',
-          'Efficiency %',
-          'SI Name',
-          'SI Phone Number',
-          'SS Name',
-          'SS Phone Number',
-          'CSS Name',
-          'CSS Phone Number',
-          'Shift Start Time',
-          'Hours on Field',
-          'Status',
-        ];
+        headers = isTa
+          ? [
+              'வ.எண்',
+              'பணியாளர் ஐடி',
+              'தூய்மைப் பணியாளர் பெயர்',
+              'தொடர்பு எண்',
+              'மண்டலம்',
+              'வார்டு எண்',
+              'ஒதுக்கப்பட்ட பாதை',
+              'இலக்கு வீடுகள்',
+              'முடிந்த வீடுகள்',
+              'திறன் சதவீதம் %',
+              'எஸ்.ஐ பெயர்',
+              'எஸ்.ஐ தொடர்பு',
+              'எஸ்.எஸ் பெயர்',
+              'எஸ்.எஸ் தொடர்பு',
+              'சி.எஸ்.எஸ் பெயர்',
+              'சி.எஸ்.எஸ் தொடர்பு',
+              'ஷிப்ட் நேரம்',
+              'வேலை நேரம்',
+              'நிலை',
+            ]
+          : [
+              'S.No',
+              'Worker ID',
+              'Sanitary Worker Name',
+              'Worker Mobile No',
+              'Zone',
+              'Ward No',
+              'Assigned Route',
+              'Target Houses',
+              'Completed Houses',
+              'Efficiency %',
+              'SI Name',
+              'SI Phone Number',
+              'SS Name',
+              'SS Phone Number',
+              'CSS Name',
+              'CSS Phone Number',
+              'Shift Start Time',
+              'Hours on Field',
+              'Status',
+            ];
         rows = filteredWorkerReports.map((w, idx) => [
           idx + 1,
           w.id,
           w.name,
           w.phone,
-          w.zone,
+          translateZone(w.zone, lang),
           w.ward,
           w.assignedRoute,
           w.targetHouses,
@@ -370,7 +543,11 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           w.cssPhone || 'N/A',
           w.shiftStartTime,
           `${w.hoursOnField} hrs`,
-          w.completedHouses >= w.targetHouses ? 'Completed' : w.completedHouses > 0 ? 'In Progress' : 'Pending',
+          w.completedHouses >= w.targetHouses
+            ? translateStatus('Completed', lang)
+            : w.completedHouses > 0
+            ? translateStatus('In Progress', lang)
+            : translateStatus('Pending', lang),
         ]);
       }
     }
@@ -382,19 +559,33 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     try {
       const { headers, rows } = getExportData();
       const reportTitle = getReportTitle(activeReportType);
-      const periodText = dailyViewPeriod === 'monthly' && activeReportType === 'daily' ? `Month: ${selectedMonth}` : `Date: ${selectedDate}`;
+      const isTa = lang === 'ta';
+      const periodText = dailyViewPeriod === 'monthly' && activeReportType === 'daily' 
+        ? `${isTa ? 'மாதம்' : 'Month'}: ${selectedMonth}` 
+        : `${isTa ? 'தேதி' : 'Date'}: ${selectedDate}`;
 
       // Build Sheet Data with official CCMC Header metadata
-      const wsData: (string | number)[][] = [
-        ['COIMBATORE CITY MUNICIPAL CORPORATION (CCMC)'],
-        ['Solid Waste Management Directorate - Smart ICCC Monitoring System'],
-        [`Report: ${reportTitle.toUpperCase()}`],
-        [`Period: ${periodText} | Zone Filter: ${selectedZone} | Status Filter: ${dailyStatusFilter}`],
-        [`Generated On: ${new Date().toLocaleString()} | Reference: CCMC/SWM/${new Date().getFullYear()}/${activeReportType.toUpperCase()}`],
-        [], // empty row separator
-        headers,
-        ...rows,
-      ];
+      const wsData: (string | number)[][] = isTa
+        ? [
+            ['கோயம்புத்தூர் மாநகராட்சி (CCMC)'],
+            ['திடக்கழிவு மேலாண்மை இயக்கம் - ஸ்மார்ட் ICCC கண்காணிப்பு அமைப்பு'],
+            [`அறிக்கை: ${reportTitle.toUpperCase()}`],
+            [`காலம்: ${periodText} | மண்டலம்: ${translateZone(selectedZone, lang)} | நிலை வடிகட்டி: ${translateStatus(dailyStatusFilter, lang)}`],
+            [`உருவாக்கப்பட்ட தேதி: ${new Date().toLocaleString('ta-IN')} | குறிப்பு: CCMC/SWM/${new Date().getFullYear()}/${activeReportType.toUpperCase()}`],
+            [],
+            headers,
+            ...rows,
+          ]
+        : [
+            ['COIMBATORE CITY MUNICIPAL CORPORATION (CCMC)'],
+            ['Solid Waste Management Directorate - Smart ICCC Monitoring System'],
+            [`Report: ${reportTitle.toUpperCase()}`],
+            [`Period: ${periodText} | Zone Filter: ${selectedZone} | Status Filter: ${dailyStatusFilter}`],
+            [`Generated On: ${new Date().toLocaleString()} | Reference: CCMC/SWM/${new Date().getFullYear()}/${activeReportType.toUpperCase()}`],
+            [],
+            headers,
+            ...rows,
+          ];
 
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -430,7 +621,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     bgColor: string = '#FFFFFF'
   ): Promise<{ canvas: HTMLCanvasElement | null; dataUri: string | null }> => {
     try {
-      // 1. Fetch asset blob and convert to pure base64 data URI first
       let dataUri = imageSrc;
       if (!imageSrc.startsWith('data:')) {
         try {
@@ -447,7 +637,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         }
       }
 
-      // 2. Render circular image on canvas
       const canvas = await new Promise<HTMLCanvasElement | null>((resolve) => {
         const img = new Image();
         img.onload = () => {
@@ -463,7 +652,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             ctx.imageSmoothingQuality = 'high';
             ctx.clearRect(0, 0, size, size);
 
-            // Background Fill
             if (bgColor) {
               ctx.fillStyle = bgColor;
               ctx.beginPath();
@@ -471,7 +659,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               ctx.fill();
             }
 
-            // Clip Circle
             ctx.save();
             ctx.beginPath();
             const pad = borderWidth * 2;
@@ -487,7 +674,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             ctx.drawImage(img, sx, sy, minDim, minDim, pad, pad, size - pad * 2, size - pad * 2);
             ctx.restore();
 
-            // Border Circle
             if (borderColor && borderWidth > 0) {
               ctx.strokeStyle = borderColor;
               ctx.lineWidth = borderWidth * 2;
@@ -512,11 +698,26 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     }
   };
 
+  // Helper to load primary image with automatic fallback to local asset
+  const loadHeaderImageCanvas = async (
+    primarySrc: string,
+    fallbackSrc: string,
+    borderColor: string = '#F59E0B',
+    borderWidth: number = 3,
+    bgColor: string = '#FFFFFF'
+  ): Promise<{ canvas: HTMLCanvasElement | null; dataUri: string | null }> => {
+    let res = await loadCircularImageCanvas(primarySrc, borderColor, borderWidth, bgColor);
+    if (!res.canvas && (!res.dataUri || !res.dataUri.startsWith('data:image'))) {
+      res = await loadCircularImageCanvas(fallbackSrc, borderColor, borderWidth, bgColor);
+    }
+    return res;
+  };
+
   // Helper for Exporting PDF (.pdf) with Official CCMC Header & High-Legibility Grid Boxes
   const handleExportPDF = async () => {
     try {
       const { headers, rows } = getExportData(true);
-      const reportTitle = getReportTitle(activeReportType);
+      const isTa = lang === 'ta';
       const isLandscape = activeReportType === 'worker' || activeReportType === 'street' || activeReportType === 'daily' || activeReportType === 'vehicle' || activeReportType === 'vehicle-assignment';
       
       const doc = new jsPDF({
@@ -528,10 +729,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
 
-      // Preload pristine circular canvas images & raw base64 data URIs
+      // Preload Dashboard Header images (CM Stalin photo and CCMC logo with fallback handling)
       const [cmImgData, ccmcImgData] = await Promise.all([
-        loadCircularImageCanvas(cmPhoto, '#F59E0B', 3, '#1E7A38'),
-        loadCircularImageCanvas(ccmcLogo, '#F59E0B', 3, '#FFFFFF'),
+        loadHeaderImageCanvas(cmPhoto, cmFallbackPhoto, '#F59E0B', 3, '#1E7A38'),
+        loadHeaderImageCanvas(ccmcLogo, ccmcFallbackLogo, '#F59E0B', 3, '#FFFFFF'),
       ]);
 
       const drawOfficialHeader = () => {
@@ -542,7 +743,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         doc.setLineWidth(0.5);
         doc.line(0, 22, pageWidth, 22);
 
-        // CM Stalin Photo (Large 15mm x 15mm Circular Image or Direct Base64 Image)
+        // CM Stalin Photo (Dashboard Header image)
         if (cmImgData.canvas) {
           try {
             doc.addImage(cmImgData.canvas, 'PNG', 6, 3.5, 15, 15);
@@ -564,7 +765,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           doc.text('TN', 13.5, 13, { align: 'center' });
         }
 
-        // CCMC Logo Emblem (Large 15mm x 15mm Circular Image or Direct Base64 Image)
+        // CCMC Logo Emblem (Dashboard Header emblem)
         if (ccmcImgData.canvas) {
           try {
             doc.addImage(ccmcImgData.canvas, 'PNG', 23, 3.5, 15, 15);
@@ -587,15 +788,23 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         }
 
         // Main Title & Subtitle (Prominent & Clear)
-        doc.setTextColor(255, 255, 255);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
-        doc.text('Coimbatore City Municipal Corporation', 41, 10);
+        if (isTa) {
+          const titleImg = createTextCanvasImage('கோயம்புத்தூர் மாநகராட்சி', 400, 30, 15, 'bold', '#FFFFFF', 'left');
+          if (titleImg) doc.addImage(titleImg, 'PNG', 41, 4.5, 100, 7.5);
 
-        doc.setTextColor(167, 243, 208); // Emerald-200
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(7.5);
-        doc.text("ADMIN REVIEW DASHBOARD • SOLID WASTE MANAGEMENT DIRECTORATE", 41, 16.5);
+          const subImg = createTextCanvasImage('நிர்வாக மறுஆய்வு டாஷ்போர்டு • திடக்கழிவு மேலாண்மை இயக்கம்', 500, 24, 9, 'bold', '#A7F3D0', 'left');
+          if (subImg) doc.addImage(subImg, 'PNG', 41, 13, 125, 6);
+        } else {
+          doc.setTextColor(255, 255, 255);
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(12);
+          doc.text('Coimbatore City Municipal Corporation', 41, 10);
+
+          doc.setTextColor(167, 243, 208);
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7.5);
+          doc.text("ADMIN REVIEW DASHBOARD • SOLID WASTE MANAGEMENT DIRECTORATE", 41, 16.5);
+        }
 
         // Right-side Status Elements
         const rightOffset = isLandscape ? pageWidth - 80 : pageWidth - 72;
@@ -622,7 +831,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(6.5);
         doc.setFont('helvetica', 'bold');
-        doc.text('ICCC Live', rightOffset + 21, 12.2);
+        doc.text(isTa ? 'ICCC நேரலை' : 'ICCC Live', rightOffset + 21, 12.2);
 
         // Admin Console Profile Pill
         doc.setFillColor(17, 59, 34);
@@ -634,12 +843,12 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(5.8);
         doc.setFont('helvetica', 'bold');
-        doc.text('Administrative Directorate', rightOffset + 39, 10.2);
+        doc.text(isTa ? 'நிர்வாக இயக்கம்' : 'Administrative Directorate', rightOffset + 39, 10.2);
 
         doc.setTextColor(167, 243, 208);
         doc.setFontSize(4.8);
         doc.setFont('helvetica', 'bold');
-        doc.text('ADMIN CONSOLE', rightOffset + 39, 14);
+        doc.text(isTa ? 'நிர்வாக மையம்' : 'ADMIN CONSOLE', rightOffset + 39, 14);
 
         // --- 2. Dark Secondary Ticker Stream Bar (#113B22) ---
         doc.setFillColor(17, 59, 34);
@@ -649,28 +858,34 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         doc.setFillColor(16, 185, 129);
         doc.circle(7, 25.5, 1.1, 'F');
 
-        // Left Stream Text
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(6.5);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Active Municipal Data Stream', 9.8, 26.8);
+        if (isTa) {
+          const streamImg = createTextCanvasImage(`செயலில் உள்ள மாநகராட்சி தரவு  |  ${currentTime || '14 ஆகஸ்ட் 2026 • வெள்ளிக்கிழமை 4:26 pm'}`, 600, 24, 9, 'bold', '#DCF5E6', 'left');
+          if (streamImg) doc.addImage(streamImg, 'PNG', 9.8, 23, 120, 5);
 
-        doc.setTextColor(52, 211, 153);
-        doc.text('|', 50, 26.8);
+          const summaryImg = createTextCanvasImage('5 மண்டலங்கள் • 100 வார்டுகள் • 248 ஜிபிஎஸ் வாகனங்கள் செயலில்', 450, 24, 9, 'bold', '#FBBF24', 'right');
+          if (summaryImg) doc.addImage(summaryImg, 'PNG', pageWidth - 105, 23, 100, 5);
+        } else {
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(6.5);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Active Municipal Data Stream', 9.8, 26.8);
 
-        doc.setTextColor(220, 245, 230);
-        doc.setFont('helvetica', 'normal');
-        doc.text(currentTime || '14 August 2026 • Friday 4:26 pm', 53, 26.8);
+          doc.setTextColor(52, 211, 153);
+          doc.text('|', 50, 26.8);
 
-        // Right Stream Summary
-        const tickerRightX = pageWidth - 70;
-        doc.setTextColor(167, 243, 208);
-        doc.setFontSize(6.5);
-        doc.text('5 Zones   •   100 Wards   •   ', tickerRightX, 26.8);
+          doc.setTextColor(220, 245, 230);
+          doc.setFont('helvetica', 'normal');
+          doc.text(currentTime || '14 August 2026 • Friday 4:26 pm', 53, 26.8);
 
-        doc.setTextColor(251, 191, 36);
-        doc.setFont('helvetica', 'bold');
-        doc.text('248 GPS Compactors Online', tickerRightX + 35, 26.8);
+          const tickerRightX = pageWidth - 70;
+          doc.setTextColor(167, 243, 208);
+          doc.setFontSize(6.5);
+          doc.text('5 Zones   •   100 Wards   •   ', tickerRightX, 26.8);
+
+          doc.setTextColor(251, 191, 36);
+          doc.setFont('helvetica', 'bold');
+          doc.text('248 GPS Compactors Online', tickerRightX + 35, 26.8);
+        }
 
         // --- 3. Report Metadata Ribbon Bar (#F0FDF4) ---
         doc.setFillColor(240, 253, 244);
@@ -679,20 +894,35 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         doc.setLineWidth(0.4);
         doc.line(0, 36.5, pageWidth, 36.5);
 
-        const periodText = dailyViewPeriod === 'monthly' && activeReportType === 'daily' ? `Month: ${selectedMonth}` : `Date: ${selectedDate}`;
-        doc.setTextColor(6, 78, 59);
-        doc.setFontSize(6.5);
-        doc.setFont('helvetica', 'bold');
-        doc.text(
-          `Ref: CCMC/SWM/${new Date().getFullYear()}/${activeReportType.toUpperCase()}  |  Zone: ${selectedZone}  |  Period: ${periodText}`,
-          6,
-          34
-        );
+        const periodText = dailyViewPeriod === 'monthly' && activeReportType === 'daily' 
+          ? (isTa ? `மாதம்: ${selectedMonth}` : `Month: ${selectedMonth}`) 
+          : (isTa ? `தேதி: ${selectedDate}` : `Date: ${selectedDate}`);
+        const zoneText = translateZone(selectedZone, lang);
 
-        doc.setTextColor(4, 120, 87);
-        doc.setFontSize(6.5);
-        doc.setFont('helvetica', 'normal');
-        doc.text('Solid Waste Management Directorate • SWM Audit Verified', pageWidth - 6, 34, { align: 'right' });
+        if (isTa) {
+          const metaLeftImg = createTextCanvasImage(
+            `குறிப்பு: CCMC/SWM/${new Date().getFullYear()}/${activeReportType.toUpperCase()}  |  மண்டலம்: ${zoneText}  |  காலம்: ${periodText}`,
+            650, 24, 9, 'bold', '#064E3B', 'left'
+          );
+          if (metaLeftImg) doc.addImage(metaLeftImg, 'PNG', 6, 30, 140, 5.5);
+
+          const metaRightImg = createTextCanvasImage('திடக்கழிவு மேலாண்மை இயக்கம் • தணிக்கை சரிபார்க்கப்பட்டது', 450, 24, 9, 'normal', '#047857', 'right');
+          if (metaRightImg) doc.addImage(metaRightImg, 'PNG', pageWidth - 100, 30, 94, 5.5);
+        } else {
+          doc.setTextColor(6, 78, 59);
+          doc.setFontSize(6.5);
+          doc.setFont('helvetica', 'bold');
+          doc.text(
+            `Ref: CCMC/SWM/${new Date().getFullYear()}/${activeReportType.toUpperCase()}  |  Zone: ${selectedZone}  |  Period: ${periodText}`,
+            6,
+            34
+          );
+
+          doc.setTextColor(4, 120, 87);
+          doc.setFontSize(6.5);
+          doc.setFont('helvetica', 'normal');
+          doc.text('Solid Waste Management Directorate • SWM Audit Verified', pageWidth - 6, 34, { align: 'right' });
+        }
       };
 
       // Draw initial page header
@@ -722,25 +952,24 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         minRowHeight = 9;
       }
 
-      // Configure column styles without rigid cell widths so autoTable stretches 100% full page width
       let columnStylesConfig: Record<number, any> = {};
 
       if (activeReportType === 'vehicle-assignment' || activeReportType === 'vehicle') {
         columnStylesConfig = {
-          0: { halign: 'center' }, // S.No
-          1: { fontStyle: 'bold' }, // Vehicle No
-          2: {}, // Type
-          3: {}, // Zone
-          4: {}, // Ward
-          5: {}, // Route
-          6: {}, // Driver Name
-          7: {}, // Contact
-          8: { halign: 'right' }, // Target
-          9: { halign: 'right' }, // Covered
-          10: { halign: 'right', fontStyle: 'bold' }, // Cov %
-          11: { halign: 'right' }, // KM
-          12: { halign: 'center' }, // Trips
-          13: { halign: 'center' }, // Status
+          0: { halign: 'center' },
+          1: { fontStyle: 'bold' },
+          2: {},
+          3: {},
+          4: {},
+          5: {},
+          6: {},
+          7: {},
+          8: { halign: 'right' },
+          9: { halign: 'right' },
+          10: { halign: 'right', fontStyle: 'bold' },
+          11: { halign: 'right' },
+          12: { halign: 'center' },
+          13: { halign: 'center' },
         };
       } else if (activeReportType === 'worker') {
         columnStylesConfig = {
@@ -787,9 +1016,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       autoTable(doc, {
         startY: 38,
         margin: { top: 38, bottom: 15, left: 6, right: 6 },
-        tableWidth: 'auto', // Expands table to 100% full printable width across page
-        showHead: 'everyPage', // Repeats header bar cleanly on every page
-        rowPageBreak: 'avoid', // Moves entire row to next page cleanly if it doesn't fit on current page
+        tableWidth: 'auto',
+        showHead: 'everyPage',
+        rowPageBreak: 'avoid',
         pageBreak: 'auto',
         head: [headers],
         body: rows,
@@ -813,30 +1042,67 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           fontSize: bodyFontSize,
           cellPadding: cellPad,
           minCellHeight: minRowHeight,
-          textColor: [15, 23, 42], // Deep high-contrast dark text (#0F172A) for max visibility
-          lineColor: [160, 174, 192], // Crisp, clearly visible grid lines for every box
-          lineWidth: 0.35, // Thick border lines for every grid cell
+          textColor: [15, 23, 42],
+          lineColor: [160, 174, 192],
+          lineWidth: 0.35,
           overflow: 'linebreak',
           valign: 'middle',
         },
         alternateRowStyles: {
           fillColor: [242, 249, 244],
         },
+        didDrawCell: (data) => {
+          if (isTa) {
+            const cellText = data.cell.text ? data.cell.text.join(' ') : '';
+            if (cellText) {
+              const isHead = data.section === 'head';
+              const bg = isHead 
+                ? [30, 122, 56] 
+                : data.row.index % 2 === 1 
+                ? [242, 249, 244] 
+                : [255, 255, 255];
+              doc.setFillColor(bg[0], bg[1], bg[2]);
+              doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+              
+              doc.setDrawColor(160, 174, 192);
+              doc.setLineWidth(0.35);
+              doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'S');
+
+              const fontSz = isHead ? Math.round(headerFontSize * 1.3) : Math.round(bodyFontSize * 1.3);
+              const color = isHead ? '#FFFFFF' : '#0F172A';
+              const halign = ((data.column as any)?.styles?.halign) || (data.cell.styles?.halign as any) || 'left';
+
+              const cellWpx = Math.round(data.cell.width * 5);
+              const cellHpx = Math.round(data.cell.height * 5);
+
+              const imgUri = createTextCanvasImage(cellText, cellWpx, cellHpx, fontSz, isHead ? 'bold' : '500', color, halign, 'transparent');
+              if (imgUri) {
+                doc.addImage(imgUri, 'PNG', data.cell.x, data.cell.y, data.cell.width, data.cell.height);
+              }
+            }
+          }
+        },
         didDrawPage: (data) => {
-          // Always draw official CCMC header on every page
           drawOfficialHeader();
 
-          // Bottom Footer
           const totalPages = doc.getNumberOfPages();
-          doc.setFontSize(7.5);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(110, 110, 110);
-          doc.text(
-            `CCMC Smart SWM Command Center • Confidential Municipal Record • Page ${data.pageNumber} of ${totalPages}`,
-            pageWidth / 2,
-            pageHeight - 5,
-            { align: 'center' }
-          );
+          if (isTa) {
+            const footerImg = createTextCanvasImage(
+              `கோயம்புத்தூர் மாநகராட்சி ஸ்மார்ட் கட்டளை மையம் • இரகசிய மாநகராட்சி பதிவு • பக்கம் ${data.pageNumber} / ${totalPages}`,
+              700, 24, 9, 'bold', '#6E6E6E', 'center'
+            );
+            if (footerImg) doc.addImage(footerImg, 'PNG', (pageWidth - 140) / 2, pageHeight - 7, 140, 5);
+          } else {
+            doc.setFontSize(7.5);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(110, 110, 110);
+            doc.text(
+              `CCMC Smart SWM Command Center • Confidential Municipal Record • Page ${data.pageNumber} of ${totalPages}`,
+              pageWidth / 2,
+              pageHeight - 5,
+              { align: 'center' }
+            );
+          }
         },
       });
 
@@ -943,14 +1209,16 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
-                Municipal Reports Generation Center
+                {lang === 'ta' ? 'மாநகராட்சி அறிக்கைகள் உருவாக்கும் மையம்' : 'Municipal Reports Generation Center'}
               </h1>
               <span className="bg-emerald-100 text-[#1E7A38] text-xs font-black px-2.5 py-0.5 rounded-full border border-emerald-300">
-                Commissioner's Audit Engine
+                {lang === 'ta' ? 'ஆணையர் தணிக்கை மையம்' : "Commissioner's Audit Engine"}
               </span>
             </div>
             <p className="text-xs sm:text-sm text-gray-500 font-medium mt-0.5">
-              Generate, audit, print, and export all Coimbatore City Municipal Corporation waste collection performance records.
+              {lang === 'ta'
+                ? 'கோயம்புத்தூர் மாநகராட்சியின் திடக்கழிவு மேலாண்மை குப்பை சேகரிப்பு தணிக்கை மற்றும் அறிக்கைகளை பதிவிறக்குக.'
+                : 'Generate, audit, print, and export all Coimbatore City Municipal Corporation waste collection performance records.'}
             </p>
           </div>
         </div>
@@ -964,7 +1232,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             title="Download report in Microsoft Excel (.xlsx) format"
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
-            <span>Download Excel</span>
+            <span>{lang === 'ta' ? 'எக்செல் பதிவிறக்கம்' : 'Download Excel'}</span>
           </button>
 
           {/* PDF (.pdf) Download */}
@@ -974,7 +1242,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             title="Download official report in PDF (.pdf) format"
           >
             <FileDown className="w-4 h-4 text-rose-200" />
-            <span>Download PDF</span>
+            <span>{lang === 'ta' ? 'பிடிஎஃப் பதிவிறக்கம்' : 'Download PDF'}</span>
           </button>
 
           {/* CSV Export */}
@@ -994,7 +1262,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             title="Print or print-to-PDF via browser dialog"
           >
             <Printer className="w-3.5 h-3.5 text-gray-500" />
-            <span>Print</span>
+            <span>{lang === 'ta' ? 'அச்சிடுக' : 'Print'}</span>
           </button>
         </div>
       </div>
@@ -1027,12 +1295,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${
               activeReportType === 'vehicle-assignment' ? 'bg-white text-[#1E7A38]' : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
             }`}>
-              Fleet & Wards
+              {lang === 'ta' ? 'வாகனங்கள் & வார்டுகள்' : 'Fleet & Wards'}
             </span>
           </div>
-          <div className="font-extrabold text-xs">Vehicle Assigned Ward</div>
+          <div className="font-extrabold text-xs">
+            {lang === 'ta' ? 'ஒதுக்கப்பட்ட வாகனங்கள்' : 'Vehicle Assigned Ward'}
+          </div>
           <p className={`text-[10px] mt-0.5 truncate ${activeReportType === 'vehicle-assignment' ? 'text-emerald-100' : 'text-gray-500'}`}>
-            Ward list & vehicle type
+            {lang === 'ta' ? 'வார்டு பட்டியல் & வாகன வகை' : 'Ward list & vehicle type'}
           </p>
         </button>
 
@@ -1050,12 +1320,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
               activeReportType === 'daily' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
             }`}>
-              Daily
+              {lang === 'ta' ? 'தினசரி' : 'Daily'}
             </span>
           </div>
-          <div className="font-extrabold text-xs">Daily Collection</div>
+          <div className="font-extrabold text-xs">
+            {lang === 'ta' ? 'தினசரி சேகரிப்பு' : 'Daily Collection'}
+          </div>
           <p className={`text-[10px] mt-0.5 ${activeReportType === 'daily' ? 'text-emerald-100' : 'text-gray-400'}`}>
-            Shift & door logs
+            {lang === 'ta' ? 'ஷிப்ட் மற்றும் கதவு விவரங்கள்' : 'Shift & door logs'}
           </p>
         </button>
 
@@ -1073,12 +1345,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
               activeReportType === 'zone' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'
             }`}>
-              5 Zones
+              {lang === 'ta' ? '5 மண்டலங்கள்' : '5 Zones'}
             </span>
           </div>
-          <div className="font-extrabold text-xs">Zone-wise</div>
+          <div className="font-extrabold text-xs">
+            {lang === 'ta' ? 'மண்டலம் வாரியாக' : 'Zone-wise'}
+          </div>
           <p className={`text-[10px] mt-0.5 ${activeReportType === 'zone' ? 'text-emerald-100' : 'text-gray-400'}`}>
-            Zonal comparison
+            {lang === 'ta' ? 'மண்டல ஒப்பீடு' : 'Zonal comparison'}
           </p>
         </button>
 
@@ -1096,12 +1370,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
               activeReportType === 'street' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'
             }`}>
-              Micro
+              {lang === 'ta' ? 'தெரு நிலை' : 'Micro'}
             </span>
           </div>
-          <div className="font-extrabold text-xs">Street-wise</div>
+          <div className="font-extrabold text-xs">
+            {lang === 'ta' ? 'தெரு வாரியாக' : 'Street-wise'}
+          </div>
           <p className={`text-[10px] mt-0.5 ${activeReportType === 'street' ? 'text-emerald-100' : 'text-gray-400'}`}>
-            House RFID audit
+            {lang === 'ta' ? 'வீட்டு ஆர்.எஃப்.ஐ.டி தணிக்கை' : 'House RFID audit'}
           </p>
         </button>
 
@@ -1119,12 +1395,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
               activeReportType === 'worker' ? 'bg-white/20 text-white' : 'bg-indigo-100 text-indigo-800'
             }`}>
-              Staff
+              {lang === 'ta' ? 'பணியாளர்கள்' : 'Staff'}
             </span>
           </div>
-          <div className="font-extrabold text-xs">Worker Report</div>
+          <div className="font-extrabold text-xs">
+            {lang === 'ta' ? 'பணியாளர் அறிக்கை' : 'Worker Report'}
+          </div>
           <p className={`text-[10px] mt-0.5 ${activeReportType === 'worker' ? 'text-emerald-100' : 'text-gray-400'}`}>
-            Crew performance
+            {lang === 'ta' ? 'குழு செயல்பாடு' : 'Crew performance'}
           </p>
         </button>
 
@@ -1142,12 +1420,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
               activeReportType === 'vehicle' ? 'bg-white/20 text-white' : 'bg-teal-100 text-teal-800'
             }`}>
-              Trips & Fuel
+              {lang === 'ta' ? 'பயணங்கள் & எரிபொருள்' : 'Trips & Fuel'}
             </span>
           </div>
-          <div className="font-extrabold text-xs">Vehicle Trips</div>
+          <div className="font-extrabold text-xs">
+            {lang === 'ta' ? 'வாகனப் பயணங்கள்' : 'Vehicle Trips'}
+          </div>
           <p className={`text-[10px] mt-0.5 ${activeReportType === 'vehicle' ? 'text-emerald-100' : 'text-gray-400'}`}>
-            Fuel, trips & km
+            {lang === 'ta' ? 'எரிபொருள், பயணங்கள் & கி.மீ' : 'Fuel, trips & km'}
           </p>
         </button>
       </div>
@@ -1167,7 +1447,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Daily Report
+                {lang === 'ta' ? 'தினசரி அறிக்கை' : 'Daily Report'}
               </button>
               <button
                 type="button"
@@ -1178,7 +1458,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Monthly Report
+                {lang === 'ta' ? 'மாதாந்திர அறிக்கை' : 'Monthly Report'}
               </button>
             </div>
           )}
@@ -1187,19 +1467,19 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           {activeReportType !== 'vehicle-assignment' && activeReportType !== 'zone' && (
             dailyViewPeriod === 'monthly' && activeReportType === 'daily' ? (
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-gray-600">Month:</span>
+                <span className="text-xs font-bold text-gray-600">{lang === 'ta' ? 'மாதம்:' : 'Month:'}</span>
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
                   className="text-xs font-bold bg-gray-50 border border-gray-300 rounded-xl px-3 py-1.5 text-gray-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                 >
-                  <option value="2026-05">May 2026</option>
-                  <option value="2026-04">April 2026</option>
+                  <option value="2026-05">{lang === 'ta' ? 'மே 2026' : 'May 2026'}</option>
+                  <option value="2026-04">{lang === 'ta' ? 'ஏப்ரல் 2026' : 'April 2026'}</option>
                 </select>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-gray-600">Report Date:</span>
+                <span className="text-xs font-bold text-gray-600">{lang === 'ta' ? 'அறிக்கை தேதி:' : 'Report Date:'}</span>
                 <input
                   type="date"
                   value={selectedDate}
@@ -1212,31 +1492,31 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
 
           {/* Zone Filter */}
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-gray-600">Zone:</span>
+            <span className="text-xs font-bold text-gray-600">{lang === 'ta' ? 'மண்டலம்:' : 'Zone:'}</span>
             <select
               value={selectedZone}
               onChange={(e) => setSelectedZone(e.target.value)}
               className="text-xs font-bold bg-gray-50 border border-gray-300 rounded-xl px-3 py-1.5 text-gray-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
             >
-              <option value="All">All Municipal Zones</option>
-              <option value="North Zone">North Zone</option>
-              <option value="Central Zone">Central Zone</option>
-              <option value="South Zone">South Zone</option>
-              <option value="West Zone">West Zone</option>
-              <option value="East Zone">East Zone</option>
+              <option value="All">{lang === 'ta' ? 'அனைத்து மண்டலங்களும்' : 'All Municipal Zones'}</option>
+              <option value="North Zone">{lang === 'ta' ? 'வடக்கு மண்டலம்' : 'North Zone'}</option>
+              <option value="Central Zone">{lang === 'ta' ? 'மத்திய மண்டலம்' : 'Central Zone'}</option>
+              <option value="South Zone">{lang === 'ta' ? 'தெற்கு மண்டலம்' : 'South Zone'}</option>
+              <option value="West Zone">{lang === 'ta' ? 'மேற்கு மண்டலம்' : 'West Zone'}</option>
+              <option value="East Zone">{lang === 'ta' ? 'கிழக்கு மண்டலம்' : 'East Zone'}</option>
             </select>
           </div>
 
           {/* Vehicle Type Filter (for Vehicle Assignment & Vehicle reports) */}
           {(activeReportType === 'vehicle-assignment' || activeReportType === 'vehicle') && (
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-gray-600">Vehicle Type:</span>
+              <span className="text-xs font-bold text-gray-600">{lang === 'ta' ? 'வாகன வகை:' : 'Vehicle Type:'}</span>
               <select
                 value={selectedVehicleType}
                 onChange={(e) => setSelectedVehicleType(e.target.value)}
                 className="text-xs font-bold bg-emerald-50/70 border border-emerald-300 rounded-xl px-3 py-1.5 text-emerald-950 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               >
-                <option value="all">All Vehicle Types (12)</option>
+                <option value="all">{lang === 'ta' ? 'அனைத்து வாகன வகைகளும் (12)' : 'All Vehicle Types (12)'}</option>
                 <option value="Tata Ace">Tata Ace (Mini Truck)</option>
                 <option value="BOV">BOV (Electric Trike)</option>
                 <option value="Push Cart">Push Cart (Sanitary)</option>
@@ -1248,15 +1528,15 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           {/* Status Filter for Daily Collection */}
           {activeReportType === 'daily' && (
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-gray-600">Status:</span>
+              <span className="text-xs font-bold text-gray-600">{lang === 'ta' ? 'நிலை:' : 'Status:'}</span>
               <select
                 value={dailyStatusFilter}
                 onChange={(e) => setDailyStatusFilter(e.target.value as 'all' | 'Collected' | 'Not Collected')}
                 className="text-xs font-bold bg-gray-50 border border-gray-300 rounded-xl px-3 py-1.5 text-gray-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               >
-                <option value="all">All Status</option>
-                <option value="Collected">Collected</option>
-                <option value="Not Collected">Not Collected</option>
+                <option value="all">{lang === 'ta' ? 'அனைத்து நிலைகளும்' : 'All Status'}</option>
+                <option value="Collected">{lang === 'ta' ? 'சேகரிக்கப்பட்டது' : 'Collected'}</option>
+                <option value="Not Collected">{lang === 'ta' ? 'சேகரிக்கப்படவில்லை' : 'Not Collected'}</option>
               </select>
             </div>
           )}
@@ -1267,7 +1547,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <input
               type="text"
               placeholder={
-                activeReportType === 'vehicle-assignment'
+                lang === 'ta'
+                  ? 'தேடுக (எ.கா. வாகன எண், மண்டலம், தெரு, ஓட்டுநர்)...'
+                  : activeReportType === 'vehicle-assignment'
                   ? 'Search vehicle plate (e.g. TN 37), type, ward, street, driver...'
                   : `Search ${getReportTitle(activeReportType).toLowerCase()}...`
               }
@@ -1289,7 +1571,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                   vehicleViewMode === 'table' ? 'bg-[#1E7A38] text-white shadow-2xs' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Table View
+                {lang === 'ta' ? 'அட்டவணை' : 'Table View'}
               </button>
               <button
                 type="button"
@@ -1298,7 +1580,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                   vehicleViewMode === 'cards' ? 'bg-[#1E7A38] text-white shadow-2xs' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Ward Cards
+                {lang === 'ta' ? 'கார்டுகள்' : 'Ward Cards'}
               </button>
               <button
                 type="button"
@@ -1307,7 +1589,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                   vehicleViewMode === 'ward-matrix' ? 'bg-[#1E7A38] text-white shadow-2xs' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Ward Matrix
+                {lang === 'ta' ? 'மேட்ரிக்ஸ்' : 'Ward Matrix'}
               </button>
             </div>
           )}
@@ -1317,7 +1599,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             className="px-3.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-emerald-700 ${isGenerating ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
+            <span>{lang === 'ta' ? 'புதுப்பி' : 'Refresh'}</span>
           </button>
         </div>
       </div>
@@ -1335,14 +1617,16 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                 {getReportTitle(activeReportType)}
               </h2>
               <p className="text-xs text-emerald-100/90 font-medium">
-                Coimbatore City Municipal Corporation • Solid Waste Management Directorate
+                {lang === 'ta'
+                  ? 'கோயம்புத்தூர் மாநகராட்சி • திடக்கழிவு மேலாண்மை இயக்கம்'
+                  : 'Coimbatore City Municipal Corporation • Solid Waste Management Directorate'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 bg-[#113B22]/70 border border-emerald-400/30 rounded-full text-xs font-semibold text-emerald-200">
-              Certified Audit Record
+              {lang === 'ta' ? 'சான்றளிக்கப்பட்ட தணிக்கை பதிவு' : 'Certified Audit Record'}
             </span>
           </div>
         </div>
@@ -1351,20 +1635,22 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         <div className="bg-emerald-50/70 border-b border-emerald-200/70 px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-950">
           <div className="flex items-center gap-3 flex-wrap font-semibold">
             <span className="bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded font-bold text-[11px]">
-              Ref: CCMC/SWM/{new Date().getFullYear()}/{activeReportType.toUpperCase()}
+              {lang === 'ta' ? 'குறிப்பு' : 'Ref'}: CCMC/SWM/{new Date().getFullYear()}/{activeReportType.toUpperCase()}
             </span>
-            <span>Zone: <strong className="text-emerald-900">{selectedZone}</strong></span>
+            <span>{lang === 'ta' ? 'மண்டலம்' : 'Zone'}: <strong className="text-emerald-900">{translateZone(selectedZone, lang)}</strong></span>
             <span>•</span>
-            <span>Period: <strong className="text-emerald-900">{dailyViewPeriod === 'monthly' && activeReportType === 'daily' ? selectedMonth : selectedDate}</strong></span>
+            <span>{lang === 'ta' ? 'காலம்' : 'Period'}: <strong className="text-emerald-900">{dailyViewPeriod === 'monthly' && activeReportType === 'daily' ? selectedMonth : selectedDate}</strong></span>
             {activeReportType === 'daily' && (
               <>
                 <span>•</span>
-                <span>Status Filter: <strong className="text-emerald-900">{dailyStatusFilter}</strong></span>
+                <span>{lang === 'ta' ? 'நிலை' : 'Status Filter'}: <strong className="text-emerald-900">{translateStatus(dailyStatusFilter, lang)}</strong></span>
               </>
             )}
           </div>
           <div className="text-[11px] text-emerald-800 font-medium">
-            Solid Waste Management Directorate • SWM Audit Verified
+            {lang === 'ta'
+              ? 'திடக்கழிவு மேலாண்மை இயக்கம் • தணிக்கை சரிபார்க்கப்பட்டது'
+              : 'Solid Waste Management Directorate • SWM Audit Verified'}
           </div>
         </div>
 
