@@ -44,9 +44,10 @@ import {
 
 interface LiveTrackingViewProps {
   onDispatchWorker?: (info: string) => void;
+  lang?: 'en' | 'ta';
 }
 
-export const LiveTrackingView: React.FC<LiveTrackingViewProps> = () => {
+export const LiveTrackingView: React.FC<LiveTrackingViewProps> = ({ lang = 'en' }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
@@ -1408,38 +1409,99 @@ export const LiveTrackingView: React.FC<LiveTrackingViewProps> = () => {
             )}
           </div>
 
-          {/* Selected Vehicle Active Banner Strip */}
+          {/* Selected Vehicle Prominent Telemetry Card (Displays Vehicle No, Location, Ward No, Zone, KM, Time) */}
           {selectedVehicle && (
-            <div className="pt-2 border-t border-[#166534] flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-black text-amber-300 bg-black/40 px-2 py-0.5 rounded border border-amber-400/30">
-                  🟢 Currently Tracking: {selectedVehicle.vehicleNo}
-                </span>
-                <span className="text-white font-semibold">
-                  📍 {selectedVehicle.ward} ({selectedVehicle.zone})
-                </span>
-                <span className="text-emerald-300">•</span>
-                <span className="text-emerald-100 font-bold flex items-center gap-1.5">
-                  <span className="inline-block w-4 h-0.5 border-b-2 border-dashed border-emerald-400"></span>
-                  Green Dotted Route: <strong>{selectedVehicle.distanceCoveredKm} km</strong>
-                </span>
-                <span className="text-emerald-300">•</span>
-                <span className="text-white font-medium">
-                  Driver: <strong>{selectedVehicle.driverName}</strong>
-                </span>
+            <div className="bg-slate-950 text-white rounded-2xl p-4 border-2 border-emerald-400 shadow-xl space-y-3 animate-in fade-in duration-300">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2 flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>
+                  <span className="text-xs font-black text-emerald-400 uppercase tracking-wider">
+                    {lang === 'ta' ? 'நேரலை ஜிபிஎஸ் டிராக்கிங் விபரம்' : 'Live Vehicle GPS Telemetry'}
+                  </span>
+                  <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded font-black">
+                    {getVehicleLastDigits(selectedVehicle.vehicleNo)}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleFitCurrentVehicleRoute}
+                    className="px-3 py-1 bg-[#166534] hover:bg-[#1E7A38] text-emerald-100 hover:text-white rounded-xl text-xs font-bold border border-emerald-400/40 transition cursor-pointer flex items-center gap-1 shadow-xs"
+                  >
+                    <Crosshair className="w-3.5 h-3.5" />
+                    <span>{lang === 'ta' ? 'பாதையில் பொருத்து' : 'Fit Route'}</span>
+                  </button>
+                  <button
+                    onClick={() => setIsDetailModalOpen(true)}
+                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-extrabold text-xs transition cursor-pointer flex items-center gap-1 shadow-xs"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>{lang === 'ta' ? 'முழு விபரம்' : 'Full Telemetry'}</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleFitCurrentVehicleRoute}
-                  className="px-2.5 py-1 bg-[#166534] hover:bg-[#113B22] text-white rounded-lg font-bold text-[11px] flex items-center gap-1 border border-emerald-400/30 shadow-sm transition-all cursor-pointer"
-                >
-                  <Crosshair className="w-3 h-3" />
-                  <span>Fit Route</span>
-                </button>
-                <span className="text-[11px] font-bold text-emerald-100 bg-[#166534] px-2.5 py-1 rounded-lg border border-emerald-400/30">
-                  ✓ Route: {selectedVehicle.completedStreetsCount} / {(selectedVehicle.completedStreetsCount || 0) + (selectedVehicle.pendingStreetsCount || 0)} Streets ({selectedVehicle.routeCoveragePercentage || 78}%)
-                </span>
+              {/* 6 Key Telemetry Metrics Cards Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+                {/* 1. Vehicle No */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-2.5">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                    {lang === 'ta' ? 'வாகன எண்' : 'Vehicle No'}
+                  </span>
+                  <div className="text-sm font-black text-amber-300 mt-0.5 truncate" title={selectedVehicle.vehicleNo}>
+                    {selectedVehicle.vehicleNo}
+                  </div>
+                </div>
+
+                {/* 2. Where it is (Location) */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-2.5">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                    {lang === 'ta' ? 'தற்போதைய இடம்' : 'Location / Street'}
+                  </span>
+                  <div className="text-xs font-bold text-white mt-0.5 truncate" title={selectedVehicle.currentStreetName || selectedVehicle.ward}>
+                    📍 {selectedVehicle.currentStreetName || selectedVehicle.ward}
+                  </div>
+                </div>
+
+                {/* 3. Ward No */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-2.5">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                    {lang === 'ta' ? 'வார்டு எண்' : 'Ward No'}
+                  </span>
+                  <div className="text-sm font-black text-emerald-400 mt-0.5">
+                    {selectedVehicle.ward}
+                  </div>
+                </div>
+
+                {/* 4. Zone */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-2.5">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                    {lang === 'ta' ? 'மண்டலம்' : 'Zone'}
+                  </span>
+                  <div className="text-xs font-bold text-slate-200 mt-0.5 truncate" title={selectedVehicle.zone}>
+                    {selectedVehicle.zone}
+                  </div>
+                </div>
+
+                {/* 5. KM & Speed */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-2.5">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                    {lang === 'ta' ? 'தூரம் & வேகம்' : 'KM & Speed'}
+                  </span>
+                  <div className="text-xs font-black text-sky-300 mt-0.5">
+                    {selectedVehicle.distanceCoveredKm} km ({selectedVehicle.speedKmH} km/h)
+                  </div>
+                </div>
+
+                {/* 6. Time */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-2.5">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                    {lang === 'ta' ? 'நேரம்' : 'Ping Time'}
+                  </span>
+                  <div className="text-xs font-bold text-emerald-400 mt-0.5 truncate">
+                    ⏰ {selectedVehicle.lastPingTime}
+                  </div>
+                </div>
               </div>
             </div>
           )}

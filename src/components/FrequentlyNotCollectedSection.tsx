@@ -281,11 +281,11 @@ export const FrequentlyNotCollectedSection: React.FC<FrequentlyNotCollectedSecti
               className="bg-white border border-slate-300 text-slate-800 text-xs font-semibold rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer"
             >
               <option value="All">{lang === 'ta' ? 'அனைத்து மண்டலங்கள்' : 'All Zones'}</option>
-              <option value="North Zone">North Zone (வ வடக்கு)</option>
-              <option value="Central Zone">Central Zone (மத்திய)</option>
-              <option value="South Zone">South Zone (தெற்கு)</option>
-              <option value="West Zone">West Zone (மேற்கு)</option>
-              <option value="East Zone">East Zone (கிழக்கு)</option>
+              <option value="North Zone">{lang === 'ta' ? 'வடக்கு மண்டலம் (North Zone)' : 'North Zone (வடக்கு மண்டலம்)'}</option>
+              <option value="Central Zone">{lang === 'ta' ? 'மத்திய மண்டலம் (Central Zone)' : 'Central Zone (மத்திய மண்டலம்)'}</option>
+              <option value="South Zone">{lang === 'ta' ? 'தெற்கு மண்டலம் (South Zone)' : 'South Zone (தெற்கு மண்டலம்)'}</option>
+              <option value="West Zone">{lang === 'ta' ? 'மேற்கு மண்டலம் (West Zone)' : 'West Zone (மேற்கு மண்டலம்)'}</option>
+              <option value="East Zone">{lang === 'ta' ? 'கிழக்கு மண்டலம் (East Zone)' : 'East Zone (கிழக்கு மண்டலம்)'}</option>
             </select>
           </div>
 
@@ -372,11 +372,24 @@ export const FrequentlyNotCollectedSection: React.FC<FrequentlyNotCollectedSecti
                     <User className="w-3.5 h-3.5 text-slate-400" />
                     <span className="font-semibold text-slate-800">{item.householderName}</span>
                     <a
-                      href={`tel:${item.householderPhone}`}
-                      className="text-emerald-700 hover:text-emerald-800 font-bold ml-1 flex items-center gap-0.5 hover:underline"
+                      href={`tel:${item.householderPhone || '9842101234'}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const targetPhone = item.householderPhone || '9842101234';
+                        if (onShowToast) {
+                          onShowToast(
+                            lang === 'ta'
+                              ? `📞 ${item.householderName} (${targetPhone}) எண்ணிற்கு அழைப்பு மேற்கொள்ளப்படுகிறது...`
+                              : `📞 Calling ${item.householderName} at ${targetPhone}...`
+                          );
+                        }
+                        window.location.href = `tel:${targetPhone}`;
+                      }}
+                      className="text-emerald-700 hover:text-emerald-800 font-extrabold ml-1 flex items-center gap-1 hover:underline bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200/80 cursor-pointer shadow-2xs"
+                      title={lang === 'ta' ? 'அழைப்பு செய்ய கிளிக் செய்க' : 'Click to call resident'}
                     >
-                      <Phone className="w-3 h-3" />
-                      {item.householderPhone}
+                      <Phone className="w-3 h-3 text-emerald-700 animate-pulse" />
+                      <span>{item.householderPhone || '9842101234'}</span>
                     </a>
                   </div>
 

@@ -75,6 +75,7 @@ interface ReportsViewProps {
   onInspectRecord: (record: CollectionRecord) => void;
   onNavigateToLiveTracking?: (zone?: string) => void;
   onShowToast: (msg: string) => void;
+  lang?: 'en' | 'ta';
 }
 
 export const ReportsView: React.FC<ReportsViewProps> = ({
@@ -83,6 +84,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   onInspectRecord,
   onNavigateToLiveTracking,
   onShowToast,
+  lang = 'en',
 }) => {
   const [activeReportType, setActiveReportType] = useState<ReportType>('vehicle-assignment');
   const [selectedDate, setSelectedDate] = useState<string>('2026-05-13');
@@ -165,57 +167,99 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     }
   };
 
-  // Structured data generator for Excel / PDF / CSV exports
-  const getExportData = () => {
+  // Helper to extract exportable tabular data (for Excel, CSV, PDF)
+  const getExportData = (forPDF = false) => {
     let headers: string[] = [];
     let rows: (string | number)[][] = [];
 
     if (activeReportType === 'vehicle-assignment' || activeReportType === 'vehicle') {
-      headers = [
-        'S.No',
-        'Vehicle Plate No',
-        'Vehicle Type',
-        'Capacity',
-        'Zone',
-        'Primary Ward',
-        'All Assigned Wards',
-        'Assigned Streets / Route',
-        'Driver / Leader Name',
-        'Driver Contact',
-        'Shift Timing',
-        'Target Houses',
-        'Covered Houses',
-        'Coverage %',
-        'Distance (km)',
-        'Vellalore Trips',
-        'GPS Tracking Status',
-        'Operational Status',
-      ];
-      rows = filteredVehicleAssignmentReports.map((v, idx) => {
-        const target = v.targetHouseholds || 250;
-        const covered = v.coveredHouseholds || 230;
-        const pct = Math.round((covered / target) * 100);
-        return [
-          idx + 1,
-          v.vehicleNo,
-          v.type,
-          v.capacity || 'Standard',
-          v.zone,
-          v.ward,
-          (v.assignedWards || [v.ward]).join(', '),
-          (v.assignedStreets || []).join(' | '),
-          v.driverName,
-          v.driverPhone,
-          v.shiftTiming || '06:30 AM - 02:30 PM',
-          target,
-          covered,
-          `${pct}%`,
-          v.distanceCoveredKm,
-          v.tripsToDumpYard,
-          v.gpsStatus || 'GPS Active',
-          v.status,
+      if (forPDF) {
+        headers = [
+          'S.No',
+          'Vehicle No',
+          'Type',
+          'Zone',
+          'Ward',
+          'Assigned Route',
+          'Driver Name',
+          'Driver Contact',
+          'Target',
+          'Covered',
+          'Cov %',
+          'KM',
+          'Trips',
+          'GPS Status',
+          'Status',
         ];
-      });
+        rows = filteredVehicleAssignmentReports.map((v, idx) => {
+          const target = v.targetHouseholds || 250;
+          const covered = v.coveredHouseholds || 230;
+          const pct = Math.round((covered / target) * 100);
+          return [
+            idx + 1,
+            v.vehicleNo,
+            v.type,
+            v.zone,
+            v.ward,
+            (v.assignedStreets || []).slice(0, 2).join(', '),
+            v.driverName,
+            v.driverPhone,
+            target,
+            covered,
+            `${pct}%`,
+            v.distanceCoveredKm,
+            v.tripsToDumpYard,
+            v.gpsStatus || 'GPS Active',
+            v.status,
+          ];
+        });
+      } else {
+        headers = [
+          'S.No',
+          'Vehicle Plate No',
+          'Vehicle Type',
+          'Capacity',
+          'Zone',
+          'Primary Ward',
+          'All Assigned Wards',
+          'Assigned Streets / Route',
+          'Driver / Leader Name',
+          'Driver Contact',
+          'Shift Timing',
+          'Target Houses',
+          'Covered Houses',
+          'Coverage %',
+          'Distance (km)',
+          'Vellalore Trips',
+          'GPS Tracking Status',
+          'Operational Status',
+        ];
+        rows = filteredVehicleAssignmentReports.map((v, idx) => {
+          const target = v.targetHouseholds || 250;
+          const covered = v.coveredHouseholds || 230;
+          const pct = Math.round((covered / target) * 100);
+          return [
+            idx + 1,
+            v.vehicleNo,
+            v.type,
+            v.capacity || 'Standard',
+            v.zone,
+            v.ward,
+            (v.assignedWards || [v.ward]).join(', '),
+            (v.assignedStreets || []).join(' | '),
+            v.driverName,
+            v.driverPhone,
+            v.shiftTiming || '06:30 AM - 02:30 PM',
+            target,
+            covered,
+            `${pct}%`,
+            v.distanceCoveredKm,
+            v.tripsToDumpYard,
+            v.gpsStatus || 'GPS Active',
+            v.status,
+          ];
+        });
+      }
     } else if (activeReportType === 'daily' || activeReportType === 'street') {
       headers = ['S.No', 'Date', 'Time', 'Zone', 'Ward', 'Street Name', 'Assigned Worker', 'Vehicle Plate', 'Status', 'Missed Reason'];
       rows = filteredStreetReports.map((s, i) => [
@@ -231,57 +275,104 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         s.reasonIfNotCollected || 'N/A',
       ]);
     } else if (activeReportType === 'zone') {
-      headers = ['Zone', 'Total Locations', 'Collected Points', 'Pending Points', 'Coverage %'];
-      rows = zoneSummaries.map((z) => [
-        z.zone,
-        z.totalLocations,
-        z.collectedCount,
-        z.notCollectedCount,
-        `${z.coveragePercentage}%`,
-      ]);
+      if (forPDF) {
+        headers = ['S.No', 'Zone Name', 'Total Locations', 'Collected Points', 'Pending Points', 'Coverage %'];
+        rows = zoneSummaries.map((z, idx) => [
+          idx + 1,
+          z.zone,
+          z.totalLocations,
+          z.collectedCount,
+          z.notCollectedCount,
+          `${z.coveragePercentage}%`,
+        ]);
+      } else {
+        headers = ['Zone', 'Total Locations', 'Collected Points', 'Pending Points', 'Coverage %'];
+        rows = zoneSummaries.map((z) => [
+          z.zone,
+          z.totalLocations,
+          z.collectedCount,
+          z.notCollectedCount,
+          `${z.coveragePercentage}%`,
+        ]);
+      }
     } else if (activeReportType === 'worker') {
-      headers = [
-        'S.No',
-        'Worker ID',
-        'Sanitary Worker Name',
-        'Worker Mobile No',
-        'Zone',
-        'Ward No',
-        'Assigned Route',
-        'Target Houses',
-        'Completed Houses',
-        'Efficiency %',
-        'SI Name',
-        'SI Phone Number',
-        'SS Name',
-        'SS Phone Number',
-        'CSS Name',
-        'CSS Phone Number',
-        'Shift Start Time',
-        'Hours on Field',
-        'Status',
-      ];
-      rows = filteredWorkerReports.map((w, idx) => [
-        idx + 1,
-        w.id,
-        w.name,
-        w.phone,
-        w.zone,
-        w.ward,
-        w.assignedRoute,
-        w.targetHouses,
-        w.completedHouses,
-        `${w.efficiencyPercent}%`,
-        w.siName,
-        w.siPhone || 'N/A',
-        w.ssName,
-        w.ssPhone || 'N/A',
-        w.cssName,
-        w.cssPhone || 'N/A',
-        w.shiftStartTime,
-        `${w.hoursOnField} hrs`,
-        w.completedHouses >= w.targetHouses ? 'Completed' : w.completedHouses > 0 ? 'In Progress' : 'Pending',
-      ]);
+      if (forPDF) {
+        headers = [
+          'S.No',
+          'Worker ID',
+          'Sanitary Worker Name',
+          'Worker Mobile',
+          'Zone',
+          'Ward No',
+          'Assigned Route',
+          'Target',
+          'Done',
+          'Eff %',
+          'SI Name',
+          'SI Mobile',
+          'Shift Start',
+          'Status',
+        ];
+        rows = filteredWorkerReports.map((w, idx) => [
+          idx + 1,
+          w.id,
+          w.name,
+          w.phone,
+          w.zone,
+          w.ward,
+          w.assignedRoute,
+          w.targetHouses,
+          w.completedHouses,
+          `${w.efficiencyPercent}%`,
+          w.siName,
+          w.siPhone || 'N/A',
+          w.shiftStartTime,
+          w.completedHouses >= w.targetHouses ? 'Completed' : w.completedHouses > 0 ? 'In Progress' : 'Pending',
+        ]);
+      } else {
+        headers = [
+          'S.No',
+          'Worker ID',
+          'Sanitary Worker Name',
+          'Worker Mobile No',
+          'Zone',
+          'Ward No',
+          'Assigned Route',
+          'Target Houses',
+          'Completed Houses',
+          'Efficiency %',
+          'SI Name',
+          'SI Phone Number',
+          'SS Name',
+          'SS Phone Number',
+          'CSS Name',
+          'CSS Phone Number',
+          'Shift Start Time',
+          'Hours on Field',
+          'Status',
+        ];
+        rows = filteredWorkerReports.map((w, idx) => [
+          idx + 1,
+          w.id,
+          w.name,
+          w.phone,
+          w.zone,
+          w.ward,
+          w.assignedRoute,
+          w.targetHouses,
+          w.completedHouses,
+          `${w.efficiencyPercent}%`,
+          w.siName,
+          w.siPhone || 'N/A',
+          w.ssName,
+          w.ssPhone || 'N/A',
+          w.cssName,
+          w.cssPhone || 'N/A',
+          w.shiftStartTime,
+          `${w.hoursOnField} hrs`,
+          w.completedHouses >= w.targetHouses ? 'Completed' : w.completedHouses > 0 ? 'In Progress' : 'Pending',
+        ]);
+      }
     }
     return { headers, rows };
   };
@@ -331,33 +422,48 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     }
   };
 
-  // Helper to convert Image to Circular PNG Data URL for jsPDF to prevent square/overlapping box artifacts
-  const getCircularBase64Image = async (
-    imageUrl: string,
-    borderColor?: string,
-    borderWidth: number = 0,
-    bgColor?: string
-  ): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = 'Anonymous';
-      img.onload = () => {
+  // Helper to load and clip Image to Circular Canvas for jsPDF (100% cross-browser reliable)
+  const loadCircularImageCanvas = async (
+    imageSrc: string,
+    borderColor: string = '#F59E0B',
+    borderWidth: number = 3,
+    bgColor: string = '#FFFFFF'
+  ): Promise<{ canvas: HTMLCanvasElement | null; dataUri: string | null }> => {
+    try {
+      // 1. Fetch asset blob and convert to pure base64 data URI first
+      let dataUri = imageSrc;
+      if (!imageSrc.startsWith('data:')) {
         try {
-          const rawW = img.naturalWidth || img.width || 200;
-          const rawH = img.naturalHeight || img.height || 200;
-          const minDim = Math.min(rawW, rawH);
-          const size = 256; // High-res target size
+          const res = await fetch(imageSrc);
+          const blob = await res.blob();
+          dataUri = await new Promise<string>((resolveUri) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolveUri(reader.result as string);
+            reader.onerror = () => resolveUri(imageSrc);
+            reader.readAsDataURL(blob);
+          });
+        } catch (fetchErr) {
+          console.warn('Fetch image failed, using raw src:', fetchErr);
+        }
+      }
 
-          const canvas = document.createElement('canvas');
-          canvas.width = size;
-          canvas.height = size;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
+      // 2. Render circular image on canvas
+      const canvas = await new Promise<HTMLCanvasElement | null>((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const size = 256;
+            const cvs = document.createElement('canvas');
+            cvs.width = size;
+            cvs.height = size;
+            const ctx = cvs.getContext('2d');
+            if (!ctx) return resolve(null);
+
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
             ctx.clearRect(0, 0, size, size);
 
-            // 1. Draw circular background if specified
+            // Background Fill
             if (bgColor) {
               ctx.fillStyle = bgColor;
               ctx.beginPath();
@@ -365,51 +471,53 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               ctx.fill();
             }
 
-            // 2. Circular clip for the photo
+            // Clip Circle
             ctx.save();
             ctx.beginPath();
-            const clipRadius = size / 2 - borderWidth * (size / 100);
-            ctx.arc(size / 2, size / 2, clipRadius > 0 ? clipRadius : size / 2, 0, Math.PI * 2);
+            const pad = borderWidth * 2;
+            ctx.arc(size / 2, size / 2, size / 2 - pad, 0, Math.PI * 2);
             ctx.closePath();
             ctx.clip();
 
-            // Center-crop the image
+            const rawW = img.naturalWidth || img.width || size;
+            const rawH = img.naturalHeight || img.height || size;
+            const minDim = Math.min(rawW, rawH);
             const sx = (rawW - minDim) / 2;
             const sy = (rawH - minDim) / 2;
-            const pad = borderWidth * (size / 100);
             ctx.drawImage(img, sx, sy, minDim, minDim, pad, pad, size - pad * 2, size - pad * 2);
             ctx.restore();
 
-            // 3. Draw clean circular border
+            // Border Circle
             if (borderColor && borderWidth > 0) {
               ctx.strokeStyle = borderColor;
-              ctx.lineWidth = borderWidth * (size / 100) * 2;
+              ctx.lineWidth = borderWidth * 2;
               ctx.beginPath();
-              ctx.arc(size / 2, size / 2, size / 2 - borderWidth * (size / 100), 0, Math.PI * 2);
+              ctx.arc(size / 2, size / 2, size / 2 - pad, 0, Math.PI * 2);
               ctx.stroke();
             }
 
-            resolve(canvas.toDataURL('image/png'));
-          } else {
-            resolve('');
+            resolve(cvs);
+          } catch (e) {
+            console.error('Canvas render error:', e);
+            resolve(null);
           }
-        } catch {
-          resolve('');
-        }
-      };
-      img.onerror = () => {
-        resolve('');
-      };
-      img.src = imageUrl;
-    });
+        };
+        img.onerror = () => resolve(null);
+        img.src = dataUri;
+      });
+
+      return { canvas, dataUri };
+    } catch {
+      return { canvas: null, dataUri: imageSrc };
+    }
   };
 
-  // Helper for Exporting PDF (.pdf) with Official CCMC Header (Zero Overwriting / Zero Overlapping)
+  // Helper for Exporting PDF (.pdf) with Official CCMC Header & High-Legibility Grid Boxes
   const handleExportPDF = async () => {
     try {
-      const { headers, rows } = getExportData();
+      const { headers, rows } = getExportData(true);
       const reportTitle = getReportTitle(activeReportType);
-      const isLandscape = activeReportType === 'worker' || activeReportType === 'street' || activeReportType === 'daily' || activeReportType === 'vehicle';
+      const isLandscape = activeReportType === 'worker' || activeReportType === 'street' || activeReportType === 'daily' || activeReportType === 'vehicle' || activeReportType === 'vehicle-assignment';
       
       const doc = new jsPDF({
         orientation: isLandscape ? 'landscape' : 'portrait',
@@ -420,180 +528,314 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
 
-      // Preload pristine circular PNG images
-      const [cmCircularPng, ccmcCircularPng] = await Promise.all([
-        getCircularBase64Image(cmPhoto, '#F59E0B', 3, '#1E7A38'),
-        getCircularBase64Image(ccmcLogo, '#F59E0B', 3, '#FFFFFF'),
+      // Preload pristine circular canvas images & raw base64 data URIs
+      const [cmImgData, ccmcImgData] = await Promise.all([
+        loadCircularImageCanvas(cmPhoto, '#F59E0B', 3, '#1E7A38'),
+        loadCircularImageCanvas(ccmcLogo, '#F59E0B', 3, '#FFFFFF'),
       ]);
 
       const drawOfficialHeader = () => {
         // --- 1. Top Main Green Bar (#1E7A38) ---
         doc.setFillColor(30, 122, 56);
-        doc.rect(0, 0, pageWidth, 17, 'F');
+        doc.rect(0, 0, pageWidth, 22, 'F');
         doc.setDrawColor(22, 101, 52);
-        doc.setLineWidth(0.4);
-        doc.line(0, 17, pageWidth, 17);
+        doc.setLineWidth(0.5);
+        doc.line(0, 22, pageWidth, 22);
 
-        // CM Stalin Photo (Circular PNG)
-        if (cmCircularPng) {
-          doc.addImage(cmCircularPng, 'PNG', 6, 3, 11, 11);
+        // CM Stalin Photo (Large 15mm x 15mm Circular Image or Direct Base64 Image)
+        if (cmImgData.canvas) {
+          try {
+            doc.addImage(cmImgData.canvas, 'PNG', 6, 3.5, 15, 15);
+          } catch (e) {
+            console.error('Failed to add CM canvas:', e);
+          }
+        } else if (cmImgData.dataUri && cmImgData.dataUri.startsWith('data:image')) {
+          try {
+            doc.addImage(cmImgData.dataUri, 'JPEG', 6, 3.5, 15, 15);
+          } catch {}
+        } else {
+          doc.setFillColor(245, 158, 11);
+          doc.circle(13.5, 11, 7.5, 'F');
+          doc.setFillColor(22, 101, 52);
+          doc.circle(13.5, 11, 6.8, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(7);
+          doc.setFont('helvetica', 'bold');
+          doc.text('TN', 13.5, 13, { align: 'center' });
         }
 
-        // CCMC Logo Emblem (Circular PNG)
-        if (ccmcCircularPng) {
-          doc.addImage(ccmcCircularPng, 'PNG', 19, 3, 11, 11);
+        // CCMC Logo Emblem (Large 15mm x 15mm Circular Image or Direct Base64 Image)
+        if (ccmcImgData.canvas) {
+          try {
+            doc.addImage(ccmcImgData.canvas, 'PNG', 23, 3.5, 15, 15);
+          } catch (e) {
+            console.error('Failed to add CCMC canvas:', e);
+          }
+        } else if (ccmcImgData.dataUri && ccmcImgData.dataUri.startsWith('data:image')) {
+          try {
+            doc.addImage(ccmcImgData.dataUri, 'JPEG', 23, 3.5, 15, 15);
+          } catch {}
+        } else {
+          doc.setFillColor(255, 255, 255);
+          doc.circle(30.5, 11, 7.5, 'F');
+          doc.setFillColor(30, 122, 56);
+          doc.circle(30.5, 11, 6.8, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(6.5);
+          doc.setFont('helvetica', 'bold');
+          doc.text('CCMC', 30.5, 13, { align: 'center' });
         }
 
-        // Main Title & Subtitle (Clear distinct lines)
+        // Main Title & Subtitle (Prominent & Clear)
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10.5);
-        doc.text('Coimbatore City Municipal Corporation', 33, 7.8);
+        doc.setFontSize(12);
+        doc.text('Coimbatore City Municipal Corporation', 41, 10);
 
         doc.setTextColor(167, 243, 208); // Emerald-200
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6.2);
-        doc.text("ADMIN REVIEW DASHBOARD", 33, 13);
+        doc.setFontSize(7.5);
+        doc.text("ADMIN REVIEW DASHBOARD • SOLID WASTE MANAGEMENT DIRECTORATE", 41, 16.5);
 
-        // Right-side Status Elements (Calculated without overlap)
+        // Right-side Status Elements
         const rightOffset = isLandscape ? pageWidth - 80 : pageWidth - 72;
 
-        // Notification Bell Badge (Clean icon and alert pill)
+        // Notification Bell Badge
         doc.setFillColor(22, 101, 52);
         doc.setDrawColor(16, 185, 129);
         doc.setLineWidth(0.25);
-        doc.circle(rightOffset + 6, 8.5, 3.2, 'FD');
-        // Red badge count
+        doc.circle(rightOffset + 6, 11, 3.8, 'FD');
         doc.setFillColor(225, 29, 72);
-        doc.circle(rightOffset + 8.5, 6.2, 1.8, 'F');
+        doc.circle(rightOffset + 9, 8, 2.2, 'F');
         doc.setTextColor(255, 255, 255);
-        doc.setFontSize(4.5);
+        doc.setFontSize(5);
         doc.setFont('helvetica', 'bold');
-        doc.text('6', rightOffset + 8.5, 7.5, { align: 'center' });
+        doc.text('6', rightOffset + 9, 9.5, { align: 'center' });
 
         // ICCC Live Status Pill
         doc.setFillColor(22, 101, 52);
         doc.setDrawColor(16, 185, 129);
         doc.setLineWidth(0.25);
-        doc.roundedRect(rightOffset + 12, 5.2, 18, 6.6, 3.3, 3.3, 'FD');
+        doc.roundedRect(rightOffset + 14, 7.5, 20, 7.5, 3.5, 3.5, 'FD');
         doc.setFillColor(52, 211, 153);
-        doc.circle(rightOffset + 15.5, 8.5, 1.1, 'F');
+        doc.circle(rightOffset + 18, 11.2, 1.3, 'F');
         doc.setTextColor(255, 255, 255);
-        doc.setFontSize(5.8);
+        doc.setFontSize(6.5);
         doc.setFont('helvetica', 'bold');
-        doc.text('ICCC Live', rightOffset + 18, 9.4);
+        doc.text('ICCC Live', rightOffset + 21, 12.2);
 
         // Admin Console Profile Pill
         doc.setFillColor(17, 59, 34);
         doc.setDrawColor(16, 185, 129);
         doc.setLineWidth(0.25);
-        const commPillW = isLandscape ? 44 : 38;
-        doc.roundedRect(rightOffset + 32, 4.2, commPillW, 8.6, 4.3, 4.3, 'FD');
+        const commPillW = isLandscape ? 46 : 40;
+        doc.roundedRect(rightOffset + 36, 6.5, commPillW, 9.5, 4.5, 4.5, 'FD');
 
         doc.setTextColor(255, 255, 255);
-        doc.setFontSize(5.2);
+        doc.setFontSize(5.8);
         doc.setFont('helvetica', 'bold');
-        doc.text('Administrative Directorate', rightOffset + 35, 7.6);
+        doc.text('Administrative Directorate', rightOffset + 39, 10.2);
 
         doc.setTextColor(167, 243, 208);
-        doc.setFontSize(4.2);
+        doc.setFontSize(4.8);
         doc.setFont('helvetica', 'bold');
-        doc.text('ADMIN CONSOLE', rightOffset + 35, 11);
+        doc.text('ADMIN CONSOLE', rightOffset + 39, 14);
 
         // --- 2. Dark Secondary Ticker Stream Bar (#113B22) ---
         doc.setFillColor(17, 59, 34);
-        doc.rect(0, 17, pageWidth, 6, 'F');
+        doc.rect(0, 22, pageWidth, 7, 'F');
 
         // Green Beacon Dot
         doc.setFillColor(16, 185, 129);
-        doc.circle(7, 20, 0.9, 'F');
+        doc.circle(7, 25.5, 1.1, 'F');
 
         // Left Stream Text
         doc.setTextColor(255, 255, 255);
-        doc.setFontSize(5.8);
+        doc.setFontSize(6.5);
         doc.setFont('helvetica', 'bold');
-        doc.text('Active Municipal Data Stream', 9.5, 21);
+        doc.text('Active Municipal Data Stream', 9.8, 26.8);
 
         doc.setTextColor(52, 211, 153);
-        doc.text('|', 46, 21);
+        doc.text('|', 50, 26.8);
 
         doc.setTextColor(220, 245, 230);
         doc.setFont('helvetica', 'normal');
-        doc.text(currentTime || '14 August 2026 • Friday 4:26 pm', 49, 21);
+        doc.text(currentTime || '14 August 2026 • Friday 4:26 pm', 53, 26.8);
 
-        // Right Stream Summary (Positioned clearly without overlap)
-        const tickerRightX = pageWidth - 66;
+        // Right Stream Summary
+        const tickerRightX = pageWidth - 70;
         doc.setTextColor(167, 243, 208);
-        doc.setFontSize(5.8);
-        doc.text('5 Zones   •   100 Wards   •   ', tickerRightX, 21);
+        doc.setFontSize(6.5);
+        doc.text('5 Zones   •   100 Wards   •   ', tickerRightX, 26.8);
 
         doc.setTextColor(251, 191, 36);
         doc.setFont('helvetica', 'bold');
-        doc.text('248 GPS Compactors Online', tickerRightX + 33, 21);
+        doc.text('248 GPS Compactors Online', tickerRightX + 35, 26.8);
 
         // --- 3. Report Metadata Ribbon Bar (#F0FDF4) ---
         doc.setFillColor(240, 253, 244);
-        doc.rect(0, 23, pageWidth, 6.5, 'F');
+        doc.rect(0, 29, pageWidth, 7.5, 'F');
         doc.setDrawColor(167, 243, 208);
-        doc.setLineWidth(0.3);
-        doc.line(0, 29.5, pageWidth, 29.5);
+        doc.setLineWidth(0.4);
+        doc.line(0, 36.5, pageWidth, 36.5);
 
         const periodText = dailyViewPeriod === 'monthly' && activeReportType === 'daily' ? `Month: ${selectedMonth}` : `Date: ${selectedDate}`;
         doc.setTextColor(6, 78, 59);
-        doc.setFontSize(6.2);
+        doc.setFontSize(6.5);
         doc.setFont('helvetica', 'bold');
         doc.text(
-          `Ref: CCMC/SWM/${new Date().getFullYear()}/${activeReportType.toUpperCase()}   •   REPORT: ${reportTitle.toUpperCase()}   •   Zone: ${selectedZone}   •   Period: ${periodText}`,
+          `Ref: CCMC/SWM/${new Date().getFullYear()}/${activeReportType.toUpperCase()}  |  Zone: ${selectedZone}  |  Period: ${periodText}`,
           6,
-          27.2
+          34
         );
 
         doc.setTextColor(4, 120, 87);
-        doc.setFontSize(5.8);
+        doc.setFontSize(6.5);
         doc.setFont('helvetica', 'normal');
-        doc.text('Solid Waste Management Directorate • SWM Audit Verified', pageWidth - 6, 27.2, { align: 'right' });
+        doc.text('Solid Waste Management Directorate • SWM Audit Verified', pageWidth - 6, 34, { align: 'right' });
       };
 
       // Draw initial page header
       drawOfficialHeader();
 
-      // Render Table starting cleanly at Y=32 (No overwriting)
+      // Determine dynamic typography & box sizing based on column density
+      const numCols = headers.length;
+      let headerFontSize = 10;
+      let bodyFontSize = 9;
+      let cellPad = 3.5;
+      let minRowHeight = 9.5;
+
+      if (numCols <= 6) {
+        headerFontSize = 11;
+        bodyFontSize = 10;
+        cellPad = 4.5;
+        minRowHeight = 11;
+      } else if (numCols <= 10) {
+        headerFontSize = 10;
+        bodyFontSize = 9;
+        cellPad = 4;
+        minRowHeight = 10;
+      } else {
+        headerFontSize = 8.5;
+        bodyFontSize = 8;
+        cellPad = 3.2;
+        minRowHeight = 9;
+      }
+
+      // Configure column styles without rigid cell widths so autoTable stretches 100% full page width
+      let columnStylesConfig: Record<number, any> = {};
+
+      if (activeReportType === 'vehicle-assignment' || activeReportType === 'vehicle') {
+        columnStylesConfig = {
+          0: { halign: 'center' }, // S.No
+          1: { fontStyle: 'bold' }, // Vehicle No
+          2: {}, // Type
+          3: {}, // Zone
+          4: {}, // Ward
+          5: {}, // Route
+          6: {}, // Driver Name
+          7: {}, // Contact
+          8: { halign: 'right' }, // Target
+          9: { halign: 'right' }, // Covered
+          10: { halign: 'right', fontStyle: 'bold' }, // Cov %
+          11: { halign: 'right' }, // KM
+          12: { halign: 'center' }, // Trips
+          13: { halign: 'center' }, // Status
+        };
+      } else if (activeReportType === 'worker') {
+        columnStylesConfig = {
+          0: { halign: 'center' },
+          1: { fontStyle: 'bold' },
+          2: { fontStyle: 'bold' },
+          3: {},
+          4: {},
+          5: {},
+          6: {},
+          7: { halign: 'right' },
+          8: { halign: 'right' },
+          9: { halign: 'right', fontStyle: 'bold' },
+          10: {},
+          11: {},
+          12: {},
+          13: { halign: 'center' },
+        };
+      } else if (activeReportType === 'daily' || activeReportType === 'street') {
+        columnStylesConfig = {
+          0: { halign: 'center' },
+          1: {},
+          2: {},
+          3: {},
+          4: {},
+          5: { fontStyle: 'bold' },
+          6: {},
+          7: {},
+          8: { halign: 'center' },
+          9: {},
+        };
+      } else if (activeReportType === 'zone') {
+        columnStylesConfig = {
+          0: { halign: 'center' },
+          1: { fontStyle: 'bold' },
+          2: { halign: 'right' },
+          3: { halign: 'right' },
+          4: { halign: 'right' },
+          5: { halign: 'right', fontStyle: 'bold' },
+        };
+      }
+
+      // Render Table starting cleanly at Y=38 with 100% full-page width & clean row page-breaks
       autoTable(doc, {
-        startY: 32,
+        startY: 38,
+        margin: { top: 38, bottom: 15, left: 6, right: 6 },
+        tableWidth: 'auto', // Expands table to 100% full printable width across page
+        showHead: 'everyPage', // Repeats header bar cleanly on every page
+        rowPageBreak: 'avoid', // Moves entire row to next page cleanly if it doesn't fit on current page
+        pageBreak: 'auto',
         head: [headers],
         body: rows,
         theme: 'grid',
+        tableLineWidth: 0.4,
+        tableLineColor: [30, 122, 56],
+        columnStyles: columnStylesConfig,
         headStyles: {
           fillColor: [30, 122, 56],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
-          fontSize: 7,
+          fontSize: headerFontSize,
+          cellPadding: cellPad,
           halign: 'left',
-          cellPadding: 2,
-        },
-        styles: {
-          fontSize: 6.8,
-          cellPadding: 2,
-          textColor: [40, 40, 40],
+          valign: 'middle',
+          lineWidth: 0.35,
+          lineColor: [15, 80, 40],
           overflow: 'linebreak',
         },
+        styles: {
+          fontSize: bodyFontSize,
+          cellPadding: cellPad,
+          minCellHeight: minRowHeight,
+          textColor: [15, 23, 42], // Deep high-contrast dark text (#0F172A) for max visibility
+          lineColor: [160, 174, 192], // Crisp, clearly visible grid lines for every box
+          lineWidth: 0.35, // Thick border lines for every grid cell
+          overflow: 'linebreak',
+          valign: 'middle',
+        },
         alternateRowStyles: {
-          fillColor: [248, 250, 248],
+          fillColor: [242, 249, 244],
         },
         didDrawPage: (data) => {
-          // If multi-page, redraw the header on subsequent pages if wanted
-          if (data.pageNumber > 1) {
-            drawOfficialHeader();
-          }
+          // Always draw official CCMC header on every page
+          drawOfficialHeader();
 
           // Bottom Footer
-          const pageCount = doc.getNumberOfPages();
-          doc.setFontSize(7);
-          doc.setTextColor(120, 120, 120);
+          const totalPages = doc.getNumberOfPages();
+          doc.setFontSize(7.5);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(110, 110, 110);
           doc.text(
-            `CCMC Smart SWM Command Center • Confidential & Proprietary Municipal Record • Page ${data.pageNumber} of ${pageCount}`,
-            14,
-            pageHeight - 6
+            `CCMC Smart SWM Command Center • Confidential Municipal Record • Page ${data.pageNumber} of ${totalPages}`,
+            pageWidth / 2,
+            pageHeight - 5,
+            { align: 'center' }
           );
         },
       });

@@ -214,10 +214,12 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
-                    Admin Review Dashboard
+                    {lang === 'ta' ? 'நிர்வாக ஆய்வுக் கட்டுப்பாட்டகம்' : 'Admin Review Dashboard'}
                   </h1>
                   <p className="text-xs sm:text-sm text-gray-500 font-semibold">
-                    CCMC Smart Solid Waste Management Directorate overview
+                    {lang === 'ta'
+                      ? 'கோயம்புத்தூர் மாநகராட்சி ஸ்மார்ட் திடக்கழிவு மேலாண்மை கண்ணோட்டம்'
+                      : 'CCMC Smart Solid Waste Management Directorate overview'}
                   </p>
                 </div>
               </div>
@@ -225,22 +227,23 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
               {/* KPI cards grid with individual view redirection */}
               <KPICards 
                 metrics={metrics} 
+                lang={lang}
                 onNavigateToLiveTracking={() => handleNavigateToLiveTracking()} 
                 onNavigateToCollected={() => {
                   setActiveTab('collected');
-                  showToast('Navigated to: Total Collected Waste Details');
+                  showToast(lang === 'ta' ? 'மொத்த சேகரிக்கப்பட்ட குப்பை விவரங்களுக்குத் நகர்ந்தது' : 'Navigated to: Total Collected Waste Details');
                 }}
                 onNavigateToCovered={() => {
                   setActiveTab('collected');
-                  showToast('Navigated to: Total Household Covered Details');
+                  showToast(lang === 'ta' ? 'மொத்த வீட்டுச் சேகரிப்பு விவரங்களுக்குத் நகர்ந்தது' : 'Navigated to: Total Household Covered Details');
                 }}
                 onNavigateToNotCovered={() => {
                   setActiveTab('not-collected');
-                  showToast('Navigated to: Total Household Not Covered Reports');
+                  showToast(lang === 'ta' ? 'விடுபட்ட வீடுகள் அறிக்கைகளுக்குத் நகர்ந்தது' : 'Navigated to: Total Household Not Covered Reports');
                 }}
                 onNavigateToFrequentlyNotCovered={() => {
                   setActiveTab('frequently-not-covered-area');
-                  showToast('Navigated to: Frequently Not Covered Area Intelligence View');
+                  showToast(lang === 'ta' ? 'அடிக்கடி சேகரிக்கப்படாத வீடுகள் பகுதிக்குத் நகர்ந்தது' : 'Navigated to: Frequently Not Covered Area Intelligence View');
                 }}
               />
 
@@ -248,8 +251,9 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
               <div className="w-full">
                 <ZoneSummaryTable
                   summaries={zoneSummaries}
+                  lang={lang}
                   onSelectZone={(zone) => {
-                    showToast(`Filtering metrics by: ${zone}`);
+                    showToast(lang === 'ta' ? `${zone} மண்டலத்தின் மூலம் வடிகட்டப்படுகிறது` : `Filtering metrics by: ${zone}`);
                   }}
                 />
               </div>
@@ -258,6 +262,7 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
               <div className="w-full">
                 <RecentCollectionTable
                   records={collectionRecords}
+                  lang={lang}
                   onInspectRecord={handleInspectRecord}
                   onViewAllReports={() => setActiveTab('reports')}
                 />
@@ -276,7 +281,7 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
 
           {/* TAB 2: LIVE GPS TRACKING */}
           {activeTab === 'live-tracking' && (
-            <LiveTrackingView />
+            <LiveTrackingView lang={lang} />
           )}
 
           {/* TAB 3: ALERTS */}
@@ -300,6 +305,7 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
               onInspectRecord={handleInspectRecord}
               onNavigateToLiveTracking={handleNavigateToLiveTracking}
               onShowToast={showToast}
+              lang={lang}
             />
           )}
 
@@ -311,8 +317,9 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
               onBackToOverview={() => setActiveTab('overview')}
               onNavigateToNotCovered={() => {
                 setActiveTab('not-collected');
-                showToast('Navigated to: Total Household Not Covered Reports');
+                showToast(lang === 'ta' ? 'விடுபட்ட வீடுகள் அறிக்கைகளுக்குத் நகர்ந்தது' : 'Navigated to: Total Household Not Covered Reports');
               }}
+              lang={lang}
             />
           )}
 
@@ -324,8 +331,9 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
               onBackToOverview={() => setActiveTab('overview')}
               onNavigateToCovered={() => {
                 setActiveTab('collected');
-                showToast('Navigated to: Total Household Covered Details');
+                showToast(lang === 'ta' ? 'மொத்த வீட்டுச் சேகரிப்பு விவரங்களுக்குத் நகர்ந்தது' : 'Navigated to: Total Household Covered Details');
               }}
+              lang={lang}
             />
           )}
 

@@ -4,11 +4,23 @@ import { ZoneSummary } from '../types';
 
 interface ZoneSummaryTableProps {
   summaries: ZoneSummary[];
+  lang?: 'en' | 'ta';
   onSelectZone?: (zone: string) => void;
 }
 
+const getZoneDisplayName = (zoneName: string, lang: 'en' | 'ta') => {
+  if (lang !== 'ta') return zoneName;
+  if (zoneName.includes('North Zone')) return 'வடக்கு மண்டலம் (North Zone)';
+  if (zoneName.includes('Central Zone')) return 'மத்திய மண்டலம் (Central Zone)';
+  if (zoneName.includes('South Zone')) return 'தெற்கு மண்டலம் (South Zone)';
+  if (zoneName.includes('West Zone')) return 'மேற்கு மண்டலம் (West Zone)';
+  if (zoneName.includes('East Zone')) return 'கிழக்கு மண்டலம் (East Zone)';
+  return zoneName;
+};
+
 export const ZoneSummaryTable: React.FC<ZoneSummaryTableProps> = ({
   summaries,
+  lang = 'en',
   onSelectZone,
 }) => {
   // Calculate Totals
@@ -24,7 +36,7 @@ export const ZoneSummaryTable: React.FC<ZoneSummaryTableProps> = ({
       {/* Header Title */}
       <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
         <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
-          Zone Wise Overall Collection Summary
+          {lang === 'ta' ? 'மண்டல வாரியான ஒட்டுமொத்த சேகரிப்பு சுருக்கம்' : 'Zone Wise Overall Collection Summary'}
         </h2>
       </div>
 
@@ -37,28 +49,28 @@ export const ZoneSummaryTable: React.FC<ZoneSummaryTableProps> = ({
               <th className="bg-[#E9F5ED] text-[#1E7A38] px-6 py-3.5 w-[28%]">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-[#1E7A38] flex-shrink-0" />
-                  <span className="font-bold">Zone</span>
+                  <span className="font-bold">{lang === 'ta' ? 'மண்டலம்' : 'Zone'}</span>
                 </div>
               </th>
 
               {/* Total Locations Header */}
               <th className="bg-[#E9F5ED] text-[#1E7A38] px-6 py-3.5 text-center font-bold w-[18%]">
-                Total Locations
+                {lang === 'ta' ? 'மொத்த இடங்கள்' : 'Total Locations'}
               </th>
 
               {/* Collected Count Header */}
               <th className="bg-[#E9F5ED] text-[#1E7A38] px-6 py-3.5 text-center font-bold w-[18%]">
-                Collected Count
+                {lang === 'ta' ? 'சேகரிக்கப்பட்டவை' : 'Collected Count'}
               </th>
 
               {/* Not Collected Count Header (Red/Pink Tint Cell) */}
               <th className="bg-[#FCE8E6] text-[#C5221F] px-6 py-3.5 text-center font-bold w-[18%]">
-                Not Collected Count
+                {lang === 'ta' ? 'சேகரிக்கப்படாதவை' : 'Not Collected Count'}
               </th>
 
               {/* Coverage % Header */}
               <th className="bg-[#E9F5ED] text-[#1E7A38] px-6 py-3.5 text-center font-bold w-[18%]">
-                Coverage %
+                {lang === 'ta' ? 'சேகரிப்பு %' : 'Coverage %'}
               </th>
             </tr>
           </thead>
@@ -74,7 +86,7 @@ export const ZoneSummaryTable: React.FC<ZoneSummaryTableProps> = ({
                 <td className="px-6 py-3.5 text-gray-900 font-bold">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-[#1E7A38] flex-shrink-0" />
-                    <span>{row.zone}</span>
+                    <span>{getZoneDisplayName(row.zone, lang)}</span>
                   </div>
                 </td>
 
@@ -107,7 +119,7 @@ export const ZoneSummaryTable: React.FC<ZoneSummaryTableProps> = ({
                   <div className="w-4 h-4 rounded-full bg-[#1E7A38] flex items-center justify-center text-white flex-shrink-0">
                     <CheckCircle2 className="w-3 h-3" />
                   </div>
-                  <span className="font-extrabold text-gray-900">Total</span>
+                  <span className="font-extrabold text-gray-900">{lang === 'ta' ? 'மொத்தம்' : 'Total'}</span>
                 </div>
               </td>
 

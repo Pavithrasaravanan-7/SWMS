@@ -61,15 +61,31 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
     setChatMessages(prev => [...prev, { sender: 'user', text: userQ }]);
     setChatInput('');
 
-    // Simulate SBM AI expert response
+    // Simulate SWMS Copilot User Feed Analytics Predictor
     setTimeout(() => {
+      const riskScore = Math.floor(78 + Math.random() * 18);
+      const hoursWindow = Math.floor(8 + Math.random() * 10);
+      const houses = Math.floor(35 + Math.random() * 55);
+
+      const aiText = lang === 'ta'
+        ? `🤖 [SWMS Copilot Analytics கணிப்பு Report]\n` +
+          `• பெறப்பட்ட பயனர் தகவல்: "${userQ}"\n` +
+          `• முன்னறிவிக்கப்பட்ட அபாய அளவு (Risk Score): ${riskScore}% [HIGH CRITICAL]\n` +
+          `• கழிவு தேக்கக் கணிப்பு காலம்: அடுத்த ${hoursWindow} மணி நேரத்தில் கழிவு வழிதல் அபாயம்\n` +
+          `• பாதிக்கப்பட்ட வீடுகள் மதிப்பீடு: ~${houses} வீடுகள்\n` +
+          `• AI பரிந்துரைக்கப்பட்ட தீர்வு: 2 BOV மின்சார ஆட்டோக்கள் மற்றும் வாகன மாற்றுப் பாதை ஒதுக்கீடு தூண்டப்பட்டது.`
+        : `🤖 [SWMS Copilot Analytics Prediction Report]\n` +
+          `• Received User Feed: "${userQ}"\n` +
+          `• Predicted Risk Score: ${riskScore}% [HIGH CRITICAL]\n` +
+          `• Overflow Bottleneck Window: High accumulation risk within next ${hoursWindow} hours\n` +
+          `• Estimated Impact: ~${houses} Households affected\n` +
+          `• AI Action Strategy: Auto-dispatch 2 BOV Rickshaws + compactor re-route assigned.`;
+
       setChatMessages(prev => [
         ...prev,
         {
           sender: 'ai',
-          text: lang === 'ta'
-            ? `[தூய்மை பாரதம் AI பதில்]: "${userQ}" பற்றிய கேள்விக்கு, 100% கதவு சேகரிப்பு, குறுகிய தெருக்களுக்கு சிறிய வாகனங்கள், மற்றும் கழிவு பிரித்தெடுத்தல் விழிப்புணர்வை உறுதிப்படுத்த பரிந்துரைக்கிறோம்.`
-            : `[SBM Intelligence Response]: For "${userQ}", under Swachh Bharat Mission (SBM) guidelines, we recommend ensuring 100% door-to-door QR code coverage, deploying BOVs for narrow streets, and conducting wet/dry segregation awareness campaigns for non-compliant doors.`
+          text: aiText
         }
       ]);
     }, 600);
@@ -166,22 +182,67 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
           )}
         </div>
 
-        {/* Custom Ask AI Form */}
-        <form onSubmit={handleSendChat} className="flex gap-2 pt-3 border-t border-slate-200 flex-shrink-0">
-          <input
-            type="text"
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder={lang === 'ta' ? 'AI ஆய்வாளரிடம் கேள்விகளைக் கேட்கவும்...' : 'Ask AI Inspector about SBM guidelines, route optimization...'}
-            className="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
-          />
-          <button
-            type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow flex items-center justify-center"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </form>
+        {/* Custom Ask AI Form & User Feed Predictor */}
+        <div className="space-y-3 pt-3 border-t border-slate-200 flex-shrink-0">
+          {/* Quick User Feed Suggestions */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px]">
+            <span className="font-bold text-slate-500 flex-shrink-0 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-amber-500" />
+              {lang === 'ta' ? 'பயனர் தகவல் (Feeds):' : 'Sample Feeds:'}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const text = lang === 'ta' ? 'Ward 12 வாகன தாமதம் - 45 வீடுகள் நிலுவை' : 'Ward 12 compactor late, 45 households pending';
+                setChatInput(text);
+              }}
+              className="px-2.5 py-1 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-800 rounded-lg font-medium border border-slate-200 flex-shrink-0 transition cursor-pointer"
+            >
+              {lang === 'ta' ? 'வார்டு 12 தாமதம்' : 'Ward 12 Delay Feed'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const text = lang === 'ta' ? 'நார்த்பார்க் தெருவில் 3 நாட்களாக குப்பை எடுக்கவில்லை' : 'North Park Street 3 days uncollected waste';
+                setChatInput(text);
+              }}
+              className="px-2.5 py-1 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-800 rounded-lg font-medium border border-slate-200 flex-shrink-0 transition cursor-pointer"
+            >
+              {lang === 'ta' ? '3 நாட்கள் விடுபடல்' : '3-Day Missed Feed'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const text = lang === 'ta' ? 'சந்தை பகுதியில் குப்பை குவிப்பு அபாயம்' : 'Market area bulk waste overflow forecast';
+                setChatInput(text);
+              }}
+              className="px-2.5 py-1 bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-800 rounded-lg font-medium border border-slate-200 flex-shrink-0 transition cursor-pointer"
+            >
+              {lang === 'ta' ? 'சந்தை குப்பை குவிப்பு' : 'Market Waste Surge'}
+            </button>
+          </div>
+
+          <form onSubmit={handleSendChat} className="flex gap-2">
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder={
+                lang === 'ta'
+                  ? 'பயனர் தகவல் (Feed / Complaint) உள்ளிடவும் - AI Analytics கணக்கிடும்...'
+                  : 'Enter user feed, supervisor note, or complaint - AI will predict analytics...'
+              }
+              className="flex-1 bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium"
+            />
+            <button
+              type="submit"
+              className="bg-blue-900 hover:bg-blue-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>{lang === 'ta' ? 'கணிப்பு (Predict)' : 'Predict'}</span>
+            </button>
+          </form>
+        </div>
 
       </div>
     </div>
