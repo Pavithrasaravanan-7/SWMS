@@ -85,7 +85,7 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
           newDoorNo: r.doorNo,
           streetName: r.streetName,
           ward: r.ward,
-          zone: r.zone || 'East Zone',
+          zone: r.zone || (r.ward?.includes('49') ? 'Central Zone' : r.ward?.includes('35') ? 'West Zone' : r.ward?.includes('12') ? 'North Zone' : 'East Zone'),
           status: (isRealSubmission && r.coverageStatus === 'Covered' ? 'Collected' : 'Not Collected') as any,
           wasteType: 'Segregated (Wet & Dry)',
           propertyType: 'Residence',

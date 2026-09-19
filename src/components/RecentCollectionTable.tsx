@@ -1,5 +1,5 @@
-import React from 'react';
-import { Eye } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Eye, Filter } from 'lucide-react';
 import { CollectionRecord } from '../types';
 
 interface RecentCollectionTableProps {
@@ -25,16 +25,66 @@ export const RecentCollectionTable: React.FC<RecentCollectionTableProps> = ({
   onInspectRecord,
   onViewAllReports,
 }) => {
-  // Display top 5 items for the summary card as shown in the screenshot
-  const displayRecords = records.slice(0, 5);
+  const [selectedZone, setSelectedZone] = useState<string>('All');
+
+  // Compute diverse set of records representing all 5 zones or filter by selected zone
+  const displayRecords = useMemo(() => {
+    if (selectedZone !== 'All') {
+      return records.filter((r) => r.zone === selectedZone).slice(0, 5);
+    }
+
+    const zones = ['East Zone', 'Central Zone', 'West Zone', 'North Zone', 'South Zone'];
+    const diverse: CollectionRecord[] = [];
+    const addedIds = new Set<string>();
+
+    // Select 1 record from each zone first to showcase all zones
+    zones.forEach((z) => {
+      const match = records.find((r) => (r.zone === z || (z === 'North Zone' && r.ward === 'Ward 35') || (z === 'South Zone' && r.ward === 'Ward 75')) && !addedIds.has(r.id));
+      if (match) {
+        diverse.push({ ...match, zone: z });
+        addedIds.add(match.id);
+      }
+    });
+
+    // Fill remaining slots up to 5 if any zone didn't match
+    for (const r of records) {
+      if (diverse.length >= 5) break;
+      if (!addedIds.has(r.id)) {
+        diverse.push(r);
+        addedIds.add(r.id);
+      }
+    }
+
+    return diverse;
+  }, [records, selectedZone]);
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200/90 shadow-2xs overflow-hidden">
-      {/* Table Title */}
-      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+      {/* Table Title & Zone Filter Ribbon */}
+      <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
           {lang === 'ta' ? 'சமீபத்திய சேகரிப்பு மேலோட்டம்' : 'Recent Collection Overview'}
         </h2>
+
+        {/* Zone Filter Dropdown */}
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-emerald-700" />
+          <span className="text-xs font-bold text-gray-700">
+            {lang === 'ta' ? 'மண்டலம்:' : 'Zone:'}
+          </span>
+          <select
+            value={selectedZone}
+            onChange={(e) => setSelectedZone(e.target.value)}
+            className="bg-emerald-50 border border-emerald-300 text-emerald-950 font-bold text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-2xs"
+          >
+            <option value="All">{lang === 'ta' ? 'அனைத்து மண்டலங்களும் (All Zones)' : 'All Zones (அனைத்து மண்டலங்களும்)'}</option>
+            <option value="East Zone">{lang === 'ta' ? 'கிழக்கு மண்டலம் (East Zone)' : 'East Zone (கிழக்கு மண்டலம்)'}</option>
+            <option value="Central Zone">{lang === 'ta' ? 'மத்திய மண்டலம் (Central Zone)' : 'Central Zone (மத்திய மண்டலம்)'}</option>
+            <option value="West Zone">{lang === 'ta' ? 'மேற்கு மண்டலம் (West Zone)' : 'West Zone (மேற்கு மண்டலம்)'}</option>
+            <option value="North Zone">{lang === 'ta' ? 'வடக்கு மண்டலம் (North Zone)' : 'North Zone (வடக்கு மண்டலம்)'}</option>
+            <option value="South Zone">{lang === 'ta' ? 'தெற்கு மண்டலம் (South Zone)' : 'South Zone (தெற்கு மண்டலம்)'}</option>
+          </select>
+        </div>
       </div>
 
       {/* Table Content */}
