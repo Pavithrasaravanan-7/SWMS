@@ -116,7 +116,7 @@ export const FrequentlyNotCoveredAreaView: React.FC<FrequentlyNotCoveredAreaView
     setHouses(derivedHouses);
   }, [derivedAreas, derivedHouses]);
   
-  const [activeSubTab, setActiveSubTab] = useState<'areas' | 'houses'>('areas');
+  const [activeSubTab, setActiveSubTab] = useState<'areas' | 'houses'>('houses');
   const [selectedZone, setSelectedZone] = useState<string>('All');
   const [selectedObstacle, setSelectedObstacle] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -235,7 +235,7 @@ export const FrequentlyNotCoveredAreaView: React.FC<FrequentlyNotCoveredAreaView
     downloadAnchor.remove();
 
     if (onShowToast) {
-      onShowToast(lang === 'ta' ? '📥 அறிக்கை பதிவிறக்கப்பட்டது!' : '📥 Area Hotspot Report downloaded!');
+      onShowToast(lang === 'ta' ? '📥 அறிக்கை பதிவிறக்கப்பட்டது!' : '📥 Household Report downloaded!');
     }
   };
 
@@ -297,8 +297,8 @@ export const FrequentlyNotCoveredAreaView: React.FC<FrequentlyNotCoveredAreaView
             
             <p className="text-xs sm:text-sm text-slate-600 font-medium max-w-3xl leading-relaxed">
               {lang === 'ta'
-                ? 'கோயம்புத்தூர் மாநகராட்சியில் தொடர்ந்து 3+ நாட்களுக்கு மேல் குப்பை சேகரிக்கப்படாத வீடுகள், தெருக்கள், மற்றும் தொடர் சிக்கல் குடியிருப்புகளைக் கண்காணித்து விரைவு நடவடிக்கை எடுக்கும் பிரத்யேக பகுதி.'
-                : 'CCMC Directorate monitoring portal for chronic uncollected households, recurring access obstacles, and multi-day missed residential clusters requiring SBM intervention.'}
+                ? 'கோயம்புத்தூர் மாநகராட்சியில் தொடர்ந்து 3+ நாட்களுக்கு மேல் குப்பை சேகரிக்கப்படாத வீடுகளைக் கண்காணித்து விரைவு நடவடிக்கை எடுக்கும் பிரத்யேக பகுதி.'
+                : 'CCMC Directorate monitoring portal for chronic uncollected households requiring SBM intervention.'}
             </p>
           </div>
 
@@ -309,34 +309,25 @@ export const FrequentlyNotCoveredAreaView: React.FC<FrequentlyNotCoveredAreaView
               className="px-4 py-3 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-2xl border border-slate-300 transition-all cursor-pointer flex items-center gap-2 shadow-xs"
             >
               <Download className="w-4 h-4 text-slate-600" />
-              <span>{lang === 'ta' ? 'அறிக்கை பதிவிறக்கு' : 'Export Area Report'}</span>
+              <span>{lang === 'ta' ? 'அறிக்கை பதிவிறக்கு' : 'Export Report'}</span>
             </button>
 
             <button
               onClick={() => {
                 if (onNavigateToLiveTracking) {
-                  onNavigateToLiveTracking('All', 'Frequently Missed Hotspot Areas');
+                  onNavigateToLiveTracking('All', 'Frequently Uncollected Households');
                 }
               }}
               className="px-4 py-3 bg-[#1E7A38] hover:bg-[#166534] text-white font-black text-xs rounded-2xl shadow-md transition-all cursor-pointer flex items-center gap-2"
             >
               <Navigation className="w-4 h-4 text-white" />
-              <span>{lang === 'ta' ? 'GPS வரைபடத்தில் பார்' : 'View GPS Hotspots'}</span>
+              <span>{lang === 'ta' ? 'GPS வரைபடத்தில் பார்' : 'View GPS Map'}</span>
             </button>
           </div>
         </div>
 
         {/* Highlight KPI Metric Strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-slate-100">
-          <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 hover:border-slate-300 transition">
-            <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">
-              {lang === 'ta' ? 'விடுபட்ட பகுதிகள்' : 'Hotspot Areas'}
-            </span>
-            <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-0.5">
-              {summaryMetrics.totalAreasCount} <span className="text-xs font-normal text-slate-400">Pockets</span>
-            </div>
-          </div>
-
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mt-6 pt-6 border-t border-slate-100">
           <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 hover:border-slate-300 transition">
             <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">
               {lang === 'ta' ? 'பாதிக்கப்பட்ட வீடுகள்' : 'Impacted Houses'}
@@ -351,7 +342,7 @@ export const FrequentlyNotCoveredAreaView: React.FC<FrequentlyNotCoveredAreaView
               {lang === 'ta' ? 'தொடர் 4+ நாட்கள்' : 'Streak > 3 Days'}
             </span>
             <div className="text-2xl sm:text-3xl font-black text-rose-600 mt-0.5">
-              {summaryMetrics.severeStreakCount} <span className="text-xs font-normal text-slate-400">Streets</span>
+              {summaryMetrics.severeStreakCount} <span className="text-xs font-normal text-slate-400">Houses</span>
             </div>
           </div>
 
@@ -372,35 +363,13 @@ export const FrequentlyNotCoveredAreaView: React.FC<FrequentlyNotCoveredAreaView
         {/* Navigation Tabs */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-            <button
-              onClick={() => setActiveSubTab('areas')}
-              className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center justify-center gap-2 ${
-                activeSubTab === 'areas'
-                  ? 'bg-rose-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              <Building2 className="w-4 h-4" />
-              <span>{lang === 'ta' ? 'பகுதி & தெரு வாரியாக' : 'Hotspot Areas & Streets'}</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${activeSubTab === 'areas' ? 'bg-rose-800 text-rose-100' : 'bg-slate-200 text-slate-800'}`}>
-                {filteredAreas.length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab('houses')}
-              className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center justify-center gap-2 ${
-                activeSubTab === 'houses'
-                  ? 'bg-rose-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
+            <div className="px-4 py-2.5 bg-rose-600 text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-xs">
               <Home className="w-4 h-4" />
-              <span>{lang === 'ta' ? 'வீட்டு வாரியான விவரம்' : 'Individual Households'}</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${activeSubTab === 'houses' ? 'bg-rose-800 text-rose-100' : 'bg-slate-200 text-slate-800'}`}>
+              <span>{lang === 'ta' ? 'அடிக்கடி விடுபட்ட வீடுகள் பட்டியல்' : 'Frequently Missed Households'}</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-800 text-rose-100">
                 {filteredHouses.length}
               </span>
-            </button>
+            </div>
           </div>
 
           {/* Live sync pill */}
@@ -456,200 +425,14 @@ export const FrequentlyNotCoveredAreaView: React.FC<FrequentlyNotCoveredAreaView
                 <option value="East Zone">{lang === 'ta' ? 'கிழக்கு மண்டலம் (East Zone)' : 'East Zone (கிழக்கு மண்டலம்)'}</option>
               </select>
             </div>
-
-            {/* Obstacle Type Filter (for Area View) */}
-            {activeSubTab === 'areas' && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-bold text-slate-600 flex-shrink-0">
-                  {lang === 'ta' ? 'காரணம்:' : 'Obstacle:'}
-                </span>
-                <select
-                  value={selectedObstacle}
-                  onChange={(e) => setSelectedObstacle(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer"
-                >
-                  <option value="All">{lang === 'ta' ? 'அனைத்து காரணங்கள்' : 'All Obstacles'}</option>
-                  <option value="Lockout">House Lockout / Closed Doors</option>
-                  <option value="Segregation_Failure">Unsegregated Waste Refusal</option>
-                  <option value="Narrow_Access">Narrow Lane / Pushcart Needed</option>
-                  <option value="Road_Work">Culvert / Road Obstruction</option>
-                </select>
-              </div>
-            )}
           </div>
         </div>
       </div>
 
       {/* 3. Main Content Rendering */}
 
-      {/* SUB-TAB 1: HOTSPOT AREAS & STREETS */}
-      {activeSubTab === 'areas' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {filteredAreas.length === 0 ? (
-            <div className="col-span-2 bg-white rounded-2xl p-12 text-center border border-slate-200 space-y-3">
-              <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
-              <h3 className="text-base font-black text-slate-800">
-                {lang === 'ta' ? 'பொருத்தமான பகுதிகள் இல்லை' : 'No frequently missed areas found'}
-              </h3>
-              <p className="text-xs text-slate-500 max-w-md mx-auto">
-                {lang === 'ta'
-                  ? 'தேர்ந்தெடுக்கப்பட்ட வடிகட்டிகளில் விடுபட்ட பகுதிகள் எதுவும் பதிவு செய்யப்படவில்லை.'
-                  : 'All street corridors under current filter criteria are operating within expected SBM coverage.'}
-              </p>
-            </div>
-          ) : (
-            filteredAreas.map((area) => (
-              <div
-                key={area.areaId}
-                className="bg-white rounded-2xl border border-rose-200/80 shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between group"
-              >
-                {/* Area Card Header */}
-                <div className="p-5 space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[11px] font-mono font-bold text-rose-900 bg-rose-50 px-2.5 py-0.5 rounded-md border border-rose-200">
-                          {area.areaId}
-                        </span>
-                        <span className="text-xs font-black text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
-                          {area.ward} • {area.zone}
-                        </span>
-                      </div>
-                      <h3 className="text-base font-black text-slate-900 group-hover:text-rose-700 transition">
-                        {area.areaName}
-                      </h3>
-                      <div className="flex items-center gap-1 text-xs text-slate-600 font-semibold">
-                        <MapPin className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
-                        <span>{area.streetName}</span>
-                      </div>
-                    </div>
-
-                    {/* Streak Badge */}
-                    <div className="text-right flex-shrink-0">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-rose-600 text-white shadow-2xs">
-                        <Clock className="w-3 h-3 text-rose-200" />
-                        <span>{area.consecutiveDaysMissed} {lang === 'ta' ? 'நாட்கள்' : 'Days'}</span>
-                      </span>
-                      <span className="text-[10px] text-rose-700 block font-extrabold mt-0.5">
-                        {lang === 'ta' ? 'தொடர் விடுபடல்' : 'Chronic Streak'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Uncollected Gauge & Progress */}
-                  <div className="bg-rose-50/50 border border-rose-100 rounded-xl p-3 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-700">
-                        {lang === 'ta' ? 'விடுபட்ட வீடுகள்:' : 'Uncollected Doors:'} 
-                        <strong className="text-rose-700 ml-1 font-black text-sm">{area.uncoveredHouses}</strong> / {area.totalHouses}
-                      </span>
-                      <span className="font-black text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md text-xs">
-                        {area.uncoveredPercentage}% Missed
-                      </span>
-                    </div>
-
-                    {/* Visual Progress Bar */}
-                    <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden flex">
-                      <div
-                        className="h-full bg-emerald-500 rounded-l-full"
-                        style={{ width: `${100 - area.uncoveredPercentage}%` }}
-                        title="Covered"
-                      />
-                      <div
-                        className="h-full bg-rose-500 rounded-r-full"
-                        style={{ width: `${area.uncoveredPercentage}%` }}
-                        title="Not Covered"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Obstacle Reason & Description */}
-                  <div className="space-y-1.5 pt-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {getObstacleBadge(area.obstacleType, area.primaryReason)}
-                      <span className="text-[11px] text-slate-500 font-medium">
-                        Last Attempt: <strong>{area.lastAttemptTime}</strong>
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600 font-medium line-clamp-2 bg-slate-50 p-2 rounded-lg border border-slate-200/70">
-                      {area.primaryReason}
-                    </p>
-                  </div>
-
-                  {/* Supervisor & Assigned Crew */}
-                  <div className="pt-2 border-t border-slate-100 text-xs space-y-1 text-slate-600">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500 font-medium">Supervisor (SI/AE):</span>
-                      <div className="flex items-center gap-1 font-bold text-slate-800">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>{area.supervisorName}</span>
-                        <a href={`tel:${area.supervisorPhone}`} className="text-emerald-700 hover:text-emerald-800 ml-1" title="Call Supervisor">
-                          <Phone className="w-3 h-3" />
-                        </a>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500 font-medium">Assigned Vehicle:</span>
-                      <span className="font-bold text-slate-800 flex items-center gap-1">
-                        <Truck className="w-3.5 h-3.5 text-blue-600" />
-                        {area.assignedVehicle} ({area.assignedDriver})
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Buttons Footer */}
-                <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-                  <button
-                    onClick={() => {
-                      if (onNavigateToLiveTracking) {
-                        onNavigateToLiveTracking(area.zone, `Area: ${area.areaName} (${area.streetName})`);
-                      }
-                    }}
-                    className="flex-1 py-2 px-3 bg-white hover:bg-emerald-50 text-emerald-800 font-bold text-xs rounded-xl border border-slate-300 hover:border-emerald-300 transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
-                  >
-                    <Navigation className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>{lang === 'ta' ? 'GPS வரைபடம்' : 'Track GPS'}</span>
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      setActionDispatchModal({
-                        targetName: area.areaName,
-                        type: 'bulk_sms',
-                        id: area.areaId
-                      })
-                    }
-                    className="flex-1 py-2 px-3 bg-white hover:bg-purple-50 text-purple-800 font-bold text-xs rounded-xl border border-slate-300 hover:border-purple-300 transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
-                  >
-                    <Send className="w-3.5 h-3.5 text-purple-600" />
-                    <span>{lang === 'ta' ? 'SMS நோட்டீஸ்' : 'Bulk Notice'}</span>
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      setActionDispatchModal({
-                        targetName: area.areaName,
-                        type: 'dispatch_bov',
-                        id: area.areaId
-                      })
-                    }
-                    className="flex-1 py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <Truck className="w-3.5 h-3.5 text-white" />
-                    <span>{lang === 'ta' ? 'BOV அனுப்பு' : 'Dispatch BOV'}</span>
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* SUB-TAB 2: INDIVIDUAL HOUSEHOLDS DRILLDOWN */}
-      {activeSubTab === 'houses' && (
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden divide-y divide-slate-100">
+      {/* INDIVIDUAL HOUSEHOLDS DRILLDOWN */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden divide-y divide-slate-100">
           {filteredHouses.length === 0 ? (
             <div className="p-10 text-center text-slate-500">
               <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto opacity-70 mb-2" />
@@ -755,7 +538,6 @@ export const FrequentlyNotCoveredAreaView: React.FC<FrequentlyNotCoveredAreaView
             ))
           )}
         </div>
-      )}
 
       {/* 4. Action Confirmation Modal */}
       {actionDispatchModal && (

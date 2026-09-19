@@ -31,6 +31,13 @@ export const ccmcFallbackLogo = localCcmcLogo;
 export const commissionerPhoto = COMMISSIONER_LOGO_URL;
 export const commissionerFallbackPhoto = localCommissionerPhoto;
 
+// SINGLE SOURCE OF TRUTH: the exact logo asset used on the Login Page.
+// Reuse this same logo everywhere (header, dashboard, sidebar, QR scanner, QR checkpoint,
+// zones, workers, reports, profile, settings, and every other page).
+// Do not create, replace, redraw, or modify this logo. Keep its original colors, proportions, and quality.
+export const appLogo = CCMC_LOGO_URL;
+export const appLogoFallback = localCcmcLogo;
+
 // KPI Card Logos matching user specification
 export const TOTAL_HOUSEHOLDS_SVG_DATA_URL = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">

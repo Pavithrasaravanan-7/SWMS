@@ -4,17 +4,16 @@ import { Sidebar } from './Sidebar';
 import { KPICards } from './KPICards';
 import { ZoneSummaryTable } from './ZoneSummaryTable';
 import { RecentCollectionTable } from './RecentCollectionTable';
-import { LiveTrackingView } from './LiveTrackingView';
-import { AlertsNotificationPanel } from './AlertsNotificationPanel';
+
 import { ReportsView } from './ReportsView';
 import { CollectedView } from './CollectedView';
 import { NotCollectedView } from './NotCollectedView';
 import { SWMSAdminDashboardView } from './SWMSAdminDashboardView';
 import { RecordDetailModal } from './RecordDetailModal';
-import { FrequentlyNotCollectedSection } from './FrequentlyNotCollectedSection';
 import { FrequentlyNotCoveredAreaView } from './FrequentlyNotCoveredAreaView';
 import { AIPredictionAnalyticsSection } from './AIPredictionAnalyticsSection';
-import { AdminVehicleAssignmentView } from './AdminVehicleAssignmentView';
+import { QRCheckpointManagementView } from './QRCheckpointManagementView';
+import { AdminAnalyticsDashboard } from './AdminAnalyticsDashboard';
 
 import {
   INITIAL_KPI_METRICS,
@@ -23,8 +22,9 @@ import {
 } from '../data/mockData';
 import { INITIAL_MUNICIPAL_ALERTS } from '../data/alertsData';
 import { INITIAL_FREQUENTLY_NOT_COLLECTED } from '../data/frequentlyNotCollectedData';
+import { REAL_QR_VEHICLE_REPORTS } from '../utils/vehicleAssignmentStorage';
 import { CollectionRecord, NavigationTab, SWMSHouseholdRecord, SWMSDashboardStats, FrequentlyNotCollectedItem } from '../types';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, QrCode } from 'lucide-react';
 
 interface CommissionerConsoleProps {
   sbmRecords: SWMSHouseholdRecord[];
@@ -34,6 +34,7 @@ interface CommissionerConsoleProps {
   onSwitchRole?: () => void;
   lang: 'en' | 'ta';
   onSetLang: (lang: 'en' | 'ta') => void;
+  token?: string | null;
 }
 
 export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
@@ -44,6 +45,7 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
   onSwitchRole,
   lang,
   onSetLang,
+  token,
 }) => {
   // Session / tab states
   const [activeTab, setActiveTab] = useState<NavigationTab>('overview');
@@ -53,32 +55,86 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
   // Alerts states
   const [alerts, setAlerts] = useState(INITIAL_MUNICIPAL_ALERTS);
 
-  // Derive collection records dynamically from real sbmRecords
+  // Derive collection records dynamically from real sbmRecords, defaulting to real QR created vehicles
   const collectionRecords: CollectionRecord[] = React.useMemo(() => {
-    return (sbmRecords || []).map((r, idx) => ({
-      id: r.id || `REC-${1000 + idx}`,
-      householdId: r.houseId,
-      oldDoorNo: r.doorNo,
-      newDoorNo: r.doorNo,
-      streetName: r.streetName,
-      ward: r.ward,
-      zone: r.zone || 'Central Zone',
-      status: (r.coverageStatus === 'Covered' ? 'Collected' : 'Not Collected') as any,
+    if (sbmRecords && sbmRecords.length > 0) {
+      return sbmRecords.map((r, idx) => {
+        const isSubmittedToday = (ts?: string): boolean => {
+          if (!ts || ts === 'Shift Pending') return false;
+          const today = new Date();
+          const d = String(today.getDate()).padStart(2, '0');
+          const dSingle = String(today.getDate());
+          const m = String(today.getMonth() + 1).padStart(2, '0');
+          const mSingle = String(today.getMonth() + 1);
+          const y = String(today.getFullYear());
+          const datePart = ts.split(',')[0].trim();
+          return (
+            datePart.includes(`${m}/${d}/${y}`) ||
+            datePart.includes(`${mSingle}/${dSingle}/${y}`) ||
+            datePart.includes(`${d}/${m}/${y}`) ||
+            datePart.includes(`${dSingle}/${mSingle}/${y}`) ||
+            datePart.includes(`${y}-${m}-${d}`)
+          );
+        };
+
+        const isRealSubmission = !!r.submittedAt && isSubmittedToday(r.submittedAt) && (typeof r.completedScansCount === 'number' ? r.completedScansCount > 0 : true);
+        return {
+          id: r.id || `REC-${1000 + idx}`,
+          householdId: r.houseId,
+          oldDoorNo: r.doorNo,
+          newDoorNo: r.doorNo,
+          streetName: r.streetName,
+          ward: r.ward,
+          zone: r.zone || 'East Zone',
+          status: (isRealSubmission && r.coverageStatus === 'Covered' ? 'Collected' : 'Not Collected') as any,
+          wasteType: 'Segregated (Wet & Dry)',
+          propertyType: 'Residence',
+          scannedAt: isRealSubmission ? r.submittedAt : 'Shift Pending',
+          workerName: r.driverWorkerName || r.ssName || 'Sanitary Worker',
+          vehicleType: (r.vehicleType as any) || 'Tata Ace',
+          vehicleNo: (r.streetName?.toLowerCase().includes('mageshwari') || r.vehicleNo?.includes('38 PV 9001')) ? 'TN66AD6465' : (r.vehicleNo || 'TN66AD6465'),
+          remarks: isRealSubmission ? (r.remarks || r.notCoveredReason) : 'Pending Morning Scan',
+          date: isRealSubmission ? (r.submittedAt.split(',')[0] || 'Shift Pending') : 'Shift Pending',
+          time: isRealSubmission ? (r.submittedAt.split(',')[1]?.trim() || 'Not Logged In') : 'Not Logged In',
+          timestamp: isRealSubmission ? r.submittedAt : 'Shift Pending (Not Logged In Today)',
+          street: r.streetName,
+          workerPhone: r.driverWorkerContact || r.ssContact || '',
+          binLevelPercent: isRealSubmission && r.coverageStatus === 'Covered' ? 100 : 0,
+          supervisor: r.ssName ? `${r.ssName} (SS)` : (r.siName ? `${r.siName} (SI)` : 'Sanitary Supervisor'),
+          coordinates: r.latitude && r.longitude ? { lat: r.latitude, lng: r.longitude } : undefined,
+          completedScansCount: isRealSubmission ? r.completedScansCount : 0,
+          streetScans: isRealSubmission ? r.streetScans : [],
+          coverageStatus: isRealSubmission ? r.coverageStatus : ('Not Covered' as any)
+        };
+      });
+    }
+
+    // Default fallback: load real QR creation vehicles into Overview page
+    return REAL_QR_VEHICLE_REPORTS.map((vr, idx) => ({
+      id: `REC-REAL-${idx + 1}`,
+      householdId: `HID-${vr.vehicleNo}`,
+      oldDoorNo: '1',
+      newDoorNo: '1',
+      streetName: vr.assignedStreets[0] || 'sree nagar',
+      ward: vr.ward,
+      zone: vr.zone,
+      status: 'Not Collected' as any,
       wasteType: 'Segregated (Wet & Dry)',
       propertyType: 'Residence',
-      scannedAt: r.submittedAt,
-      workerName: r.driverWorkerName || r.ssName || 'Sanitary Worker',
-      vehicleType: 'Push Cart (PTC)',
-      vehicleNo: r.vehicleNo || 'TN 37 CCMC',
-      remarks: r.remarks || r.notCoveredReason,
-      date: r.submittedAt.split(',')[0] || new Date().toLocaleDateString('en-GB'),
-      time: r.submittedAt.split(',')[1]?.trim() || new Date().toLocaleTimeString(),
-      timestamp: r.submittedAt,
-      street: r.streetName,
-      workerPhone: r.driverWorkerContact || r.ssContact || '',
-      binLevelPercent: r.coverageStatus === 'Covered' ? 100 : 0,
-      supervisor: r.ssName ? `${r.ssName} (SS)` : (r.siName ? `${r.siName} (SI)` : 'Sanitary Supervisor'),
-      coordinates: r.latitude && r.longitude ? { lat: r.latitude, lng: r.longitude } : undefined
+      scannedAt: 'Shift Pending',
+      workerName: vr.driverName,
+      vehicleType: vr.type as any,
+      vehicleNo: vr.vehicleNo,
+      remarks: 'Pending Morning Scan',
+      date: 'Shift Pending',
+      time: 'Not Logged In',
+      timestamp: 'Shift Pending (Not Logged In Today)',
+      street: vr.assignedStreets[0] || 'sree nagar',
+      workerPhone: vr.driverPhone,
+      binLevelPercent: 0,
+      supervisor: vr.ssName ? `${vr.ssName} (SS)` : 'Sanitary Supervisor',
+      completedScansCount: 0,
+      coverageStatus: 'Not Covered' as any
     }));
   }, [sbmRecords]);
 
@@ -132,29 +188,6 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
     }));
   }, [sbmRecords]);
 
-  // Handlers for alerts
-  const handleResolveAlert = (id: string) => {
-    setAlerts(prev =>
-      prev.map(a => (a.id === id ? { ...a, isResolved: true } : a))
-    );
-    showToast('Alert action marked as resolved.');
-  };
-
-  const handleDismissAlert = (id: string) => {
-    setAlerts(prev => prev.filter(a => a.id !== id));
-    showToast('Alert dismissed.');
-  };
-
-  const handleMarkAllAsRead = () => {
-    setAlerts(prev => prev.map(a => ({ ...a, isRead: true })));
-    showToast('All notifications marked as read.');
-  };
-
-  const handleNavigateToLiveTracking = (zone?: string) => {
-    setActiveTab('live-tracking');
-    showToast(`Navigated to GPS tracking map${zone ? ` focusing on ${zone}` : ''}`);
-  };
-
   const handleInspectRecord = (record: CollectionRecord) => {
     setSelectedRecord(record);
   };
@@ -177,9 +210,6 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
           setLiveConnection(prev => !prev);
           showToast(liveConnection ? 'Live data stream paused.' : 'Live data stream resumed.');
         }}
-        alerts={alerts}
-        onOpenAlerts={() => setActiveTab('alerts')}
-        onNavigateToLiveTracking={handleNavigateToLiveTracking}
         isMobileMenuOpen={isMobileMenuOpen}
         onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         onLogout={onLogout}
@@ -228,7 +258,6 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
               <KPICards 
                 metrics={metrics} 
                 lang={lang}
-                onNavigateToLiveTracking={() => handleNavigateToLiveTracking()} 
                 onNavigateToCollected={() => {
                   setActiveTab('collected');
                   showToast(lang === 'ta' ? 'மொத்த சேகரிக்கப்பட்ட குப்பை விவரங்களுக்குத் நகர்ந்தது' : 'Navigated to: Total Collected Waste Details');
@@ -246,6 +275,9 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
                   showToast(lang === 'ta' ? 'அடிக்கடி சேகரிக்கப்படாத வீடுகள் பகுதிக்குத் நகர்ந்தது' : 'Navigated to: Frequently Not Covered Area Intelligence View');
                 }}
               />
+
+              {/* Municipal Collection Analytics Dashboard */}
+              <AdminAnalyticsDashboard lang={lang} />
 
               {/* Zone summaries */}
               <div className="w-full">
@@ -270,40 +302,13 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
             </div>
           )}
 
-          {/* TAB: VEHICLE & AREA ASSIGNMENT (வாகன ஒதுக்கீடு) */}
-          {activeTab === 'vehicle-assignment' && (
-            <AdminVehicleAssignmentView
-              lang={lang}
-              onNavigateToLiveTracking={handleNavigateToLiveTracking}
-              onShowToast={showToast}
-            />
-          )}
-
-          {/* TAB 2: LIVE GPS TRACKING */}
-          {activeTab === 'live-tracking' && (
-            <LiveTrackingView lang={lang} />
-          )}
-
-          {/* TAB 3: ALERTS */}
-          {activeTab === 'alerts' && (
-            <AlertsNotificationPanel
-              alerts={alerts}
-              onResolveAlert={handleResolveAlert}
-              onDismissAlert={handleDismissAlert}
-              onMarkAllAsRead={handleMarkAllAsRead}
-              onNavigateToLiveTracking={handleNavigateToLiveTracking}
-              onShowToast={showToast}
-              lang={lang}
-            />
-          )}
-
           {/* TAB 4: REPORTS */}
           {activeTab === 'reports' && (
             <ReportsView
               records={collectionRecords}
               zoneSummaries={zoneSummaries}
               onInspectRecord={handleInspectRecord}
-              onNavigateToLiveTracking={handleNavigateToLiveTracking}
+              onNavigateToLiveTracking={() => showToast('GPS Tracking is managed by ICCC central system.')}
               onShowToast={showToast}
               lang={lang}
             />
@@ -342,10 +347,9 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
             <FrequentlyNotCoveredAreaView
               records={sbmRecords}
               lang={lang}
-              onNavigateToLiveTracking={(zone, info) => {
-                handleNavigateToLiveTracking(zone);
+              onNavigateToLiveTracking={(_zone, info) => {
                 if (info) {
-                  showToast(`Live GPS tracking focused on: ${info}`);
+                  showToast(`GPS Tracking: ${info}`);
                 }
               }}
               onShowToast={showToast}
@@ -416,8 +420,8 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
           onClose={() => setSelectedRecord(null)}
           onStatusChange={handleStatusChange}
           onUploadPhoto={handleUploadPhoto}
-          onViewOnMap={(rec) => {
-            handleNavigateToLiveTracking(rec.zone);
+          onViewOnMap={(_rec) => {
+            showToast('GPS tracking is managed by the ICCC central system.');
           }}
         />
       )}

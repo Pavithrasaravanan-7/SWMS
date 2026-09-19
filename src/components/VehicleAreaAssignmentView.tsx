@@ -607,9 +607,9 @@ export const VehicleAreaAssignmentView: React.FC<VehicleAreaAssignmentViewProps>
               <div className="text-[11px] sm:text-xs lg:text-[14px] font-black tracking-tight text-amber-300 leading-tight whitespace-nowrap drop-shadow-xs">
                 Municipal Corporation
               </div>
-              {/* Line 3: Sanitary Field Worker */}
+              {/* Line 3: User */}
               <div className="text-[9px] sm:text-[10.5px] lg:text-xs font-black tracking-wider text-cyan-300 uppercase leading-tight mt-0.5 whitespace-nowrap drop-shadow-xs">
-                SANITARY FIELD WORKER
+                USER
               </div>
             </div>
           </div>
@@ -716,25 +716,12 @@ export const VehicleAreaAssignmentView: React.FC<VehicleAreaAssignmentViewProps>
 
         {/* Dark Secondary Ticker Stream Status Bar - Hidden on mobile & tablet (< lg), visible only on large desktop */}
         <div className="hidden lg:flex bg-[#113B22] px-2.5 py-1.5 sm:px-6 sm:py-1.5 items-center justify-between text-[9px] sm:text-xs text-emerald-100/90 font-medium border-t border-[#166534] overflow-hidden">
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-            <div className="flex items-center gap-1 bg-[#0A2E17] border border-emerald-400/50 rounded-full px-2 py-0.5 shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
-              <span className="text-amber-300 font-black text-[9px] sm:text-[10px] whitespace-nowrap">
-                {isTamil ? 'கள அதிகாரி' : 'Field Officer'}:
-              </span>
-              <span className="text-white font-bold text-[9px] sm:text-[10px] truncate max-w-[110px] sm:max-w-[180px]">
-                {userName || 'Karthik Muthusamy'}
-              </span>
-            </div>
-
-            <span className="hidden md:inline text-emerald-400/60">|</span>
             <span className="hidden md:inline text-emerald-100 truncate">{currentTime}</span>
-          </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <ICCCLiveBadge lang={lang} />
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <ICCCLiveBadge lang={lang} />
+            </div>
           </div>
-        </div>
       </header>
 
       {/* Main Content Area */}

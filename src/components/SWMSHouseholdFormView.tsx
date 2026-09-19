@@ -33,7 +33,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { cmPhoto, cmFallbackPhoto, ccmcLogo, ccmcFallbackLogo } from '../constants/branding';
-import { ICCCLiveBadge } from './ICCCLiveBadge';
+import { SREE_NAGAR_SCAN_ROUTE, MAGESHWARI_NAGAR_SCAN_ROUTE, THIYAGIKUMAR_STREET_SCAN_ROUTE, MGR_VEEDHI_SCAN_ROUTE, KALYANAM_SUNDHARAM_STREET_SCAN_ROUTE, PONNI_NAGAR_SCAN_ROUTE, PONNI_NAGAR_2_SCAN_ROUTE, KANDHASAMY_LAYOUT_SCAN_ROUTE, LAKSHMI_MILLS_SIGNAL_SCAN_ROUTE, MARIYAMMAN_KOVIL_STREET_SCAN_ROUTE, KK_NAGAR_SCAN_ROUTE, RANGANATHAN_KOVIL_STREET_SCAN_ROUTE, BAJANA_KOVIL_VEEDHI_SCAN_ROUTE, BAARI_NAGAR_VEEDHI_CUT_ROAD_SCAN_ROUTE, RAMASAMY_KOONARCUT_ROAD_SCAN_ROUTE, MADHURA_ENCLAVE_SCAN_ROUTE, SENTHOORA_PURAM_SCAN_ROUTE, MEENAKSHI_NAGAR_SCAN_ROUTE, VISAGA_GARDEN_SCAN_ROUTE, MARUTHI_ENVUE_SCAN_ROUTE, PALANI_AANDAVAR_KOVIL_VEEDHI_SCAN_ROUTE, KGK_MAIN_ROAD_SCAN_ROUTE, NAGAMMA_NAYAGAR_VEEDHI_SCAN_ROUTE, ALAGAACHI_THOTTAM_SCAN_ROUTE, MUTHUSAMY_SERKAI_VEEDHI_SCAN_ROUTE } from './SWMSStreetScanQRCard';
 
 interface SWMSHouseholdFormViewProps {
   scannedHouseId?: string;
@@ -64,16 +64,15 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
   lang = 'ta',
   onSetLanguage,
   onToggleLang,
-  assignedVehicleId = 'v-push-cart',
+  assignedVehicleId = 'v-obl-pvt',
   onBackToScanner,
   onSubmitSuccess
 }) => {
-  const isPushCart = !assignedVehicleId || assignedVehicleId === 'v-push-cart' || assignedVehicleId.includes('push');
-  
   const [formData, setFormData] = useState<{
     houseId: string;
     zone: string;
     ward: string;
+    vehicleType: string;
     siName: string;
     siContact: string;
     ssName: string;
@@ -91,69 +90,226 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
   }>({
     houseId: cleanHouseId(scannedHouseId),
     zone: 'East Zone',
-    ward: 'Ward 12',
-    siName: 'K. Rajan',
-    siContact: '9876543210',
-    ssName: 'M. Selvam',
-    ssContact: '9876543211',
-    cssName: 'S. Kumar',
-    driverWorkerName: 'P. Murugan',
-    driverWorkerContact: '9876543212',
-    householderName: 'Ramanathan',
-    householderContact: '9840123456',
-    streetName: 'Kamaraj Salai',
-    doorNo: '45',
-    coverageStatus: 'Covered' as CoverageStatus,
-    notCoveredReason: 'House Locked' as NotCoveredReason,
+    ward: 'Ward 24',
+    vehicleType: 'TATA ACE',
+    siName: 'S.R.GERALD SATHIYA PUNITHAN',
+    siContact: '9442504589',
+    ssName: 'vibin',
+    ssContact: '9442504589',
+    cssName: 'vengatesh',
+    driverWorkerName: 'murali',
+    driverWorkerContact: '9677971375',
+    householderName: 'murali (140 Households)',
+    householderContact: '9677971375',
+    streetName: 'sree nagar',
+    doorNo: assignedVehicleId === 'v-push-cart' ? '' : '45',
+    coverageStatus: 'Not Covered' as CoverageStatus,
+    notCoveredReason: 'Other' as NotCoveredReason,
     remarks: ''
   });
 
-  // 5 Scan Checkpoints State for Vehicle Mode
-  const [streetScans, setStreetScans] = useState<StreetScanPoint[]>(() => {
-    const stName = formData.streetName || 'Kamaraj Salai';
-    const saved = localStorage.getItem('ccmc_street_5scans');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed[stName] && Array.isArray(parsed[stName])) return parsed[stName];
-      } catch (e) {
-        // ignore
+  const isPushCart = assignedVehicleId === 'v-push-cart' || 
+                     formData?.vehicleType === 'PUSH CART' || 
+                     formData?.vehicleType === 'BOV' ||
+                     (formData?.vehicleType && formData.vehicleType.toUpperCase().includes('PUSH'));
+
+  // Helper to format exact real-time live scan timestamp (e.g. "11:32 AM" or "01:27 PM")
+  const getLiveScanTimeStr = (): string => {
+    const d = new Date();
+    let hours = d.getHours();
+    const minutes = d.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const minStr = minutes < 10 ? `0${minutes}` : `${minutes}`;
+    const hrStr = hours < 10 ? `0${hours}` : `${hours}`;
+    return `${hrStr}:${minStr} ${ampm}`;
+  };
+
+  // Helper to check if a timestamp string is from an old legacy mock test run (e.g. 01:24 PM)
+  const isLegacyMockTime = (t?: string): boolean => {
+    if (!t) return false;
+    return t.includes('01:24') || t.includes('01:27') || t.includes('01:28') || t.includes('1:24') || t.includes('1:27') || t.includes('1:28');
+  };
+
+  // Automatically fetch & parse scanned QR code details (e.g. QR 1: Sree Nagar or QR 2: Mageshwari Nagar)
+  useEffect(() => {
+    if (!scannedHouseId) return;
+    let parsed: any = null;
+    try {
+      parsed = JSON.parse(scannedHouseId);
+    } catch {
+      const lower = scannedHouseId.toLowerCase().trim();
+      if (lower.includes('ccmc-qr25') || lower.includes('qr25') || lower.includes('muthusamy') || lower.includes('serkai') || lower.includes('sathya') || lower.includes('tn66po982') || lower.includes('msv-025')) {
+        parsed = MUTHUSAMY_SERKAI_VEEDHI_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr24') || lower.includes('qr24') || lower.includes('alagaachi') || lower.includes('thottam') || lower.includes('magendran') || lower.includes('pushcart10') || lower.includes('at-024')) {
+        parsed = ALAGAACHI_THOTTAM_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr23') || lower.includes('qr23') || lower.includes('nagamma') || lower.includes('nayagar') || lower.includes('chellamuthu') || lower.includes('pushcart9') || lower.includes('nnv-023')) {
+        parsed = NAGAMMA_NAYAGAR_VEEDHI_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr22') || lower.includes('qr22') || lower.includes('kgk') || lower.includes('selvaraj') || lower.includes('9361613970') || lower.includes('tn66aq1153') || lower.includes('kmr-022')) {
+        parsed = KGK_MAIN_ROAD_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr21') || lower.includes('qr21') || lower.includes('palani') || lower.includes('aandavar') || lower.includes('karthik') || lower.includes('9080463024') || lower.includes('tn66am0219') || lower.includes('pakv-021')) {
+        parsed = PALANI_AANDAVAR_KOVIL_VEEDHI_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr20') || lower.includes('qr20') || lower.includes('maruthi') || lower.includes('envue') || lower.includes('paneerselvam') || lower.includes('9894051660') || lower.includes('tn66ap0965') || lower.includes('mev-020')) {
+        parsed = MARUTHI_ENVUE_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr19') || lower.includes('qr19') || lower.includes('visaga') || lower.includes('latha') || lower.includes('8148654687') || lower.includes('pushcart8') || lower.includes('vg-019')) {
+        parsed = VISAGA_GARDEN_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr18') || lower.includes('qr18') || lower.includes('meenakshi') || lower.includes('muthulakshmi') || lower.includes('9786741096') || lower.includes('pushcart7') || lower.includes('mn-018')) {
+        parsed = MEENAKSHI_NAGAR_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr17') || lower.includes('qr17') || lower.includes('senthoora') || lower.includes('mani') || lower.includes('9566421341') || lower.includes('sp-017')) {
+        parsed = SENTHOORA_PURAM_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr16') || lower.includes('qr16') || lower.includes('madhura') || lower.includes('arunachalam') || lower.includes('7317634144') || lower.includes('tn66ac1906') || lower.includes('me-016')) {
+        parsed = MADHURA_ENCLAVE_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr15') || lower.includes('qr15') || lower.includes('ramasamy') || lower.includes('koonarcut') || lower.includes('ramkumar') || lower.includes('7317634144') || lower.includes('tn66ap1181') || lower.includes('rkc-015')) {
+        parsed = RAMASAMY_KOONARCUT_ROAD_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr14') || lower.includes('qr14') || lower.includes('baari') || lower.includes('maragadham') || lower.includes('9047038346') || lower.includes('pushcart6') || lower.includes('bn-014')) {
+        parsed = BAARI_NAGAR_VEEDHI_CUT_ROAD_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr13') || lower.includes('qr13') || lower.includes('bajana') || lower.includes('jothi') || lower.includes('pushcart5') || lower.includes('bk-013')) {
+        parsed = BAJANA_KOVIL_VEEDHI_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr12') || lower.includes('qr12') || lower.includes('ranganathan') || lower.includes('senraj') || lower.includes('8489034317') || lower.includes('tn66ac9176') || lower.includes('rk-012')) {
+        parsed = RANGANATHAN_KOVIL_STREET_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr11') || lower.includes('qr11') || lower.includes('kk nagar') || lower.includes('saravana') || lower.includes('9750545466') || lower.includes('tn66aq1287') || lower.includes('kk-011')) {
+        parsed = KK_NAGAR_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr10') || lower.includes('qr10') || lower.includes('mariyamman') || lower.includes('kovil') || lower.includes('udhayakumar') || lower.includes('8056960451') || lower.includes('tn66aq0794') || lower.includes('mk-010')) {
+        parsed = MARIYAMMAN_KOVIL_STREET_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr9') || lower.includes('qr9') || lower.includes('lakshmi') || lower.includes('mills') || lower.includes('vadivukarasi') || lower.includes('7667769132') || lower.includes('pushcart4') || lower.includes('lm-009')) {
+        parsed = LAKSHMI_MILLS_SIGNAL_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr8') || lower.includes('qr8') || lower.includes('kandhasamy') || lower.includes('palanisamy') || lower.includes('9677966465') || lower.includes('pushcart3') || lower.includes('kl-008')) {
+        parsed = KANDHASAMY_LAYOUT_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr7') || lower.includes('qr7') || lower.includes('gokula') || lower.includes('9751099379') || lower.includes('tn66aq1114') || lower.includes('pn-007')) {
+        parsed = PONNI_NAGAR_2_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr6') || lower.includes('qr6') || lower.includes('ponni') || lower.includes('surya') || lower.includes('8870418209') || lower.includes('tn66ad8373') || lower.includes('pn-006')) {
+        parsed = PONNI_NAGAR_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr5') || lower.includes('qr5') || lower.includes('kalyanam') || lower.includes('sundharam') || lower.includes('anadhan') || lower.includes('8098347628') || lower.includes('ks-005')) {
+        parsed = KALYANAM_SUNDHARAM_STREET_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr4') || lower.includes('qr4') || lower.includes('mgr') || lower.includes('priya') || lower.includes('7397587127') || lower.includes('mv-004')) {
+        parsed = MGR_VEEDHI_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr3') || lower.includes('qr3') || lower.includes('thiyagikumar') || lower.includes('susila') || lower.includes('9790598785') || lower.includes('ts-003')) {
+        parsed = THIYAGIKUMAR_STREET_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr2') || lower.includes('qr2') || lower.includes('mageshwari') || lower.includes('yogaraj') || lower.includes('tn66ad6465') || lower.includes('mn-002')) {
+        parsed = MAGESHWARI_NAGAR_SCAN_ROUTE;
+      } else if (lower.includes('ccmc-qr1') || lower.includes('qr1') || lower.includes('sree') || lower.includes('murali') || lower.includes('tn66ae6121') || lower.includes('sn-001')) {
+        parsed = SREE_NAGAR_SCAN_ROUTE;
       }
     }
-    return [
-      { id: 1, label: 'Scan 1', taLabel: 'ஸ்கேன் 1', locationName: 'North Junction Entry', taLocationName: 'வடமுனை நுழைவு QR', isScanned: false },
-      { id: 2, label: 'Scan 2', taLabel: 'ஸ்கேன் 2', locationName: 'Cross Street 1 Point', taLocationName: 'குறுக்குத்தெரு 1 QR', isScanned: false },
-      { id: 3, label: 'Scan 3', taLabel: 'ஸ்கேன் 3', locationName: 'Center Main Bin Area', taLocationName: 'மைய குப்பைத்தொட்டி QR', isScanned: false },
-      { id: 4, label: 'Scan 4', taLabel: 'ஸ்கேன் 4', locationName: 'Cross Street 2 Point', taLocationName: 'குறுக்குத்தெரு 2 QR', isScanned: false },
-      { id: 5, label: 'Scan 5', taLabel: 'ஸ்கேன் 5', locationName: 'South Exit Point', taLocationName: 'தென்முனை வெளியேறும் QR', isScanned: false },
-    ];
-  });
 
-  // When form mounts from a scan in Vehicle mode, mark ONLY the single newly scanned checkpoint
-  useEffect(() => {
-    if (!isPushCart) {
-      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      setStreetScans(prev => {
-        // Check if there is an unscanned point to mark as scanned from this QR scan
-        const firstUnscannedIdx = prev.findIndex(s => !s.isScanned);
-        if (firstUnscannedIdx !== -1) {
-          const updated = [...prev];
-          updated[firstUnscannedIdx] = {
-            ...updated[firstUnscannedIdx],
-            isScanned: true,
-            scannedAt: nowStr
-          };
-          return updated;
+    if (parsed && typeof parsed === 'object') {
+      const zoneName = parsed.zone ? (parsed.zone.toString().toUpperCase().includes('EAST') ? 'East Zone' : parsed.zone.toString().toUpperCase().includes('CENTRAL') ? 'Central Zone' : parsed.zone) : 'East Zone';
+      const wardName = parsed.wardNo ? (parsed.wardNo.toString().startsWith('Ward') ? parsed.wardNo : `Ward ${parsed.wardNo}`) : 'Ward 24';
+
+      setFormData(prev => ({
+        ...prev,
+        streetName: parsed.streetName || 'sree nagar',
+        ward: wardName,
+        zone: zoneName,
+        vehicleType: parsed.vehicleType || 'TATA ACE',
+        siName: parsed.siName || 'S.R.GERALD SATHIYA PUNITHAN',
+        siContact: parsed.siContact || '9442504589',
+        ssName: parsed.ssName || 'vibin',
+        ssContact: parsed.ssContact || '9442504589',
+        cssName: parsed.cssName || 'vengatesh',
+        driverWorkerName: parsed.workerName || 'murali',
+        driverWorkerContact: parsed.workerContact || '9677971375',
+        householderName: `${parsed.workerName || 'Worker'} (${parsed.households || 30} Households)`,
+        householderContact: parsed.workerContact || '9677971375',
+      }));
+
+      const targetStreetName = parsed.streetName || 'sree nagar';
+
+      // Parse specific checkpoint point from QR string (e.g. CCMC-QR21-P3 -> Point 3)
+      const lowerCode = scannedHouseId.toLowerCase();
+      let targetPoint: number | null = null;
+      const match = lowerCode.match(/(?:-|_|\b)p([1-5])(?:\b|_|\.|$)/);
+      if (match) {
+        targetPoint = parseInt(match[1], 10);
+      } else if (lowerCode.includes('-p5') || lowerCode.includes('p5')) targetPoint = 5;
+      else if (lowerCode.includes('-p4') || lowerCode.includes('p4')) targetPoint = 4;
+      else if (lowerCode.includes('-p3') || lowerCode.includes('p3')) targetPoint = 3;
+      else if (lowerCode.includes('-p2') || lowerCode.includes('p2')) targetPoint = 2;
+      else if (lowerCode.includes('-p1') || lowerCode.includes('p1')) targetPoint = 1;
+      else targetPoint = 1; // Default to point 1 when scanning base QR code
+
+      const SCAN_KEY = 'ccmc_street_5scans';
+      let baseScans: StreetScanPoint[] = [
+        { id: 1, label: 'Scan 1', taLabel: 'ஸ்கேன் 1', locationName: 'Point 1 QR', taLocationName: 'புள்ளி 1 QR', isScanned: false },
+        { id: 2, label: 'Scan 2', taLabel: 'ஸ்கேன் 2', locationName: 'Point 2 QR', taLocationName: 'புள்ளி 2 QR', isScanned: false },
+        { id: 3, label: 'Scan 3', taLabel: 'ஸ்கேன் 3', locationName: 'Point 3 QR', taLocationName: 'புள்ளி 3 QR', isScanned: false },
+        { id: 4, label: 'Scan 4', taLabel: 'ஸ்கேன் 4', locationName: 'Point 4 QR', taLocationName: 'புள்ளி 4 QR', isScanned: false },
+        { id: 5, label: 'Scan 5', taLabel: 'ஸ்கேன் 5', locationName: 'Point 5 QR', taLocationName: 'புள்ளி 5 QR', isScanned: false },
+      ];
+
+      try {
+        const raw = localStorage.getItem(SCAN_KEY);
+        if (raw) {
+          const obj = JSON.parse(raw);
+          if (obj[targetStreetName] && Array.isArray(obj[targetStreetName])) {
+            // Clean legacy mock test timestamps (e.g. 01:24 PM)
+            baseScans = obj[targetStreetName].map((sc: StreetScanPoint) => {
+              if (isLegacyMockTime(sc.scannedAt)) {
+                return { ...sc, isScanned: false, scannedAt: undefined };
+              }
+              return sc;
+            });
+          }
         }
-        return prev;
+      } catch (e) { /* ignore */ }
+
+      // Update scan states: mark ONLY the actually scanned targetPoint with real live timestamp
+      const liveTime = getLiveScanTimeStr();
+      const updatedScans = baseScans.map(sc => {
+        if (targetPoint && sc.id === targetPoint) {
+          return {
+            ...sc,
+            isScanned: true,
+            scannedAt: liveTime
+          };
+        }
+        return sc;
       });
+
+      try {
+        const raw = localStorage.getItem(SCAN_KEY);
+        const obj = raw ? JSON.parse(raw) : {};
+        obj[targetStreetName] = updatedScans;
+        localStorage.setItem(SCAN_KEY, JSON.stringify(obj));
+      } catch (e) { /* ignore */ }
+
+      setStreetScans(updatedScans);
     }
-  }, [scannedHouseId, isPushCart]);
+  }, [scannedHouseId]);
+
+  // 5 Scan Checkpoints State for Vehicle Mode (Scans 1 to 5 updated one by one per scanned QR checkpoint)
+  const [streetScans, setStreetScans] = useState<StreetScanPoint[]>(() => [
+    { id: 1, label: 'Scan 1', taLabel: 'ஸ்கேன் 1', locationName: 'Point 1 QR', taLocationName: 'புள்ளி 1 QR', isScanned: false },
+    { id: 2, label: 'Scan 2', taLabel: 'ஸ்கேன் 2', locationName: 'Point 2 QR', taLocationName: 'புள்ளி 2 QR', isScanned: false },
+    { id: 3, label: 'Scan 3', taLabel: 'ஸ்கேன் 3', locationName: 'Point 3 QR', taLocationName: 'புள்ளி 3 QR', isScanned: false },
+    { id: 4, label: 'Scan 4', taLabel: 'ஸ்கேன் 4', locationName: 'Point 4 QR', taLocationName: 'புள்ளி 4 QR', isScanned: false },
+    { id: 5, label: 'Scan 5', taLabel: 'ஸ்கேன் 5', locationName: 'Point 5 QR', taLocationName: 'புள்ளி 5 QR', isScanned: false },
+  ]);
 
   // Compute vehicle coverage state
   const completedScansCount = streetScans.filter(s => s.isScanned).length;
-  const isVehicleAll5Covered = completedScansCount === 5;
-  const isVehicle4PartiallyCovered = completedScansCount === 4;
+
+  // Reset all 5 checkpoints to Pending X
+  const handleResetAllScans = () => {
+    const freshScans: StreetScanPoint[] = [
+      { id: 1, label: 'Scan 1', taLabel: 'ஸ்கேன் 1', locationName: 'Point 1 QR', taLocationName: 'புள்ளி 1 QR', isScanned: false },
+      { id: 2, label: 'Scan 2', taLabel: 'ஸ்கேன் 2', locationName: 'Point 2 QR', taLocationName: 'புள்ளி 2 QR', isScanned: false },
+      { id: 3, label: 'Scan 3', taLabel: 'ஸ்கேன் 3', locationName: 'Point 3 QR', taLocationName: 'புள்ளி 3 QR', isScanned: false },
+      { id: 4, label: 'Scan 4', taLabel: 'ஸ்கேன் 4', locationName: 'Point 4 QR', taLocationName: 'புள்ளி 4 QR', isScanned: false },
+      { id: 5, label: 'Scan 5', taLabel: 'ஸ்கேன் 5', locationName: 'Point 5 QR', taLocationName: 'புள்ளி 5 QR', isScanned: false },
+    ];
+    setStreetScans(freshScans);
+    if (formData.streetName) {
+      try {
+        const SCAN_KEY = 'ccmc_street_5scans';
+        const raw = localStorage.getItem(SCAN_KEY);
+        const obj = raw ? JSON.parse(raw) : {};
+        obj[formData.streetName] = freshScans;
+        localStorage.setItem(SCAN_KEY, JSON.stringify(obj));
+      } catch (e) { /* ignore */ }
+    }
+  };
 
   // Sync formData.coverageStatus for vehicle mode
   useEffect(() => {
@@ -176,8 +332,22 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
     }
   }, [isPushCart, completedScansCount]);
 
+  // Sync streetScans to localStorage whenever updated
+  useEffect(() => {
+    if (!formData.streetName) return;
+    try {
+      const SCAN_KEY = 'ccmc_street_5scans';
+      const raw = localStorage.getItem(SCAN_KEY);
+      const obj = raw ? JSON.parse(raw) : {};
+      obj[formData.streetName] = streetScans;
+      localStorage.setItem(SCAN_KEY, JSON.stringify(obj));
+    } catch (e) { /* ignore */ }
+  }, [streetScans, formData.streetName]);
+
+  const [scanWarnMsg, setScanWarnMsg] = useState<string | null>(null);
+
   const handleToggleFormScanPoint = (scanId: number) => {
-    const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const liveTime = getLiveScanTimeStr();
     setStreetScans(prev => {
       const updated = prev.map(sc => {
         if (sc.id === scanId) {
@@ -186,7 +356,7 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
           return {
             ...sc,
             isScanned: nextState,
-            scannedAt: nextState ? nowStr : undefined
+            scannedAt: nextState ? liveTime : undefined
           };
         }
         return sc;
@@ -197,73 +367,27 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMoreDetails, setShowMoreDetails] = useState(false);
-  const [isEditingInline, setIsEditingInline] = useState(false);
   const [editToast, setEditToast] = useState<string | null>(null);
 
-  // Real-time GPS Geolocation States
+  // Scan-lock: check if this houseId has already been submitted
+  const SCAN_LOCK_KEY = 'ccmc_scanned_addresses';
+  const getScanLocked = (hId: string) => {
+    try {
+      const raw = localStorage.getItem(SCAN_LOCK_KEY);
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      return obj[hId] || null;
+    } catch { return null; }
+  };
+  const [scanLockedData, setScanLockedData] = useState<any>(() => getScanLocked(cleanHouseId(scannedHouseId)));
+  const isAlreadyScanned = false; // allow viewing live page
+
+  // GPS Telemetry
   const [gpsLat, setGpsLat] = useState<number>(11.01684);
   const [gpsLng, setGpsLng] = useState<number>(76.95582);
   const [gpsAccuracy, setGpsAccuracy] = useState<number>(3.2);
-  const [gpsLocationName, setGpsLocationName] = useState<string>('Kamaraj Salai, Cross Cut Rd, Gandhipuram, Coimbatore - 641012');
-  const [gpsStatus, setGpsStatus] = useState<'acquiring' | 'locked' | 'live'>('acquiring');
-  const [isRefreshingGps, setIsRefreshingGps] = useState<boolean>(false);
-  const [showMapModal, setShowMapModal] = useState<boolean>(false);
-
-  // Function to acquire real or simulated high-precision GPS telemetry
-  const acquireGps = () => {
-    setIsRefreshingGps(true);
-    setGpsStatus('acquiring');
-
-    const doorMatch = (formData.doorNo || '').match(/\d+/);
-    const doorNum = doorMatch ? parseInt(doorMatch[0], 10) : 45;
-    const baseLat = formData.ward === 'Ward 15' ? 11.0250 : formData.ward === 'Ward 18' ? 11.0020 : 11.0168;
-    const baseLng = formData.ward === 'Ward 15' ? 76.9610 : formData.ward === 'Ward 18' ? 76.9680 : 76.9558;
-    const streetBase = formData.ward === 'Ward 15' 
-      ? 'Gandhi Road, DB Road Corner, RS Puram, Coimbatore - 641002'
-      : formData.ward === 'Ward 18'
-      ? 'Periyar Nagar, Big Bazaar St, Town Hall, Coimbatore - 641001'
-      : 'Kamaraj Salai, Cross Cut Rd, Gandhipuram, Coimbatore - 641012';
-
-    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = +pos.coords.latitude.toFixed(5);
-          const lng = +pos.coords.longitude.toFixed(5);
-          setGpsLat(lat);
-          setGpsLng(lng);
-          setGpsAccuracy(Math.max(2.1, Math.min(6.5, +pos.coords.accuracy.toFixed(1))));
-          setGpsStatus('live');
-          setGpsLocationName(`${formData.doorNo ? `${formData.doorNo}, ` : ''}${formData.streetName}, ${formData.ward}, Coimbatore - 641012`);
-          setIsRefreshingGps(false);
-        },
-        (err) => {
-          console.warn('Geolocation fallback to street coordinates:', err);
-          const calculatedLat = +(baseLat + (doorNum * 0.00008) - 0.003).toFixed(5);
-          const calculatedLng = +(baseLng + ((doorNum % 10) * 0.00006) - 0.0002).toFixed(5);
-          setGpsLat(calculatedLat);
-          setGpsLng(calculatedLng);
-          setGpsAccuracy(3.4);
-          setGpsStatus('locked');
-          setGpsLocationName(`${formData.doorNo ? `${formData.doorNo}, ` : ''}${formData.streetName}, ${streetBase}`);
-          setIsRefreshingGps(false);
-        },
-        { enableHighAccuracy: true, timeout: 3500 }
-      );
-    } else {
-      const calculatedLat = +(baseLat + (doorNum * 0.00008) - 0.003).toFixed(5);
-      const calculatedLng = +(baseLng + ((doorNum % 10) * 0.00006) - 0.0002).toFixed(5);
-      setGpsLat(calculatedLat);
-      setGpsLng(calculatedLng);
-      setGpsAccuracy(3.4);
-      setGpsStatus('locked');
-      setGpsLocationName(`${formData.doorNo ? `${formData.doorNo}, ` : ''}${formData.streetName}, ${streetBase}`);
-      setIsRefreshingGps(false);
-    }
-  };
-
-  useEffect(() => {
-    acquireGps();
-  }, [formData.doorNo, formData.streetName, formData.ward]);
+  const [gpsLocationName, setGpsLocationName] = useState<string>('Kamaraj Salai, Coimbatore');
+  const [gpsStatus, setGpsStatus] = useState<'acquiring' | 'locked' | 'live'>('locked');
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e && e.preventDefault) {
@@ -283,23 +407,23 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
       hour12: true
     });
 
-    // Calculate 5-Point Street Scans & Coverage Status for Vehicle Mode
     let finalCoverageStatus: CoverageStatus = formData.coverageStatus;
     if (!isPushCart) {
-      const isAllCovered = streetScans.filter(s => s.isScanned).length === 5;
-      finalCoverageStatus = isAllCovered ? 'Covered' : 'Not Covered';
+      if (completedScansCount === 5) {
+        finalCoverageStatus = 'Covered';
+      } else if (completedScansCount === 4) {
+        finalCoverageStatus = 'Partially Covered';
+      } else {
+        finalCoverageStatus = 'Not Covered';
+      }
+    }
 
-      try {
-        const stName = formData.streetName || "Kamaraj Salai";
-        const savedScansRaw = localStorage.getItem('ccmc_street_5scans');
-        let currentScansObj: Record<string, any[]> = {};
-        if (savedScansRaw) {
-          try { currentScansObj = JSON.parse(savedScansRaw); } catch (e) { /* ignore */ }
-        }
-        currentScansObj[stName] = streetScans;
-        localStorage.setItem('ccmc_street_5scans', JSON.stringify(currentScansObj));
-      } catch (err) {
-        console.warn('Error updating street scans:', err);
+    let finalDoorNo = formData.doorNo ? formData.doorNo.trim() : '';
+    if (!finalDoorNo) {
+      if (isPushCart) {
+        finalDoorNo = lang === 'ta' ? 'விருப்பத்திற்குரியது (Pushcart)' : 'Optional (Pushcart)';
+      } else {
+        finalDoorNo = "45";
       }
     }
 
@@ -315,131 +439,99 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
       cssName: formData.cssName || "S. Kumar",
       driverWorkerName: formData.driverWorkerName || "P. Murugan",
       driverWorkerContact: formData.driverWorkerContact || "9876543212",
-      householderName: formData.householderName || "Householder",
+      householderName: formData.householderName || "Ramanathan",
       householderContact: formData.householderContact || "9840123456",
       streetName: formData.streetName || "Kamaraj Salai",
-      doorNo: formData.doorNo || "45",
+      doorNo: finalDoorNo,
       coverageStatus: finalCoverageStatus,
-      notCoveredReason: finalCoverageStatus === 'Not Covered' ? (isPushCart ? (formData.notCoveredReason || 'House Locked') : 'Other') : undefined,
-      remarks: formData.remarks || (!isPushCart && finalCoverageStatus === 'Not Covered' ? `${5 - completedScansCount} QR Checkpoints Pending` : undefined),
+      notCoveredReason: finalCoverageStatus === 'Not Covered' ? 'Other' : undefined,
+      remarks: formData.remarks || `${completedScansCount}/5 QR Checkpoints Scanned (${finalCoverageStatus})`,
       latitude: gpsLat,
       longitude: gpsLng,
       gpsCoordinates: `${gpsLat.toFixed(5)}° N, ${gpsLng.toFixed(5)}° E`,
       locationName: gpsLocationName,
       gpsAccuracy: gpsAccuracy,
       gpsTimestamp: timestampStr,
-      assignedVehicleId: assignedVehicleId || 'v-push-cart',
-      vehicleNo: assignedVehicleId === 'v-tata-ace' ? 'TN 38 BG 4410' : assignedVehicleId === 'v-bov' ? 'TN 38 EV 1022' : assignedVehicleId === 'v-obl-pvt' ? 'TN 38 PV 9001' : 'TN 38 PC 0089',
-      vehicleType: assignedVehicleId === 'v-tata-ace' ? 'TATA ACE' : assignedVehicleId === 'v-bov' ? 'BOV' : assignedVehicleId === 'v-obl-pvt' ? 'OBL PRIVATE' : 'PUSH CART',
+      assignedVehicleId: assignedVehicleId || 'v-tata-ace',
+      vehicleNo: formData.vehicleType ? (assignedVehicleId || 'TN66AD6465') : 'TN66AD6465',
+      vehicleType: formData.vehicleType || 'TATA ACE',
+      completedScansCount: completedScansCount,
+      streetScans: streetScans,
       submittedAt: timestampStr
     };
 
-    const submissionPayload = {
-      ...fallbackRecord
-    };
-
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/swms/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submissionPayload)
-      });
-      const data = await res.json();
-      if (data && data.success && data.record) {
-        onSubmitSuccess(data.record, finalCoverageStatus);
-      } else {
-        onSubmitSuccess(fallbackRecord, finalCoverageStatus);
-      }
-    } catch (err) {
-      console.warn('Direct fallback record generated due to network/offline mode:', err);
-      onSubmitSuccess(fallbackRecord, finalCoverageStatus);
-    } finally {
-      setIsSubmitting(false);
-    }
+    onSubmitSuccess(fallbackRecord, finalCoverageStatus);
+    setIsSubmitting(false);
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 text-slate-800 overflow-hidden w-full relative">
+    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 w-full relative font-sans">
       
-      {/* Green Header with Back, Hon'ble CM Photo, CCMC Branding, House ID & Three-Dots Menu */}
-      <div className="bg-[#1E7A38] px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 lg:py-2.5 flex items-center justify-between border-b border-emerald-700/60 sticky top-0 z-20 shadow-md text-white min-h-[52px] sm:min-h-[56px] lg:min-h-[62px]">
-        {/* Left Branding Group */}
-        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-          <button
-            onClick={onBackToScanner}
-            className="w-7 h-7 sm:w-8 sm:h-8 bg-[#113B22] hover:bg-[#166534] text-white rounded-full transition flex items-center justify-center border border-emerald-500/30 shadow-xs cursor-pointer active:scale-95 flex-shrink-0"
-            title="Back to Scanner / ஸ்கேனருக்குத் திரும்பு"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-          </button>
+      {/* ── TOP GREEN CCMC HEADER (Image 1 Exact Layout) ── */}
+      <div className="bg-[#044D29] px-3 sm:px-4 py-2 border-b border-[#033A1F] sticky top-0 z-30 shadow-md text-white">
+        <div className="flex items-center justify-between gap-2">
+          {/* Left: Back button + CM Stalin + CCMC Emblem + Titles */}
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={onBackToScanner}
+              className="w-8 h-8 rounded-full bg-[#02381C] hover:bg-[#012713] text-white flex items-center justify-center border border-emerald-600/40 shadow-xs cursor-pointer active:scale-95 flex-shrink-0"
+              title="Back to Scanner"
+            >
+              <ArrowLeft className="w-4 h-4 text-white" />
+            </button>
 
-          {/* Hon'ble CM Portrait */}
-          <div 
-            className="h-9 sm:h-10 w-8 sm:w-10 flex-shrink-0 overflow-hidden border-r-2 border-amber-400 shadow-xs bg-emerald-950 -my-1 relative"
-            title="Hon'ble Chief Minister of Tamil Nadu"
-          >
-            <img
-              src={cmPhoto}
-              alt="CM"
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                if (e.currentTarget.src !== cmFallbackPhoto) {
-                  e.currentTarget.src = cmFallbackPhoto;
-                }
-              }}
-              className="w-full h-full object-cover object-top"
-            />
-          </div>
-
-          {/* CCMC Emblem */}
-          <div className="relative flex-shrink-0 flex items-center justify-center w-7 h-7 sm:w-9 sm:h-9 bg-white rounded-full border border-amber-400 sm:border-2 shadow-xs overflow-hidden">
-            <img
-              src={ccmcLogo}
-              alt="CCMC"
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                if (e.currentTarget.src !== ccmcFallbackLogo) {
-                  e.currentTarget.src = ccmcFallbackLogo;
-                }
-              }}
-              className="w-full h-full object-contain p-0.5"
-            />
-          </div>
-
-          {/* Municipal Title */}
-          <div className="min-w-0 flex flex-col justify-center">
-            {/* Line 1: Coimbatore City */}
-            <div className="text-[11px] sm:text-sm lg:text-base font-black tracking-tight text-white leading-tight whitespace-nowrap drop-shadow-xs">
-              Coimbatore City
+            {/* CM Stalin Photo */}
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400 bg-amber-500/20 shadow-xs flex-shrink-0 flex items-center justify-center">
+              <img
+                src={cmPhoto}
+                alt="Hon'ble Chief Minister"
+                referrerPolicy="no-referrer"
+                onError={(e) => { if (e.currentTarget.src !== cmFallbackPhoto) e.currentTarget.src = cmFallbackPhoto; }}
+                className="w-full h-full object-cover object-top scale-110"
+              />
             </div>
-            {/* Line 2: Municipal Corporation */}
-            <div className="text-[10px] sm:text-xs lg:text-[14px] font-black tracking-tight text-amber-300 leading-tight whitespace-nowrap drop-shadow-xs">
-              Municipal Corporation
+
+            {/* CCMC Emblem */}
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400 bg-white p-0.5 shadow-xs flex-shrink-0 flex items-center justify-center">
+              <img
+                src={ccmcLogo}
+                alt="Coimbatore City Municipal Corporation Emblem"
+                referrerPolicy="no-referrer"
+                onError={(e) => { if (e.currentTarget.src !== ccmcFallbackLogo) e.currentTarget.src = ccmcFallbackLogo; }}
+                className="w-full h-full object-contain"
+              />
             </div>
-            {/* Line 3: Sanitary Field Worker */}
-            <div className="text-[8.5px] sm:text-[10.5px] lg:text-xs font-black tracking-wider text-cyan-300 uppercase leading-tight mt-0.5 whitespace-nowrap drop-shadow-xs">
-              {lang === 'ta' ? 'குப்பை சேகரிப்பு பதிவு' : 'SANITARY FIELD WORKER'}
+
+            {/* Municipal Title */}
+            <div className="min-w-0 flex flex-col justify-center leading-none">
+              <div className="text-[12px] sm:text-sm font-black tracking-tight text-[#FFEB3B] truncate leading-tight drop-shadow-xs">
+                Coimbatore City
+              </div>
+              <div className="text-[11px] sm:text-xs font-black tracking-tight text-[#FFEB3B] truncate leading-tight mt-0.5 drop-shadow-xs">
+                Municipal Corporation
+              </div>
+              <div className="text-[10px] sm:text-[11px] font-black tracking-wider text-[#00E5FF] uppercase leading-tight mt-0.5 drop-shadow-xs">
+                SANITARY FIELD WORKER
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Right Header: Language Switcher Segment [ தமிழ் | English ] */}
-        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-          <div className="bg-[#113B22] border border-emerald-500/40 rounded-full p-0.5 flex items-center shadow-xs flex-shrink-0 scale-90 sm:scale-100 origin-right">
+          {/* Right: Language Pill */}
+          <div className="bg-[#02381C] border border-emerald-600/40 rounded-full p-0.5 flex items-center shadow-xs flex-shrink-0">
             <button
               type="button"
               onClick={() => {
                 if (onSetLanguage) onSetLanguage('ta');
                 else if (lang !== 'ta' && onToggleLang) onToggleLang();
               }}
-              className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[8.5px] sm:text-[10px] font-black transition-all cursor-pointer flex items-center gap-0.5 sm:gap-1 ${
+              className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black transition-all cursor-pointer flex items-center gap-1 ${
                 lang === 'ta'
                   ? 'bg-[#FF9E00] text-slate-950 shadow-xs'
                   : 'text-emerald-200 hover:text-white hover:bg-emerald-800/50'
               }`}
-              title="தமிழ் மொழியைத் தேர்வு செய்"
             >
-              <Globe className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${lang === 'ta' ? 'text-slate-950' : 'text-emerald-300'}`} />
+              <Globe className={`w-3 h-3 ${lang === 'ta' ? 'text-slate-950' : 'text-emerald-300'}`} />
               <span>தமிழ்</span>
             </button>
             <button
@@ -448,49 +540,39 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
                 if (onSetLanguage) onSetLanguage('en');
                 else if (lang !== 'en' && onToggleLang) onToggleLang();
               }}
-              className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[8.5px] sm:text-[10px] font-black transition-all cursor-pointer ${
+              className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black transition-all cursor-pointer ${
                 lang === 'en'
                   ? 'bg-[#FF9E00] text-slate-950 shadow-xs'
                   : 'text-emerald-200 hover:text-white hover:bg-emerald-800/50'
               }`}
-              title="Select English Language"
             >
               <span>English</span>
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Operational Status Sub-Bar: Hidden on mobile & tablet view (< lg), visible only on large desktop */}
-      <div className="hidden lg:flex bg-[#113B22] px-2 sm:px-4 py-1.5 items-center justify-between gap-1.5 text-[9px] sm:text-xs text-emerald-100 font-medium border-t border-emerald-700/50">
-        {/* Left: Field Officer */}
-        <div className="flex items-center gap-1 bg-[#0A2E17] border border-emerald-400/50 rounded-full px-2 py-0.5 shadow-xs flex-shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
-          <span className="text-amber-300 font-black text-[9px] sm:text-[10px] whitespace-nowrap">
-            {lang === 'ta' ? 'கள அதிகாரி' : 'Field Officer'}:
-          </span>
-          <span className="text-white font-bold text-[9px] sm:text-[10px] truncate max-w-[85px] sm:max-w-[150px]">
-            Karthik Muthusamy
-          </span>
-        </div>
+        {/* Subheader Pill Bar (Field Officer | KAMARAJ SALAI | ICCC Live) */}
+        <div className="mt-2 pt-1.5 border-t border-emerald-800/60 flex items-center justify-between gap-1.5 text-[11px] font-bold">
+          <div className="bg-[#02381C] text-white px-3 py-0.5 rounded-full border border-emerald-600/40 flex items-center gap-1.5 flex-shrink-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Field Officer: Karthik Muthusamy</span>
+          </div>
 
-        {/* Center: Prominent White House ID / Street ID Pill Badge */}
-        <div className="bg-white text-[#1E7A38] px-2.5 sm:px-3.5 py-0.5 rounded-full border border-emerald-300 shadow-sm flex items-center justify-center flex-shrink-0 mx-auto">
-          <span className="text-[10px] sm:text-[11.5px] font-black tracking-wider uppercase font-mono">
-            {isPushCart ? formData.houseId : formData.streetName}
-          </span>
-        </div>
+          <div className="bg-white text-[#044D29] px-4 py-0.5 rounded-full shadow-sm font-black text-xs uppercase tracking-wider font-mono mx-auto flex-shrink-0">
+            {formData.streetName || 'KAMARAJ SALAI'}
+          </div>
 
-        {/* Right: ICCC Live */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <ICCCLiveBadge lang={lang} />
+          <div className="bg-[#02381C] text-white px-3 py-0.5 rounded-full border border-emerald-600/40 flex items-center gap-1.5 flex-shrink-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>ICCC Live</span>
+          </div>
         </div>
       </div>
 
-      {/* Main Focus: HOUSEHOLD INFO + REAL-TIME GPS + COVERED & NOT COVERED + SUBMIT */}
+      {/* Main Form Area */}
       <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 text-xs text-slate-800 pb-28">
         
-        {/* Toast feedback when details are edited */}
+        {/* Toast feedback */}
         {editToast && (
           <div className="bg-emerald-700 text-white px-4 py-2.5 rounded-2xl shadow-lg flex items-center justify-between text-xs font-bold animate-fadeIn">
             <div className="flex items-center space-x-2">
@@ -507,494 +589,339 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
           </div>
         )}
 
-        {/* Scanned House / Street Information & EDIT Card */}
-        <div className="bg-white p-4 rounded-3xl border-2 border-emerald-200/90 shadow-md space-y-3">
-          {/* Header Row with Vehicle Tag & Action Buttons */}
+        {/* FIRST CARD: Location & Resident Summary */}
+        <div className="bg-white p-4 rounded-3xl border-2 border-emerald-300 shadow-sm space-y-3">
+          {/* Header row with badges & action buttons */}
           <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
             <div className="flex items-center space-x-2 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 text-[#1E7A38] flex items-center justify-center font-black text-sm flex-shrink-0">
-                <MapPin className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-full bg-emerald-50 border border-emerald-200 text-[#00875A] flex items-center justify-center font-black text-sm flex-shrink-0">
+                <MapPin className="w-4 h-4 text-[#00875A]" />
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="bg-[#1E7A38] text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-2xs">
-                    {assignedVehicleId === 'v-tata-ace'
-                      ? (lang === 'ta' ? '🚚 டாடா ஏஸ்' : '🚚 TATA ACE')
-                      : assignedVehicleId === 'v-bov'
-                      ? (lang === 'ta' ? '🔋 பி.ஓ.வி' : '🔋 BOV')
-                      : assignedVehicleId === 'v-obl-pvt'
-                      ? (lang === 'ta' ? '🚛 தனியார் வாகனம்' : '🚛 OBL-PVT')
-                      : (lang === 'ta' ? '🛒 தள்ளுவண்டி' : '🛒 Push Cart')}
-                  </span>
-                  {isPushCart && (
-                    <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono font-black text-[10px] sm:text-[10.5px] px-2 py-0.5 rounded-full shadow-2xs">
-                      {formData.houseId}
-                    </span>
-                  )}
-                  <span className="bg-purple-100 text-purple-800 border border-purple-300 text-[9.5px] font-extrabold px-2 py-0.5 rounded-md">
-                    {formData.zone}
-                  </span>
-                  <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[9.5px] font-extrabold px-2 py-0.5 rounded-md">
-                    {formData.ward}
-                  </span>
-                </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="bg-[#00875A] text-white text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-2xs uppercase">
+                  {formData.vehicleType || 'TATA ACE'}
+                </span>
+                <span className="bg-[#8B5CF6] text-white text-[11px] font-extrabold px-2.5 py-0.5 rounded-full">
+                  {formData.zone || 'East Zone'}
+                </span>
+                <span className="bg-[#FEF08A] text-slate-900 border border-amber-300 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full">
+                  {formData.ward || 'Ward 12'}
+                </span>
               </div>
             </div>
 
-            {/* Action Buttons: Edit and Details */}
-            <div className="flex items-center space-x-1.5 flex-shrink-0">
+            {/* Action buttons: Edit & Details */}
+            <div className="flex items-center space-x-2 flex-shrink-0">
               <button
                 type="button"
-                onClick={() => setIsEditingInline(!isEditingInline)}
-                className={`text-[11px] font-black px-3 py-1.5 rounded-xl border transition cursor-pointer flex items-center space-x-1.5 shadow-2xs active:scale-95 ${
-                  isEditingInline
-                    ? 'bg-amber-500 text-white border-amber-600 ring-2 ring-amber-300'
-                    : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700'
-                }`}
-                title={isEditingInline ? 'Cancel Editing' : 'Edit Details / விவரங்களைத் திருத்து'}
+                onClick={() => setShowMoreDetails(true)}
+                className="bg-[#00875A] hover:bg-[#00704A] text-white font-black text-xs px-3.5 py-1.5 rounded-xl shadow-xs flex items-center space-x-1.5 cursor-pointer transition active:scale-95"
               >
-                <Pencil className="w-3.5 h-3.5" />
-                <span>{isEditingInline ? (lang === 'ta' ? 'மூடு' : 'Close') : (lang === 'ta' ? 'திருத்து' : 'Edit')}</span>
+                <Pencil className="w-3.5 h-3.5 text-white" />
+                <span>Edit</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setShowMoreDetails(true)}
-                className="text-[11px] text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 font-bold px-2.5 py-1.5 rounded-xl border border-slate-300 transition cursor-pointer flex items-center space-x-1 shadow-2xs"
-                title="Full Officer & Ward Details"
+                className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-2xs flex items-center space-x-1.5 cursor-pointer transition"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5 text-slate-600" />
-                <span className="hidden sm:inline">{lang === 'ta' ? 'விவரங்கள்' : 'Details'}</span>
+                <span>Details</span>
               </button>
             </div>
           </div>
 
-          {/* Body: Read-only summary or Editable Inputs */}
-          {!isEditingInline ? (
-            <div className="bg-slate-50/80 rounded-2xl p-3 border border-slate-200/80 flex items-center justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center space-x-2">
-                  <h4 className="text-xs sm:text-sm font-black text-slate-900">
-                    {isPushCart ? `${formData.streetName}, Door #${formData.doorNo}` : formData.streetName}
-                  </h4>
-                  {isPushCart && (
-                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-md border border-emerald-300">
-                      Door #{formData.doorNo}
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-600 font-semibold flex items-center gap-1">
-                  <User className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{formData.householderName}</span>
-                  <span className="text-slate-400">•</span>
-                  <span className="font-mono text-slate-700">{formData.householderContact}</span>
-                </p>
-                <p className="text-[10px] text-slate-500 font-medium">
-                  {lang === 'ta' ? 'அதிகாரிகள்:' : 'Officers:'} SI {formData.siName} ({formData.siContact}) • Driver {formData.driverWorkerName}
-                </p>
-              </div>
-            </div>
-          ) : (
-            /* INLINE EDIT FORM */
-            <div className="bg-amber-50/70 border-2 border-amber-300 rounded-2xl p-3.5 space-y-3 animate-fadeIn">
-              <div className="flex items-center justify-between text-amber-900 font-extrabold text-[11px] border-b border-amber-200/80 pb-1.5">
-                <span className="flex items-center gap-1.5">
-                  <Pencil className="w-3.5 h-3.5 text-amber-700" />
-                  {lang === 'ta'
-                    ? (isPushCart ? 'விவரங்களைத் திருத்துங்கள் (Edit Street & Household):' : 'தெரு விவரங்களைத் திருத்துங்கள் (Edit Street Details):')
-                    : (isPushCart ? 'Edit Street & Household Details:' : 'Edit Street Details:')}
+          {/* Body */}
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
+                {formData.streetName || 'Kamaraj Salai'}
+              </h3>
+              {formData.doorNo && !formData.doorNo.toLowerCase().includes('optional') && !formData.doorNo.includes('விருப்பத்திற்குரியது') ? (
+                <span className="text-xs font-mono font-extrabold text-[#044D29] bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+                  Door #{formData.doorNo}
                 </span>
-                {isPushCart && (
-                  <span className="text-[10px] text-amber-700 font-mono">
-                    {formData.houseId}
-                  </span>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-700 mb-1">
-                    {lang === 'ta' ? 'தெரு பெயர் (Street Name)' : 'Street Name'}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.streetName}
-                    onChange={(e) => setFormData({ ...formData, streetName: e.target.value })}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    placeholder="e.g. Kamaraj Salai"
-                  />
-                </div>
-
-                {isPushCart && (
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-700 mb-1">
-                      {lang === 'ta' ? 'கதவு எண் (Door No)' : 'Door No'}
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.doorNo}
-                      onChange={(e) => setFormData({ ...formData, doorNo: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      placeholder="e.g. 45 or 12A"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-700 mb-1">
-                    {lang === 'ta' ? 'குடியிருப்பாளர் பெயர்' : 'Resident Name'}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.householderName}
-                    onChange={(e) => setFormData({ ...formData, householderName: e.target.value })}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    placeholder="e.g. Ramanathan"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-700 mb-1">
-                    {lang === 'ta' ? 'தொலைபேசி எண்' : 'Contact Phone'}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.householderContact}
-                    onChange={(e) => setFormData({ ...formData, householderContact: e.target.value })}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    placeholder="e.g. 9840123456"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-700 mb-1">Zone</label>
-                  <select
-                    value={formData.zone}
-                    onChange={(e) => setFormData({ ...formData, zone: e.target.value })}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900"
-                  >
-                    <option value="East Zone">{lang === 'ta' ? 'கிழக்கு மண்டலம் (East Zone)' : 'East Zone'}</option>
-                    <option value="Central Zone">{lang === 'ta' ? 'மத்திய மண்டலம் (Central Zone)' : 'Central Zone'}</option>
-                    <option value="West Zone">{lang === 'ta' ? 'மேற்கு மண்டலம் (West Zone)' : 'West Zone'}</option>
-                    <option value="South Zone">{lang === 'ta' ? 'தெற்கு மண்டலம் (South Zone)' : 'South Zone'}</option>
-                    <option value="North Zone">{lang === 'ta' ? 'வடக்கு மண்டலம் (North Zone)' : 'North Zone'}</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-700 mb-1">Ward</label>
-                  <select
-                    value={formData.ward}
-                    onChange={(e) => setFormData({ ...formData, ward: e.target.value })}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900"
-                  >
-                    <option value="Ward 12">Ward 12</option>
-                    <option value="Ward 14">Ward 14</option>
-                    <option value="Ward 15">Ward 15</option>
-                    <option value="Ward 18">Ward 18</option>
-                    <option value="Ward 20">Ward 20</option>
-                    <option value="Ward 24">Ward 24</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Inline Save / Cancel buttons */}
-              <div className="flex items-center justify-end space-x-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setIsEditingInline(false)}
-                  className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold cursor-pointer transition"
-                >
-                  {lang === 'ta' ? 'ரத்து' : 'Cancel'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsEditingInline(false);
-                    setEditToast(
-                      lang === 'ta'
-                        ? '✅ விவரங்கள் வெற்றிகரமாகப் புதுப்பிக்கப்பட்டன!'
-                        : '✅ Household details updated successfully!'
-                    );
-                    setTimeout(() => setEditToast(null), 3500);
-                  }}
-                  className="px-4 py-1.5 rounded-xl bg-[#1E7A38] hover:bg-[#166534] text-white text-xs font-black shadow-md flex items-center space-x-1.5 cursor-pointer transition active:scale-95"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>{lang === 'ta' ? 'மாற்றங்களைச் சேமி' : 'Save Changes'}</span>
-                </button>
-              </div>
+              ) : isPushCart ? (
+                <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200/80">
+                  {lang === 'ta' ? 'கதவு எண்: விருப்பத்திற்குரியது (Pushcart)' : 'Door No: Optional (Pushcart)'}
+                </span>
+              ) : null}
             </div>
-          )}
-        </div>
-
-        {/* PRIMARY SECTION: STATUS SELECTION & SUBMISSION */}
-        <div className="bg-white p-4 sm:p-5 rounded-3xl border-2 border-emerald-500/40 shadow-md space-y-3.5">
-          <div className="flex items-center justify-between">
-            <label className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider flex items-center space-x-1.5">
-              <Sparkles className="w-4 h-4 text-emerald-600" />
-              <span>
-                {isPushCart
-                  ? (lang === 'ta' ? 'குப்பை சேகரிப்பு நிலை (தேர்வு செய்க)' : 'SELECT COLLECTION STATUS')
-                  : (lang === 'ta' ? 'தெரு ஆய்வு நிலை (வாகனம்)' : 'STREET COVERAGE STATUS (VEHICLE)')}
-              </span>
-            </label>
-            <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${
-              formData.coverageStatus === 'Covered'
-                ? 'bg-emerald-100 text-[#1E7A38] border-emerald-300'
-                : 'bg-rose-100 text-rose-800 border-rose-300'
-            }`}>
-              {formData.coverageStatus === 'Covered'
-                ? (isPushCart 
-                    ? (lang === 'ta' ? 'சேகரித்தது' : 'Collected') 
-                    : (lang === 'ta' ? 'மூடப்பட்டது' : 'Covered'))
-                : (isPushCart 
-                    ? (lang === 'ta' ? 'சேகரிக்காதவை' : 'Not Collected') 
-                    : (lang === 'ta' ? 'மூடப்படாதவை' : 'Not Covered'))}
-            </span>
+            <p className="text-xs text-slate-600 font-medium flex items-center gap-1">
+              <User className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+              <span>{formData.householderName || 'Ramanathan'}</span>
+              <span className="text-slate-400">•</span>
+              <span className="font-mono text-slate-700">{formData.householderContact || '9840123456'}</span>
+            </p>
+            <p className="text-xs text-slate-500 font-medium">
+              Officers: SI {formData.siName || 'K. Rajan'} ({formData.siContact || '9876543210'}) • Driver {formData.driverWorkerName || 'P. Murugan'}
+            </p>
           </div>
-
-          {/* ================================================================= */}
-          {/* 1. PUSH CART MODE: TWO INTERACTIVE OPTIONS (COLLECTED / NOT COLLECTED) */}
-          {/* ================================================================= */}
-          {isPushCart ? (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-                
-                {/* Option 1: COLLECTED (சேகரித்தது) */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormData(prev => ({ ...prev, coverageStatus: 'Covered' }));
-                    playChimeTone('success');
-                  }}
-                  className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex flex-col items-center justify-center text-center cursor-pointer relative overflow-hidden ${
-                    formData.coverageStatus === 'Covered'
-                      ? 'bg-[#1E7A38] text-white border-[#166534] shadow-lg scale-[1.02] ring-2 ring-emerald-500/50'
-                      : 'bg-slate-50 hover:bg-emerald-50/60 text-slate-700 border-slate-200 hover:border-emerald-300 opacity-80'
-                  }`}
-                >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 shadow-xs ${
-                    formData.coverageStatus === 'Covered' ? 'bg-white text-[#1E7A38]' : 'bg-emerald-100 text-emerald-700'
-                  }`}>
-                    <CheckCircle className="w-6 h-6" />
-                  </div>
-                  <span className="text-xs sm:text-sm font-black tracking-tight leading-tight block">
-                    {lang === 'ta' ? 'சேகரித்தது' : 'COLLECTED'}
-                  </span>
-                  <span className={`text-[10px] font-bold mt-0.5 ${
-                    formData.coverageStatus === 'Covered' ? 'text-emerald-100' : 'text-slate-500'
-                  }`}>
-                    {lang === 'ta' ? 'குப்பை வாங்கப்பட்டது' : 'Waste Collected'}
-                  </span>
-                  {formData.coverageStatus === 'Covered' && (
-                    <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-emerald-300 animate-ping" />
-                  )}
-                </button>
-
-                {/* Option 2: NOT COLLECTED (சேகரிக்காதவை) */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormData(prev => ({ ...prev, coverageStatus: 'Not Covered' }));
-                    playChimeTone('warning');
-                  }}
-                  className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex flex-col items-center justify-center text-center cursor-pointer relative overflow-hidden ${
-                    formData.coverageStatus === 'Not Covered'
-                      ? 'bg-[#D93025] text-white border-rose-700 shadow-lg scale-[1.02] ring-2 ring-rose-500/50'
-                      : 'bg-slate-50 hover:bg-rose-50/60 text-slate-700 border-slate-200 hover:border-rose-300 opacity-80'
-                  }`}
-                >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 shadow-xs ${
-                    formData.coverageStatus === 'Not Covered' ? 'bg-white text-[#D93025]' : 'bg-rose-100 text-rose-700'
-                  }`}>
-                    <AlertCircle className="w-6 h-6" />
-                  </div>
-                  <span className="text-xs sm:text-sm font-black tracking-tight leading-tight block">
-                    {lang === 'ta' ? 'சேகரிக்காதவை' : 'NOT COLLECTED'}
-                  </span>
-                  <span className={`text-[10px] font-bold mt-0.5 ${
-                    formData.coverageStatus === 'Not Covered' ? 'text-rose-100' : 'text-slate-500'
-                  }`}>
-                    {lang === 'ta' ? 'குப்பை வரவில்லை' : 'Pending / Missed'}
-                  </span>
-                  {formData.coverageStatus === 'Not Covered' && (
-                    <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-rose-300 animate-ping" />
-                  )}
-                </button>
-              </div>
-
-              {/* REASON SELECTOR IF NOT COLLECTED IS CHOSEN */}
-              {formData.coverageStatus === 'Not Covered' && (
-                <div className="bg-rose-50/80 border border-rose-200 p-3.5 rounded-2xl space-y-2.5 animate-fadeIn">
-                  <label className="block text-[11px] font-black text-rose-900 uppercase tracking-wide flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
-                    <span>{lang === 'ta' ? 'சேகரிக்காததற்கான காரணம் (தேர்வு செய்க):' : 'Reason for Not Collected (Required):'}</span>
-                  </label>
-                  
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {[
-                      { id: 'House Locked', en: 'House Locked', ta: 'வீடு பூட்டப்பட்டுள்ளது' },
-                      { id: 'Door Closed', en: 'Door Closed / No Response', ta: 'கதவு மூடப்பட்டுள்ளது' },
-                      { id: 'Waste Not Separated', en: 'Not Segregated', ta: 'தரம் பிரிக்கப்படவில்லை' },
-                      { id: 'Refused', en: 'Refused to Give', ta: 'குப்பை கொடுக்க மறுப்பு' },
-                      { id: 'Vacant House', en: 'Vacant House', ta: 'காலியான வீடு' },
-                      { id: 'Other', en: 'Other Reason', ta: 'இதர காரணம்' }
-                    ].map((reasonItem) => (
-                      <button
-                        key={reasonItem.id}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, notCoveredReason: reasonItem.id as NotCoveredReason }))}
-                        className={`px-2.5 py-1.5 rounded-xl text-[10px] font-bold text-left transition-all border cursor-pointer ${
-                          formData.notCoveredReason === reasonItem.id
-                            ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
-                            : 'bg-white text-slate-800 border-rose-200 hover:bg-rose-100/60'
-                        }`}
-                      >
-                        {lang === 'ta' ? reasonItem.ta : reasonItem.en}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Optional Remarks input */}
-                  <div className="pt-1">
-                    <input
-                      type="text"
-                      value={formData.remarks}
-                      onChange={(e) => setFormData(prev => ({ ...prev, remarks: e.target.value }))}
-                      placeholder={lang === 'ta' ? 'கூடுதல் குறிப்பு (விரும்பினால்)...' : 'Add remarks/notes (optional)...'}
-                      className="w-full bg-white border border-rose-300 rounded-xl px-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            /* ================================================================= */
-            /* 2. VEHICLE MODE (TATA ACE / BOV / OBL-PVT): 5-POINT SCAN STATUS */
-            /* ================================================================= */
-            <div className="space-y-3">
-              {/* Checkpoints Header & Grid */}
-              <div className="bg-[#F8FAFC] rounded-2xl p-3.5 sm:p-4 border border-slate-200/90 space-y-2.5">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                  <span className="flex items-center gap-1.5 font-extrabold text-slate-800">
-                    <QrCode className="w-4 h-4 text-[#1E7A38]" />
-                    <span>
-                      {lang === 'ta'
-                        ? `தெருவின் 5 QR சோதனைப் புள்ளிகள் (${completedScansCount}/5 முடிந்தது)`
-                        : `5 Street QR Checkpoints (${completedScansCount}/5 Scanned)`}
-                    </span>
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-mono">
-                    {lang === 'ta' ? 'மாற்ற தொடவும்' : 'Tap to toggle'}
-                  </span>
-                </div>
-
-                {/* 5 Scan Cards in Form */}
-                <div className="grid grid-cols-5 gap-2">
-                  {streetScans.map((scan) => {
-                    const isDone = scan.isScanned;
-                    return (
-                      <button
-                        key={scan.id}
-                        type="button"
-                        onClick={() => handleToggleFormScanPoint(scan.id)}
-                        className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-2xl border-2 transition-all duration-150 cursor-pointer active:scale-95 text-center ${
-                          isDone
-                            ? 'bg-[#ECFDF5] border-[#10B981] text-slate-900 shadow-2xs hover:bg-[#D1FAE5]'
-                            : 'bg-[#FFF1F2] border-[#FDA4AF] text-[#991B1B] hover:bg-[#FFE4E6]'
-                        }`}
-                        title={isDone ? `${scan.label}: Done (${scan.scannedAt || 'Scanned'})` : `${scan.label}: Pending (Tap to scan)`}
-                      >
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center font-black mb-1 shadow-2xs ${
-                          isDone
-                            ? 'bg-[#1E7A38] text-white ring-2 ring-emerald-200'
-                            : 'bg-[#D93025] text-white ring-2 ring-rose-200'
-                        }`}>
-                          {isDone ? (
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          ) : (
-                            <X className="w-3.5 h-3.5 stroke-[3]" />
-                          )}
-                        </div>
-                        <span className="text-[10.5px] font-black truncate w-full leading-tight text-slate-900">
-                          {lang === 'ta' ? scan.taLabel : scan.label}
-                        </span>
-                        <span className={`text-[9px] font-bold mt-0.5 leading-tight ${
-                          isDone ? 'text-emerald-700 font-mono' : 'text-rose-600'
-                        }`}>
-                          {isDone ? (scan.scannedAt || (lang === 'ta' ? 'சரி ✓' : 'Done ✓')) : (lang === 'ta' ? 'தவறு X' : 'Pending X')}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Status Outcome Banner: 5/5 -> Green Covered, 4/5 -> RedOrange Partially Covered, <=3 -> Red Not Covered */}
-              <div className={`p-3.5 sm:p-4 rounded-2xl border-2 shadow-sm flex items-center justify-between gap-3 ${
-                completedScansCount === 5
-                  ? 'bg-[#1E7A38] text-white border-[#166534]'
-                  : completedScansCount === 4
-                  ? 'bg-[#FFF7ED] text-[#9A3412] border-[#FDBA74]'
-                  : 'bg-[#FFF1F2] text-[#991B1B] border-[#FECDD3]'
-              }`}>
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-xs ${
-                    completedScansCount === 5
-                      ? 'bg-white text-[#1E7A38]'
-                      : completedScansCount === 4
-                      ? 'bg-[#EA580C] text-white'
-                      : 'bg-[#D93025] text-white'
-                  }`}>
-                    {completedScansCount === 5 ? (
-                      <CheckCircle2 className="w-6 h-6 text-[#1E7A38]" />
-                    ) : completedScansCount === 4 ? (
-                      <AlertTriangle className="w-6 h-6 text-white" />
-                    ) : (
-                      <AlertCircle className="w-6 h-6 text-white" />
-                    )}
-                  </div>
-                  <div>
-                    <span className="text-sm sm:text-base font-black tracking-wide block">
-                      {completedScansCount === 5
-                        ? (lang === 'ta' ? 'மூடப்பட்டது (COVERED - 5/5)' : 'COVERED (5/5 COMPLETED)')
-                        : completedScansCount === 4
-                        ? (lang === 'ta' ? 'பகுதி மூடப்பட்டது (PARTIALLY COVERED - 4/5)' : 'PARTIALLY COVERED (4/5 CHECKPOINTS)')
-                        : (lang === 'ta' ? `மூடப்படாதவை (NOT COVERED - ${completedScansCount}/5)` : `NOT COVERED (${completedScansCount}/5 CHECKPOINTS)`)}
-                    </span>
-                    <span className={`text-[11px] font-bold block ${
-                      completedScansCount === 5 
-                        ? 'text-emerald-100' 
-                        : completedScansCount === 4 
-                        ? 'text-[#C2410C]' 
-                        : 'text-rose-700'
-                    }`}>
-                      {completedScansCount === 5
-                        ? (lang === 'ta' ? 'அனைத்து 5 QR புள்ளிகளும் ஸ்கேன் செய்யப்பட்டது • தெரு மூடப்பட்டது ✓' : 'All 5 QR checkpoints scanned • Street 100% Covered ✓')
-                        : completedScansCount === 4
-                        ? (lang === 'ta' ? '4 புள்ளிகள் ஸ்கேன் முடிந்தது • பகுதி மூடப்பட்டது ⚡ (இன்னும் 1 புள்ளி விடுபட்டுள்ளது)' : '4 checkpoints scanned • Partially Covered ⚡ (1 more checkpoint required for 100% Covered)')
-                        : (lang === 'ta' 
-                            ? `3 அல்லது அதற்கும் குறைவான புள்ளிகள் • மூடப்படவில்லை ⚠ (${5 - completedScansCount} புள்ளிகள் விடுபட்டுள்ளன)` 
-                            : `3 or fewer checkpoints scanned • Not Covered ⚠ (${5 - completedScansCount} checkpoint(s) pending)`)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
-                  completedScansCount === 5 
-                    ? 'bg-emerald-300 animate-ping mr-1' 
-                    : completedScansCount === 4 
-                    ? 'bg-orange-500 animate-pulse mr-1' 
-                    : 'bg-rose-400'
-                }`} />
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* SUBMIT BUTTON - DYNAMIC BASED ON SELECTION */}
-        <div className="pt-2">
+        {/* SECOND CARD: STREET COVERAGE STATUS (VEHICLE / PUSHCART) */}
+        {isPushCart ? (
+          <div className="bg-white p-4 rounded-3xl border-2 border-emerald-300 shadow-sm space-y-4">
+            {/* Header row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-1.5">
+                <Sparkles className="w-4 h-4 text-emerald-600" />
+                <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide">
+                  {lang === 'ta' ? 'சேகரிப்பு நிலை (புஷ்கார்ட்)' : 'COVERAGE STATUS (PUSHCART)'}
+                </h4>
+              </div>
+              <span className={`text-xs font-black px-3 py-1 rounded-full border ${
+                formData.coverageStatus === 'Covered'
+                  ? 'bg-emerald-100 text-[#00875A] border-emerald-300'
+                  : 'bg-[#FFEAEA] text-[#DC2626] border-red-200'
+              }`}>
+                {formData.coverageStatus === 'Covered'
+                  ? (lang === 'ta' ? 'சேகரிக்கப்பட்டது ✓' : 'Covered ✓')
+                  : (lang === 'ta' ? 'சேகரிக்கப்படவில்லை ✕' : 'Not Covered ✕')}
+              </span>
+            </div>
+
+            {/* Subheader Instruction */}
+            <div className="border-t border-slate-100 pt-2 text-xs font-bold text-slate-600 flex items-center justify-between">
+              <span>{lang === 'ta' ? 'புஷ்கார்ட் குப்பை சேகரிப்பு நிலையைத் தேர்ந்தெடுக்கவும்:' : 'Select Pushcart Waste Collection Status:'}</span>
+              <span className="text-[11px] text-slate-400 font-mono">Tap option</span>
+            </div>
+
+            {/* Covered / Not Covered Cards Selection */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Option 1: Covered */}
+              <button
+                type="button"
+                onClick={() => {
+                  playChimeTone('success');
+                  setFormData(prev => ({ ...prev, coverageStatus: 'Covered', notCoveredReason: undefined }));
+                }}
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition active:scale-95 cursor-pointer text-center ${
+                  formData.coverageStatus === 'Covered'
+                    ? 'bg-[#E6F4EA] border-[#00D084] text-[#00875A] shadow-sm ring-2 ring-[#00D084]/40'
+                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-emerald-50/50'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-1.5 font-black text-white ${
+                  formData.coverageStatus === 'Covered' ? 'bg-[#00A86B]' : 'bg-slate-400'
+                }`}>
+                  <Check className="w-6 h-6 stroke-[3]" />
+                </div>
+                <span className="text-sm font-black leading-tight">
+                  {lang === 'ta' ? 'சேகரிக்கப்பட்டது' : 'Covered'}
+                </span>
+                <span className="text-[11px] font-bold text-emerald-700 mt-0.5">
+                  100% {lang === 'ta' ? 'நிறைவு' : 'Completed'}
+                </span>
+              </button>
+
+              {/* Option 2: Not Covered */}
+              <button
+                type="button"
+                onClick={() => {
+                  playChimeTone('warning');
+                  setFormData(prev => ({ ...prev, coverageStatus: 'Not Covered', notCoveredReason: 'Other' as NotCoveredReason }));
+                }}
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition active:scale-95 cursor-pointer text-center ${
+                  formData.coverageStatus === 'Not Covered'
+                    ? 'bg-[#FEF2F2] border-[#FCA5A5] text-[#991B1B] shadow-sm ring-2 ring-[#EF4444]/40'
+                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-rose-50/50'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-1.5 font-black text-white ${
+                  formData.coverageStatus === 'Not Covered' ? 'bg-[#EF4444]' : 'bg-slate-400'
+                }`}>
+                  <X className="w-6 h-6 stroke-[3]" />
+                </div>
+                <span className="text-sm font-black leading-tight">
+                  {lang === 'ta' ? 'சேகரிக்கப்படவில்லை' : 'Not Covered'}
+                </span>
+                <span className="text-[11px] font-bold text-rose-700 mt-0.5">
+                  0% {lang === 'ta' ? 'விடுபட்டது' : 'Missed'}
+                </span>
+              </button>
+            </div>
+
+            {/* Reason selector if Not Covered */}
+            {formData.coverageStatus === 'Not Covered' && (
+              <div className="bg-rose-50/70 border border-rose-200/80 rounded-2xl p-3 space-y-2 animate-fadeIn">
+                <label className="block text-[11px] font-black text-rose-900">
+                  {lang === 'ta' ? 'சேகரிக்கப்படாததற்கான காரணம்:' : 'Reason for Not Covered:'}
+                </label>
+                <select
+                  value={formData.notCoveredReason || 'Other'}
+                  onChange={(e) => setFormData({ ...formData, notCoveredReason: e.target.value as NotCoveredReason })}
+                  className="w-full bg-white border border-rose-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
+                >
+                  <option value="Door Closed">{lang === 'ta' ? 'வீடு பூட்டப்பட்டுள்ளது (Door Closed)' : 'House Closed / Lockout'}</option>
+                  <option value="Segregation Issue">{lang === 'ta' ? 'கழிவு பிரிக்கப்படவில்லை (Segregation Issue)' : 'Unsegregated Waste Refusal'}</option>
+                  <option value="Road Block">{lang === 'ta' ? 'பாதை அடைப்பு (Road Block)' : 'Narrow Lane / Obstacle'}</option>
+                  <option value="Other">{lang === 'ta' ? 'மற்ற காரணங்கள் (Other Reason)' : 'Other Reason'}</option>
+                </select>
+                <input
+                  type="text"
+                  value={formData.remarks}
+                  onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
+                  placeholder={lang === 'ta' ? 'கூடுதல் விவரங்கள் / குறிப்பு உள்ளிடவும்...' : 'Enter additional remarks / details...'}
+                  className="w-full bg-white border border-rose-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500 font-medium"
+                />
+              </div>
+            )}
+
+            {/* Bottom Alert Banner for Pushcart */}
+            <div className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 ${
+              formData.coverageStatus === 'Covered'
+                ? 'bg-emerald-50 border-emerald-200 text-[#00875A]'
+                : 'bg-[#FFEAEA] border-[#FCA5A5] text-[#991B1B]'
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-black text-white ${
+                  formData.coverageStatus === 'Covered' ? 'bg-[#00A86B]' : 'bg-[#DC2626]'
+                }`}>
+                  {formData.coverageStatus === 'Covered' ? '✓' : '!'}
+                </div>
+                <div>
+                  <h5 className="text-sm font-black leading-tight">
+                    {formData.coverageStatus === 'Covered'
+                      ? (lang === 'ta' ? 'தெரு சேகரிக்கப்பட்டது (Covered)' : 'STREET COVERED (PUSHCART)')
+                      : (lang === 'ta' ? 'சேகரிக்கப்படவில்லை (Not Covered)' : 'NOT COVERED (PUSHCART)')}
+                  </h5>
+                  <p className="text-xs font-semibold opacity-90 mt-0.5">
+                    {formData.coverageStatus === 'Covered'
+                      ? (lang === 'ta' ? 'புஷ்கார்ட் மூலம் அனைத்துக் குப்பைகளும் சேகரிக்கப்பட்டது ✓' : 'Pushcart door-to-door collection complete ✓')
+                      : (lang === 'ta' ? 'குப்பை சேகரிப்பு விடுபட்டது ⚠️' : 'Waste collection incomplete or missed ⚠️')}
+                  </p>
+                </div>
+              </div>
+
+              <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                formData.coverageStatus === 'Covered' ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'
+              }`} />
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white p-4 rounded-3xl border-2 border-emerald-300 shadow-sm space-y-3.5">
+            {/* Header row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-1.5">
+                <Sparkles className="w-4 h-4 text-emerald-600" />
+                <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide">
+                  STREET COVERAGE STATUS (VEHICLE)
+                </h4>
+              </div>
+              <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                completedScansCount === 5
+                  ? 'bg-emerald-100 text-[#00875A] border-emerald-300'
+                  : completedScansCount === 4
+                  ? 'bg-amber-100 text-amber-900 border-amber-300'
+                  : 'bg-[#FFEAEA] text-[#DC2626] border-red-200'
+              }`}>
+                {completedScansCount === 5 ? 'Covered' : completedScansCount === 4 ? 'Partially Covered' : 'Not Covered'}
+              </span>
+            </div>
+
+            {/* Subheader */}
+            <div className="flex items-center justify-between border-t border-slate-100 pt-2.5">
+              <div className="flex items-center space-x-1.5 text-xs font-black text-slate-800">
+                <QrCode className="w-4 h-4 text-[#00875A]" />
+                <span>5 Street QR Checkpoints ({completedScansCount}/5 Scanned)</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => handleResetAllScans()}
+                  className="text-[11px] font-bold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-2.5 py-0.5 rounded-lg border border-rose-200 transition cursor-pointer"
+                  title="Reset all 5 checkpoints to Pending X"
+                >
+                  Reset Scans
+                </button>
+                <span className="text-[11px] text-slate-400 font-mono">Tap to toggle</span>
+              </div>
+            </div>
+
+            {/* 5 Checkpoints Grid */}
+            <div className="grid grid-cols-5 gap-2 sm:gap-3">
+              {streetScans.map((scan) => {
+                const isDone = scan.isScanned;
+                return (
+                  <div
+                    key={scan.id}
+                    onClick={() => handleToggleFormScanPoint(scan.id)}
+                    className={`flex flex-col items-center justify-center py-3 px-1 rounded-2xl border-2 text-center select-none cursor-pointer transition active:scale-95 ${
+                      isDone
+                        ? 'bg-[#E6F4EA] border-[#00D084] text-slate-900 shadow-2xs'
+                        : 'bg-[#FEF2F2] border-[#FCA5A5] text-[#991B1B]'
+                    }`}
+                    title={`Tap to toggle Scan ${scan.id}`}
+                  >
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black mb-1 shadow-2xs ${
+                      isDone
+                        ? 'bg-[#00A86B] text-white'
+                        : 'bg-[#EF4444] text-white'
+                    }`}>
+                      {isDone ? (
+                        <Check className="w-4 h-4 stroke-[3]" />
+                      ) : (
+                        <X className="w-4 h-4 stroke-[3]" />
+                      )}
+                    </div>
+                    <span className="text-xs font-black truncate w-full leading-tight text-slate-900">
+                      Scan {scan.id}
+                    </span>
+                    <span className={`text-[11px] font-bold mt-0.5 leading-tight ${
+                      isDone ? 'text-[#00A86B] font-mono' : 'text-[#DC2626]'
+                    }`}>
+                      {isDone ? (scan.scannedAt || 'Done ✓') : 'Pending X'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bottom Alert Banner inside Second Card */}
+            <div className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 ${
+              completedScansCount === 5
+                ? 'bg-emerald-50 border-emerald-200 text-[#00875A]'
+                : completedScansCount === 4
+                ? 'bg-amber-50 border-amber-200 text-amber-900'
+                : 'bg-[#FFEAEA] border-[#FCA5A5] text-[#991B1B]'
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-black text-white ${
+                  completedScansCount === 5
+                    ? 'bg-[#00A86B]'
+                    : completedScansCount === 4
+                    ? 'bg-amber-600'
+                    : 'bg-[#DC2626]'
+                }`}>
+                  {completedScansCount === 5 ? '✓' : '!'}
+                </div>
+                <div>
+                  <h5 className="text-sm font-black leading-tight text-[#C53030]">
+                    {completedScansCount === 5
+                      ? 'STREET COVERED (5/5 CHECKPOINTS)'
+                      : completedScansCount === 4
+                      ? 'PARTIALLY COVERED (4/5 CHECKPOINTS)'
+                      : `NOT COVERED (${completedScansCount}/5 CHECKPOINTS)`}
+                  </h5>
+                  <p className="text-xs font-semibold text-[#991B1B] mt-0.5">
+                    {completedScansCount === 5
+                      ? 'All 5 checkpoints scanned • 100% Covered ✓'
+                      : `${5 - completedScansCount} or fewer checkpoints scanned • Not Covered ⚠️ (${5 - completedScansCount} checkpoint(s) pending)`}
+                  </p>
+                </div>
+              </div>
+
+              <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                completedScansCount === 5 ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'
+              }`} />
+            </div>
+          </div>
+        )}
+
+        {/* STICKY BOTTOM BUTTON (Image 2 Exact Layout) */}
+        <div className="pt-2 sticky bottom-0 z-30 pb-3 bg-white/90 backdrop-blur-xs">
           <button
             type="submit"
             onClick={(e) => {
@@ -1003,275 +930,292 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
             }}
             disabled={isSubmitting}
             className={`w-full text-white font-black py-4 px-4 rounded-2xl text-sm sm:text-base transition shadow-xl flex items-center justify-center space-x-2 border active:scale-98 cursor-pointer disabled:opacity-60 ${
-              isPushCart
-                ? (formData.coverageStatus === 'Not Covered'
-                    ? 'bg-[#D93025] hover:bg-[#B31D12] active:bg-[#8E170E] border-rose-500/40 ring-2 ring-rose-500/30'
-                    : 'bg-[#1E7A38] hover:bg-[#166534] active:bg-[#113B22] border-emerald-500/40 ring-2 ring-emerald-500/30')
-                : (completedScansCount === 5
-                    ? 'bg-[#1E7A38] hover:bg-[#166534] active:bg-[#113B22] border-emerald-500/40 ring-2 ring-emerald-500/30'
-                    : completedScansCount === 4
-                    ? 'bg-[#EA580C] hover:bg-[#C2410C] active:bg-[#9A3412] border-orange-500/40 ring-2 ring-orange-500/30'
-                    : 'bg-[#D93025] hover:bg-[#B31D12] active:bg-[#8E170E] border-rose-500/40 ring-2 ring-rose-500/30')
+              (isPushCart ? formData.coverageStatus === 'Covered' : completedScansCount === 5)
+                ? 'bg-[#00875A] hover:bg-[#00704A] border-emerald-500/40'
+                : 'bg-[#B91C1C] hover:bg-[#991B1B] border-red-500/40'
             }`}
           >
             {isSubmitting ? (
               <RefreshCw className="w-5 h-5 text-white animate-spin" />
             ) : (
-              <Send className="w-5 h-5 text-white" />
+              <Send className="w-5 h-5 text-white transform rotate-45" />
             )}
-            <span className="font-black text-white">
+            <span className="font-black text-white text-base">
               {isSubmitting
                 ? (lang === 'ta' ? 'சமர்ப்பிக்கப்படுகிறது...' : 'Submitting Status...')
                 : isPushCart
-                ? (formData.coverageStatus === 'Covered'
-                    ? (lang === 'ta' ? '✅ குப்பை சேகரித்த நிலையைச் சமர்ப்பி' : '✅ Submit Collected Status')
-                    : (lang === 'ta' ? '❌ சேகரிக்காத நிலையைச் சமர்ப்பி' : '❌ Submit Not Collected Status'))
-                : (completedScansCount === 5
-                    ? (lang === 'ta' ? '🚚 தெரு மூடப்பட்ட நிலையைச் சமர்ப்பி (Submit Covered - 5/5)' : '🚚 Submit Street Covered Status (5/5 Done)')
-                    : completedScansCount === 4
-                    ? (lang === 'ta' ? '⚡ பகுதி மூடப்பட்ட நிலையைச் சமர்ப்பி (Submit Partially Covered - 4/5)' : '⚡ Submit Partially Covered Status (4/5 Done)')
-                    : (lang === 'ta' ? `⚠️ மூடப்படாத நிலையைச் சமர்ப்பி (Submit Not Covered - ${completedScansCount}/5)` : `⚠️ Submit Not Covered Status (${completedScansCount}/5 Done)`))}
+                ? formData.coverageStatus === 'Covered'
+                  ? (lang === 'ta' ? 'சேகரிக்கப்பட்டது நிலை சமர்ப்பி (Submit Covered)' : 'Submit Covered Status (Pushcart)')
+                  : (lang === 'ta' ? '⚠️ சேகரிக்கப்படவில்லை நிலை சமர்ப்பி' : '⚠️ Submit Not Covered Status (Pushcart)')
+                : completedScansCount === 5
+                ? 'Submit Street Covered Status (5/5 Done)'
+                : `⚠️ Submit Not Covered Status (${completedScansCount}/5 Done)`}
             </span>
           </button>
         </div>
 
       </form>
 
-      {/* SLIDE-OVER / MODAL DRAWER FOR THREE-DOTS (Advanced Household & Officer Details) */}
+      {/* EDIT HOUSEHOLD & OFFICER DETAILS MODAL (Image 3 & Image 4 Exact Layout) */}
       {showMoreDetails && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-scaleIn">
-            
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white border-2 border-emerald-500 rounded-[28px] max-w-[640px] w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl animate-scaleIn">
+
             {/* Modal Header */}
-            <div className="bg-[#1E7A38] text-white p-4 flex items-center justify-between border-b border-emerald-800">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 rounded-xl bg-white/20">
+            <div className="bg-[#166534] text-white px-4 py-3 flex items-center justify-between border-b border-emerald-800">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
                   <Pencil className="w-5 h-5 text-white" />
                 </div>
-                <div>
-                  <h3 className="text-sm font-black text-white flex items-center gap-1.5">
-                    <span>{lang === 'ta' ? '✏️ விவரங்களைத் திருத்து (Household & Officer Edit)' : '✏️ Edit Household & Officer Details'}</span>
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-lg font-black text-white tracking-tight leading-tight">
+                    ✏️ Edit Household &amp; Officer Details
                   </h3>
-                  <p className="text-[10px] text-emerald-200 font-semibold">
-                    {formData.houseId} • {formData.streetName} • {formData.ward}
+                  <p className="text-xs font-semibold text-emerald-100 truncate mt-0.5 font-mono">
+                    {formData.houseId || 'HID100101'} • {formData.streetName || 'Kamaraj Salai'} • {formData.ward || 'Ward 12'}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowMoreDetails(false)}
-                className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition cursor-pointer"
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer flex-shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Modal Content Form Fields */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs text-slate-800">
-              
-              {/* SECTION 1: ZONE & WARD */}
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
-                <div className="flex items-center space-x-1.5 text-[#1E7A38] font-black text-[11px] uppercase">
-                  <Building2 className="w-3.5 h-3.5" />
-                  <span>{lang === 'ta' ? 'மண்டலம் & வார்டு' : 'Zone & Ward'}</span>
+            {/* Modal Body: 5 Editable Card Sections */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs text-slate-800 bg-[#F4F6F5]">
+
+              {/* 1. ZONE & WARD */}
+              <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
+                <div className="flex items-center space-x-1.5 text-[#166534] font-black text-xs uppercase tracking-wider">
+                  <Building2 className="w-4 h-4" />
+                  <span>ZONE &amp; WARD</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-700 mb-1">Zone</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Zone</label>
                     <select
                       value={formData.zone}
                       onChange={(e) => setFormData({ ...formData, zone: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     >
-                      <option value="East Zone">{lang === 'ta' ? 'கிழக்கு மண்டலம் (East Zone)' : 'East Zone'}</option>
-                      <option value="Central Zone">{lang === 'ta' ? 'மத்திய மண்டலம் (Central Zone)' : 'Central Zone'}</option>
-                      <option value="West Zone">{lang === 'ta' ? 'மேற்கு மண்டலம் (West Zone)' : 'West Zone'}</option>
-                      <option value="South Zone">{lang === 'ta' ? 'தெற்கு மண்டலம் (South Zone)' : 'South Zone'}</option>
-                      <option value="North Zone">{lang === 'ta' ? 'வடக்கு மண்டலம் (North Zone)' : 'North Zone'}</option>
+                      <option value="East Zone">East Zone</option>
+                      <option value="Central Zone">Central Zone</option>
+                      <option value="West Zone">West Zone</option>
+                      <option value="North Zone">North Zone</option>
+                      <option value="South Zone">South Zone</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-700 mb-1">Ward</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Ward</label>
                     <select
                       value={formData.ward}
                       onChange={(e) => setFormData({ ...formData, ward: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     >
                       <option value="Ward 12">Ward 12</option>
+                      <option value="Ward 14">Ward 14</option>
                       <option value="Ward 15">Ward 15</option>
                       <option value="Ward 18">Ward 18</option>
                       <option value="Ward 20">Ward 20</option>
+                      <option value="Ward 24">Ward 24</option>
                     </select>
                   </div>
                 </div>
               </div>
 
-              {/* SECTION 2: SANITARY INSPECTOR */}
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
-                <div className="flex items-center space-x-1.5 text-[#1E7A38] font-black text-[11px] uppercase">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Sanitary Inspector (SI)</span>
+              {/* 2. SANITARY INSPECTOR (SI) */}
+              <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
+                <div className="flex items-center space-x-1.5 text-[#166534] font-black text-xs uppercase tracking-wider">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>SANITARY INSPECTOR (SI)</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-700 mb-1">SI Name</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">SI Name</label>
                     <input
                       type="text"
                       value={formData.siName}
                       onChange={(e) => setFormData({ ...formData, siName: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      placeholder="K. Rajan"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-700 mb-1">SI Contact</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">SI Contact</label>
                     <input
                       type="text"
                       value={formData.siContact}
                       onChange={(e) => setFormData({ ...formData, siContact: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      placeholder="9876543210"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* SECTION 3: SUPERVISORS */}
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
-                <div className="flex items-center space-x-1.5 text-[#1E7A38] font-black text-[11px] uppercase">
-                  <User className="w-3.5 h-3.5" />
-                  <span>Supervisors (SS & CSS)</span>
+              {/* 3. SUPERVISORS (SS & CSS) */}
+              <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
+                <div className="flex items-center space-x-1.5 text-[#166534] font-black text-xs uppercase tracking-wider">
+                  <User className="w-4 h-4" />
+                  <span>SUPERVISORS (SS &amp; CSS)</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-700 mb-1">SS Name</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">SS Name</label>
                     <input
                       type="text"
                       value={formData.ssName}
                       onChange={(e) => setFormData({ ...formData, ssName: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      placeholder="M. Selvam"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-700 mb-1">CSS Name</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">CSS Name</label>
                     <input
                       type="text"
                       value={formData.cssName}
                       onChange={(e) => setFormData({ ...formData, cssName: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      placeholder="S. Kumar"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* SECTION 4: DRIVER DETAILS */}
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
-                <div className="flex items-center space-x-1.5 text-[#1E7A38] font-black text-[11px] uppercase">
-                  <Truck className="w-3.5 h-3.5" />
-                  <span>Driver & Vehicle</span>
+              {/* 4. DRIVER & VEHICLE */}
+              <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
+                <div className="flex items-center space-x-1.5 text-[#166534] font-black text-xs uppercase tracking-wider">
+                  <Truck className="w-4 h-4" />
+                  <span>DRIVER &amp; VEHICLE</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2.5">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-700 mb-1">Driver Name</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Vehicle Type</label>
+                    <select
+                      value={formData.vehicleType}
+                      onChange={(e) => setFormData({ ...formData, vehicleType: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none uppercase"
+                    >
+                      <option value="TATA ACE">TATA ACE</option>
+                      <option value="PUSH CART">PUSH CART</option>
+                      <option value="BOV">BOV</option>
+                      <option value="COMPACTOR">COMPACTOR</option>
+                      <option value="OBL PRIVATE">OBL PRIVATE</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Driver Name</label>
                     <input
                       type="text"
                       value={formData.driverWorkerName}
                       onChange={(e) => setFormData({ ...formData, driverWorkerName: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      placeholder="P. Murugan"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-700 mb-1">Driver Contact</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Driver Contact</label>
                     <input
                       type="text"
                       value={formData.driverWorkerContact}
                       onChange={(e) => setFormData({ ...formData, driverWorkerContact: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      placeholder="9876543212"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* SECTION 5: HOUSEHOLDER & LOCATION */}
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
-                <div className="flex items-center space-x-1.5 text-[#1E7A38] font-black text-[11px] uppercase">
-                  <MapPin className="w-3.5 h-3.5" />
-                  <span>Householder Info & Address</span>
+              {/* 5. HOUSEHOLDER INFO & ADDRESS */}
+              <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
+                <div className="flex items-center space-x-1.5 text-[#166534] font-black text-xs uppercase tracking-wider">
+                  <MapPin className="w-4 h-4" />
+                  <span>HOUSEHOLDER INFO &amp; ADDRESS</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-700 mb-1">Householder</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Householder</label>
                     <input
                       type="text"
                       value={formData.householderName}
                       onChange={(e) => setFormData({ ...formData, householderName: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      placeholder="Ramanathan"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-700 mb-1">Phone</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Phone</label>
                     <input
                       type="text"
                       value={formData.householderContact}
                       onChange={(e) => setFormData({ ...formData, householderContact: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      placeholder="9840123456"
                     />
                   </div>
                 </div>
-                {isPushCart ? (
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="col-span-2">
-                      <label className="block text-[10px] font-bold text-slate-700 mb-1">{lang === 'ta' ? 'தெரு' : 'Street'}</label>
-                      <input
-                        type="text"
-                        value={formData.streetName}
-                        onChange={(e) => setFormData({ ...formData, streetName: e.target.value })}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-700 mb-1">{lang === 'ta' ? 'கதவு எண்' : 'Door No'}</label>
-                      <input
-                        type="text"
-                        value={formData.doorNo}
-                        onChange={(e) => setFormData({ ...formData, doorNo: e.target.value })}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900"
-                      />
-                    </div>
-                  </div>
-                ) : (
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-700 mb-1">{lang === 'ta' ? 'தெரு பெயர்' : 'Street Name'}</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Street Name</label>
                     <input
                       type="text"
                       value={formData.streetName}
                       onChange={(e) => setFormData({ ...formData, streetName: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      placeholder="Kamaraj Salai"
                     />
                   </div>
-                )}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      {lang === 'ta' ? 'கதவு எண் (Door No)' : 'Door No'}{' '}
+                      {isPushCart ? (
+                        <span className="text-amber-600 font-extrabold">
+                          ({lang === 'ta' ? 'விருப்பத்திற்குரியது - Pushcart' : 'Optional - Pushcart'})
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-normal">
+                          ({lang === 'ta' ? 'கட்டாயம்' : 'Required'})
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.doorNo}
+                      onChange={(e) => setFormData({ ...formData, doorNo: e.target.value })}
+                      className={`w-full bg-slate-50 border rounded-xl px-3 py-2 text-xs font-bold text-slate-900 font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
+                        isPushCart ? 'border-amber-300 focus:ring-amber-500' : 'border-slate-300'
+                      }`}
+                      placeholder={
+                        isPushCart
+                          ? (lang === 'ta' ? 'விருப்பத்திற்குரியது (Pushcart)...' : 'Optional for Pushcart...')
+                          : 'e.g. 45 or 12A'
+                      }
+                    />
+                  </div>
+                </div>
               </div>
 
             </div>
 
             {/* Modal Footer */}
-            <div className="p-3.5 bg-slate-100 border-t border-slate-200 flex items-center justify-between">
-              <span className="text-[10px] text-slate-500 font-medium">
-                {lang === 'ta' ? 'மாற்றங்கள் உடனடியாகப் பயன்படுத்தப்படும்' : 'Changes apply immediately to this entry'}
-              </span>
+            <div className="p-3.5 bg-white border-t border-slate-200 flex items-center justify-between gap-3">
+              <span className="text-[11px] text-slate-500 italic">Changes apply immediately to this entry</span>
               <button
                 type="button"
                 onClick={() => {
                   setShowMoreDetails(false);
-                  setEditToast(
-                    lang === 'ta'
-                      ? '✅ அனைத்து விவரங்களும் வெற்றிகரமாகப் புதுப்பிக்கப்பட்டன!'
-                      : '✅ All officer and household details updated successfully!'
-                  );
+                  setEditToast('✅ Changes saved successfully!');
                   setTimeout(() => setEditToast(null), 3500);
                 }}
-                className="bg-[#1E7A38] hover:bg-[#166534] text-white font-black text-xs px-5 py-2.5 rounded-xl transition cursor-pointer shadow-md flex items-center space-x-1.5 active:scale-95"
+                className="bg-[#166534] hover:bg-[#113B22] text-white font-black text-xs px-5 py-2.5 rounded-xl transition cursor-pointer shadow-md flex items-center gap-1.5 active:scale-95"
               >
-                <Save className="w-3.5 h-3.5" />
-                <span>{lang === 'ta' ? 'மாற்றங்களைச் சேமித்து மூடு' : 'Save & Apply Changes'}</span>
+                <Save className="w-4 h-4" />
+                <span>Save &amp; Apply Changes</span>
               </button>
             </div>
 
@@ -1282,5 +1226,6 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
     </div>
   );
 };
+
 
 

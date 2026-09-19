@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Shield, Truck, Lock, User, Eye, EyeOff, AlertCircle, ArrowRight, Sparkles, Check, Leaf } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, AlertCircle, ArrowRight, Leaf } from 'lucide-react';
 import { cmPhoto, cmFallbackPhoto, ccmcLogo, ccmcFallbackLogo, loginBgImage } from '../constants/branding';
+import { authLogin } from '../api/client';
+import type { SWMSAssignment } from '../types';
 
 interface LoginScreenProps {
-  onLoginSuccess: (user: { role: 'worker' | 'admin'; name: string; workerInfo?: any }) => void;
+  onLoginSuccess: (user: { role: 'worker' | 'admin'; name: string; token?: string; assignment?: SWMSAssignment; workerInfo?: any }) => void;
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
@@ -13,17 +15,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Mock list of officers corresponding to SBM database configuration
-  const workerProfiles = [
-    { id: 'officer', name: 'Karthik Muthusamy', designation: 'Sanitary Inspector (SI)', ward: 'Ward 12', vehicle: 'TN 37 CZ 4812' },
-    { id: 'worker', name: 'Karthik Muthusamy', designation: 'Sanitary Inspector (SI)', ward: 'Ward 12', vehicle: 'TN 37 CZ 4812' },
-    { id: 'veh-02', name: 'Manoj Kumar S', designation: 'Sanitary Supervisor (SS)', ward: 'Ward 21', vehicle: 'TN 37 DY 9011' },
-    { id: 'veh-05', name: 'Ganesh Velu', designation: 'Sanitary Inspector (SI)', ward: 'Ward 15', vehicle: 'TN 37 CZ 5510' },
-    { id: 'veh-06', name: 'Murugan Perumal', designation: 'Field Officer', ward: 'Ward 25', vehicle: 'CCMC-PC-205' },
-    { id: 'veh-04', name: 'Manickam S', designation: 'Ward Officer', ward: 'Ward 33', vehicle: 'TN 37 EX 1109' },
-  ];
-
-  const handleLogin = (e?: React.FormEvent) => {
+  const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setError(null);
 
@@ -42,42 +34,49 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
     setIsLoading(true);
 
-    // Common authentication router:
-    // If username is admin, commissioner, ias, or collector -> logs in as Admin
-    // Otherwise (officer, worker, employee ID, custom username) -> logs in as Worker
-    let targetRole: 'worker' | 'admin' = 'worker';
+    try {
+      const result = await authLogin(userClean, passClean);
 
-    if (
-      userClean.includes('admin') || 
-      userClean.includes('commissioner') || 
-      userClean.includes('ias') || 
-      userClean.includes('collector')
-    ) {
-      targetRole = 'admin';
-    } else {
-      targetRole = 'worker';
-    }
+      if (!result?.token) {
+        setError('Server did not return a session token. Please try again.');
+        return;
+      }
 
-    setTimeout(() => {
-      setIsLoading(false);
-      if (targetRole === 'admin') {
+      if (result.user?.role === 'admin') {
         onLoginSuccess({
           role: 'admin',
-          name: 'Thiru. Katta Ravi Teja, IAS',
+          name: result.user.fullName || 'Commissioner',
+          token: result.token,
+          assignment: result.user,
         });
       } else {
-        const matchedWorker = workerProfiles.find(w => 
-          w.id.toLowerCase() === userClean || 
-          w.name.toLowerCase().includes(userClean)
-        ) || workerProfiles[0];
-
+        const role = result.user?.role === 'worker' ? 'worker' : ('worker' as const);
+        const assignment: SWMSAssignment = result.user;
         onLoginSuccess({
-          role: 'worker',
-          name: matchedWorker.name,
-          workerInfo: matchedWorker,
+          role,
+          name: assignment.fullName || assignment.username,
+          token: result.token,
+          assignment,
+          workerInfo: {
+            id: assignment.username,
+            name: assignment.fullName || assignment.username,
+            designation: assignment.isPushcart ? 'Sanitary Worker (Pushcart)' : 'Field Driver / Officer',
+            ward: assignment.ward,
+            area: assignment.zone,
+            cssContact: null,
+            isPushcart: assignment.isPushcart,
+            vehicleType: assignment.vehicleType,
+            vehicleNumber: assignment.vehicleNumber,
+            workerName: assignment.workerName,
+            workerCode: assignment.workerCode,
+          },
         });
       }
-    }, 300);
+    } catch (err: any) {
+      setError(err?.message || 'Unable to reach the SWMS server. Please check your connection and try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

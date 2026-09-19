@@ -6,7 +6,6 @@ import {
   ccmcLogo, 
   ccmcFallbackLogo
 } from '../constants/branding';
-import { ICCCLiveBadge } from './ICCCLiveBadge';
 import { MunicipalAlert } from '../types';
 
 interface HeaderProps {
@@ -141,153 +140,37 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Municipal Title - Clean, Responsive Two-Tier Layout */}
+          {/* Municipal Title - Responsive Layout: Desktop single line, Mobile stacked */}
           <div className="min-w-0 flex flex-col justify-center">
-            {/* Mobile View: Compact, High-Legibility (< sm) */}
+            {/* Mobile View: Stacked line-by-line (< sm) */}
             <div className="sm:hidden flex flex-col justify-center leading-none">
               <div className="text-[12px] font-black tracking-tight text-white truncate leading-tight drop-shadow-xs">
-                {lang === 'ta' ? 'கோவை மாநகராட்சி' : 'Coimbatore CCMC'}
+                Coimbatore City
               </div>
-              <div className="text-[9.5px] font-bold text-amber-300 tracking-wide uppercase truncate leading-tight mt-0.5">
+              <div className="text-[10px] font-black tracking-tight text-amber-300 truncate leading-tight mt-0.5 drop-shadow-xs">
+                Municipal Corporation
+              </div>
+              <div className="text-[9px] font-bold text-cyan-300 tracking-wide uppercase truncate leading-tight mt-0.5">
                 {userRole === 'admin' 
-                  ? (lang === 'ta' ? 'ஆணையர் நிர்வாகம்' : 'Commissioner Review') 
-                  : (lang === 'ta' ? 'களப் பணியாளர்' : 'Field Worker')}
+                  ? (lang === 'ta' ? 'ஆணையர் நிர்வாகம்' : "COMMISSIONER'S REVIEW") 
+                  : (lang === 'ta' ? 'களப் பணியாளர்' : 'SANITARY FIELD WORKER')}
               </div>
             </div>
 
-            {/* Tablet & Desktop View: Full Crisp Government Format (>= sm) */}
-            <div className="hidden sm:flex sm:flex-col sm:justify-center leading-tight">
-              <div className="text-sm lg:text-base font-black tracking-tight text-white whitespace-nowrap drop-shadow-xs">
-                Coimbatore City
-              </div>
-              <div className="text-xs lg:text-[14px] font-black tracking-tight text-amber-300 whitespace-nowrap drop-shadow-xs">
-                Municipal Corporation
-              </div>
-              <div className="text-[10px] lg:text-xs font-black tracking-wider text-cyan-300 uppercase whitespace-nowrap drop-shadow-xs mt-0.5">
-                {userRole === 'admin' ? (
-                  <span>COMMISSIONER'S REVIEW</span>
-                ) : (
-                  <span>SANITARY FIELD WORKER</span>
-                )}
-              </div>
+            {/* Desktop View: Single horizontal line (>= sm) */}
+            <div className="hidden sm:flex sm:items-center sm:gap-2 leading-tight">
+              <span className="text-sm lg:text-base font-black tracking-tight text-white whitespace-nowrap drop-shadow-xs">
+                Coimbatore City Municipal Corporation
+              </span>
+              <span className="text-xs lg:text-sm font-black tracking-wider text-amber-300 uppercase whitespace-nowrap drop-shadow-xs">
+                • {userRole === 'admin' ? "COMMISSIONER'S REVIEW" : "SANITARY FIELD WORKER"}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Right Side: Notification Bell + User Profile + Language + Logout */}
+        {/* Right Side: User Profile + Language + Logout */}
         <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 flex-shrink-0">
-
-          {userRole === 'admin' && (
-            <>
-              {/* Notifications Bell Dropdown */}
-              <div className="relative block">
-                <button
-                  onClick={() => setIsAlertsDropdownOpen(!isAlertsDropdownOpen)}
-                  className="relative p-1.5 sm:p-2.5 rounded-full bg-[#166534] hover:bg-[#113B22] text-emerald-100 border border-emerald-400/30 transition-all shadow-xs cursor-pointer flex items-center justify-center"
-                  title="Operational Alerts & Notifications"
-                >
-                  <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-100" />
-                  {unreadAlerts.length > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 sm:h-4 sm:w-4">
-                      {criticalCount > 0 && (
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                      )}
-                      <span
-                        className={`relative inline-flex rounded-full h-3.5 w-3.5 sm:h-4 sm:w-4 text-[9px] sm:text-[10px] font-black items-center justify-center text-white ${
-                          criticalCount > 0 ? 'bg-rose-600' : 'bg-amber-500'
-                        }`}
-                      >
-                        {unreadAlerts.length}
-                      </span>
-                    </span>
-                  )}
-                </button>
-
-                {/* Notification Flyout Menu */}
-                {isAlertsDropdownOpen && (
-                  <div className="absolute right-0 top-auto mt-2 w-80 sm:w-96 max-w-[calc(100vw-20px)] bg-white text-gray-900 rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                    <div className="p-3.5 bg-[#1E7A38] text-white flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Bell className="w-4 h-4 text-emerald-200" />
-                        <span className="text-xs font-bold uppercase tracking-wider">Live Municipal Alerts</span>
-                      </div>
-                      <span className="bg-[#166534] text-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        {unreadAlerts.length} active
-                      </span>
-                    </div>
-
-                    <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-                      {alerts.length === 0 ? (
-                        <div className="p-4 text-center text-xs text-slate-500">
-                          {lang === 'ta' ? 'செயல்பாட்டு எச்சரிக்கைகள் எதுவும் இல்லை.' : 'No active operational alerts.'}
-                        </div>
-                      ) : (
-                        alerts.slice(0, 5).map((alert) => (
-                          <div
-                            key={alert.id}
-                            className={`p-3 text-left transition-colors hover:bg-slate-50 flex items-start gap-2.5 ${
-                              !alert.isRead ? 'bg-amber-50/20' : ''
-                            }`}
-                          >
-                            <div className="mt-0.5 flex-shrink-0">
-                              {alert.severity === 'critical' ? (
-                                <span className="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>
-                              ) : alert.severity === 'warning' ? (
-                                <span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
-                              ) : (
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-xs font-bold text-slate-900 line-clamp-1">{alert.title}</span>
-                                <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">{alert.timeAgo}</span>
-                              </div>
-                              <p className="text-[11px] text-slate-600 line-clamp-2 mt-0.5 leading-snug">{alert.message}</p>
-                              <div className="flex items-center justify-between mt-1.5 text-[10px] text-emerald-800 font-bold">
-                                <span className="bg-slate-100 px-1.5 py-0.2 rounded-md text-slate-700">{alert.zone} • {alert.ward}</span>
-                                {onNavigateToLiveTracking && (
-                                  <button
-                                    onClick={() => {
-                                      setIsAlertsDropdownOpen(false);
-                                      onNavigateToLiveTracking(alert.zone);
-                                    }}
-                                    className="text-[#1E7A38] hover:underline flex items-center gap-0.5 font-bold cursor-pointer"
-                                  >
-                                    <Navigation className="w-2.5 h-2.5" />
-                                    <span>Track</span>
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    {onOpenAlerts && (
-                      <div className="p-2.5 bg-gray-50 border-t border-gray-100 text-center">
-                        <button
-                          onClick={() => {
-                            setIsAlertsDropdownOpen(false);
-                            onOpenAlerts();
-                          }}
-                          className="text-xs font-bold text-[#1E7A38] hover:text-[#166534] w-full py-1"
-                        >
-                          View All Live Alerts in Dashboard Panel →
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* ICCC Live Connection Badge with blinking effect and interactive telemetry - Desktop Only */}
-              <div className="hidden md:flex items-center">
-                <ICCCLiveBadge lang={lang} />
-              </div>
-            </>
-          )}
 
           {/* User Profile Console / "S" Logo Pill with Dropdown (Worker view only if applicable) */}
           {userRole !== 'admin' && (
@@ -494,24 +377,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Dark Secondary Ticker/Stream Status Bar - Hidden on mobile & tablet view (< lg), visible only on large desktop */}
       <div className="hidden lg:flex bg-[#113B22] px-2.5 py-1.5 sm:px-6 sm:py-1.5 items-center justify-between text-[9px] sm:text-xs text-emerald-100/90 font-medium border-t border-[#166534] overflow-hidden">
         <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-          <div className="flex items-center gap-1 bg-[#0A2E17] border border-emerald-400/50 rounded-full px-2 py-0.5 shadow-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
-            <span className="text-amber-300 font-black text-[9px] sm:text-[10px] whitespace-nowrap">
-              {userRole === 'admin' 
-                ? (lang === 'ta' ? 'நிர்வாக அதிகாரி' : 'Admin Officer') 
-                : (lang === 'ta' ? 'கள அதிகாரி' : 'Field Officer')}:
-            </span>
-            <span className="text-white font-bold text-[9px] sm:text-[10px] truncate max-w-[110px] sm:max-w-[180px]">
-              {userName || 'Karthik Muthusamy'}
-            </span>
-          </div>
-
-          <span className="hidden md:inline text-emerald-400/60">|</span>
           <span className="hidden md:inline text-emerald-100 truncate">{currentTime || '13 August 2026 • Thursday 12:34 pm'}</span>
-        </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <ICCCLiveBadge lang={lang} />
         </div>
       </div>
     </header>

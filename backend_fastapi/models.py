@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey
 from datetime import datetime
 from database import Base
 
@@ -51,3 +51,126 @@ class VehicleAssignmentModel(Base):
     ward = Column(String, nullable=True)
     zone = Column(String, nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------------------
+# SWMS Field Collection System — Role-based Assignment Models
+# ---------------------------------------------------------------------------------------
+
+
+class VehicleModel(Base):
+    """Registered municipal collection vehicle (Auto Tipper, Compactor, Pushcart, ...)."""
+    __tablename__ = "swms_vehicles"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    vehicle_type = Column(String, nullable=False, index=True)     # e.g. "Auto Tipper", "Compactor", "Pushcart"
+    vehicle_number = Column(String, nullable=True)                # NULL for Pushcart
+    vehicle_name = Column(String, nullable=True)                  # optional friendly name
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class WorkerModel(Base):
+    """Field sanitary worker (mainly used for pushcart assignments)."""
+    __tablename__ = "swms_workers"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    worker_code = Column(String, unique=True, index=True, nullable=False)   # e.g. "PC-001"
+    worker_name = Column(String, nullable=False)                            # e.g. "Kumar"
+    worker_phone = Column(String, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class UserModel(Base):
+    """SWMS login account linked to a vehicle (drivers) and/or a worker (pushcart)."""
+    __tablename__ = "swms_users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)                 # bcrypt hash — never plain text
+    role = Column(String, nullable=False, default="driver")        # "driver" | "worker" | "admin"
+    full_name = Column(String, nullable=True)
+    vehicle_id = Column(Integer, ForeignKey("swms_vehicles.id"), nullable=True)
+    worker_id = Column(Integer, ForeignKey("swms_workers.id"), nullable=True)
+    zone = Column(String, nullable=True)                            # assigned zone restriction
+    ward = Column(String, nullable=True)                            # assigned ward restriction
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class StreetModel(Base):
+    """Municipal street that hosts QR checkpoints."""
+    __tablename__ = "swms_streets"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    street_name = Column(String, nullable=False, index=True)
+    zone = Column(String, nullable=False, index=True)
+    ward = Column(String, nullable=False, index=True)
+    area = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class StaffModel(Base):
+    """Sanitary staff (SI / SS / CSS) that can be assigned to a QR checkpoint."""
+    __tablename__ = "swms_staff"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    staff_code = Column(String, unique=True, index=True, nullable=False)   # e.g. "SI-001"
+    staff_name = Column(String, nullable=False)
+    staff_phone = Column(String, nullable=True)
+    role = Column(String, nullable=False, index=True)                      # "SI" | "SS" | "CSS"
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class QRCheckpointModel(Base):
+    """A unique QR checkpoint belonging to a street. QR code payload = qr_code only.
+
+    The QR id is zone-scoped and human friendly, e.g. E-SCAN1.
+    All street/worker/SS/CSS/SI data stays in the database and is only fetched AFTER scanning.
+    """
+    __tablename__ = "swms_qr_checkpoints"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    qr_code = Column(String, unique=True, index=True, nullable=False)   # e.g. "E-SCAN1" (the actual QR payload)
+    zone = Column(String, nullable=False, index=True)                   # denormalized zone name, e.g. "East Zone"
+    zone_code = Column(String, nullable=True, index=True)               # e.g. "Z1", used for the QR prefix
+    seq = Column(Integer, nullable=False, default=1)                    # 01..05 checkpoint number within the zone
+    street_id = Column(Integer, ForeignKey("swms_streets.id"), nullable=False, index=True)
+    position = Column(Integer, nullable=False, default=1)
+    households = Column(Integer, nullable=False, default=0)             # household count at this checkpoint
+    worker_id = Column(Integer, ForeignKey("swms_workers.id"), nullable=True)
+    si_name = Column(String, nullable=True)
+    si_contact = Column(String, nullable=True)
+    ss_name = Column(String, nullable=True)
+    ss_contact = Column(String, nullable=True)
+    css_name = Column(String, nullable=True)
+    css_contact = Column(String, nullable=True)
+    status = Column(String, nullable=False, default="Active")           # "Active" | "Inactive"
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class CollectionRecordModel(Base):
+    """One collection submission per QR checkpoint per collection cycle (day)."""
+    __tablename__ = "swms_collection_records"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    record_no = Column(String, unique=True, index=True, nullable=False)
+    qr_code = Column(String, index=True, nullable=False)
+    street_id = Column(Integer, ForeignKey("swms_streets.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("swms_users.id"), nullable=False, index=True)
+    vehicle_id = Column(Integer, ForeignKey("swms_vehicles.id"), nullable=True)
+    worker_id = Column(Integer, ForeignKey("swms_workers.id"), nullable=True)
+    status = Column(String, nullable=False, index=True)          # "Collected" | "Not Collected"
+    remarks = Column(Text, nullable=True)                        # NULL for Collected
+    scanned_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    collection_date = Column(String, nullable=False, index=True)  # "YYYY-MM-DD" cycle key
+
+
+class AuthTokenModel(Base):
+    """Bearer session tokens issued at login (only a hash is stored)."""
+    __tablename__ = "swms_auth_tokens"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    token_hash = Column(String, unique=True, index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("swms_users.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

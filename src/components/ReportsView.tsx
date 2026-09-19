@@ -55,6 +55,7 @@ import {
 } from '../data/reportsData';
 import {
   getVehicleReportItems,
+  REAL_QR_VEHICLE_REPORTS,
   VEHICLE_ASSIGNMENT_EVENT,
 } from '../utils/vehicleAssignmentStorage';
 
@@ -148,6 +149,19 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       setIsGenerating(false);
       onShowToast(`Generated official ${getReportTitle(type)}.`);
     }, 350);
+  };
+
+  const handleVehicleStatusChange = (vehicleId: string, newStatus: string) => {
+    setVehicleReports((prev) =>
+      prev.map((v) => (v.id === vehicleId || v.vehicleNo === vehicleId ? { ...v, status: newStatus } : v))
+    );
+    if (onShowToast) {
+      onShowToast(
+        lang === 'ta'
+          ? `🚘 வாகன நிலை '${newStatus === 'Active' ? 'Active (செயலில்)' : 'Inactive (செயலிழந்தது)'}' என மாற்றப்பட்டது!`
+          : `🚘 Vehicle status updated to '${newStatus}'!`
+      );
+    }
   };
 
   const translateStatus = (st: string, l: 'en' | 'ta' = lang): string => {
@@ -269,11 +283,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               'ஒதுக்கப்பட்ட பாதை',
               'ஓட்டுநர் பெயர்',
               'தொடர்பு எண்',
-              'இலக்கு',
+              'இலக்கு வீடுகள்',
               'சேகரிப்பு',
               'சதவீதம் %',
               'கி.மீ',
-              'பயணங்கள்',
               'ஜி.பி.எஸ் நிலை',
               'நிலை',
             ]
@@ -286,11 +299,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               'Assigned Route',
               'Driver Name',
               'Driver Contact',
-              'Target',
+              'Target Houses',
               'Covered',
               'Cov %',
               'KM',
-              'Trips',
               'GPS Status',
               'Status',
             ];
@@ -311,7 +323,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             covered,
             `${pct}%`,
             v.distanceCoveredKm,
-            v.tripsToDumpYard,
             translateStatus(v.gpsStatus || 'GPS Active', lang),
             translateStatus(v.status, lang),
           ];
@@ -334,7 +345,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               'சேகரிக்கப்பட்ட வீடுகள்',
               'சேகரிப்பு சதவீதம் %',
               'பயணித்த தூரம் (கி.மீ)',
-              'வெள்ளலூர் dump பயணங்கள்',
               'ஜிபிஎஸ் கண்காணிப்பு நிலை',
               'செயல்பாட்டு நிலை',
             ]
@@ -354,7 +364,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               'Covered Houses',
               'Coverage %',
               'Distance (km)',
-              'Vellalore Trips',
               'GPS Tracking Status',
               'Operational Status',
             ];
@@ -378,7 +387,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             covered,
             `${pct}%`,
             v.distanceCoveredKm,
-            v.tripsToDumpYard,
             translateStatus(v.gpsStatus || 'GPS Active', lang),
             translateStatus(v.status, lang),
           ];
@@ -1133,9 +1141,35 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     onShowToast(`Exported CSV: ${filename}`);
   };
 
+  // Derived Worker Reports from real QR Vehicle data
+  const realWorkerReports = useMemo<WorkerReportItem[]>(() => {
+    return REAL_QR_VEHICLE_REPORTS.map((vr, i) => ({
+      id: `WRK-24${(i + 1).toString().padStart(2, '0')}`,
+      name: vr.driverName,
+      phone: vr.driverPhone,
+      zone: vr.zone,
+      ward: vr.ward,
+      assignedRoute: vr.assignedStreets.join(', '),
+      vehicleNo: vr.vehicleNo,
+      vehicleType: vr.type as any,
+      targetHouses: vr.targetHouseholds,
+      completedHouses: vr.coveredHouseholds,
+      efficiencyPercent: vr.coveragePercentage,
+      hoursOnField: 7.5,
+      shiftStartTime: vr.shiftTiming.split(' - ')[0] || '06:00 AM',
+      status: 'Completed',
+      siName: vr.siName || 'S.R.GERALD SATHIYA PUNITHAN',
+      siPhone: vr.siPhone || '9442504589',
+      ssName: vr.ssName || 'vibin',
+      ssPhone: vr.ssPhone || '9442504589',
+      cssName: vr.cssName || 'vengatesh',
+      cssPhone: vr.cssPhone || '8072092485',
+    }));
+  }, []);
+
   // Filtered Workers
   const filteredWorkerReports = useMemo(() => {
-    return MOCK_WORKER_REPORTS.filter((w) => {
+    return realWorkerReports.filter((w) => {
       const matchZone = selectedZone === 'All' || w.zone === selectedZone;
       const matchSearch =
         w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1143,7 +1177,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         w.assignedRoute.toLowerCase().includes(searchTerm.toLowerCase());
       return matchZone && matchSearch;
     });
-  }, [selectedZone, searchTerm]);
+  }, [realWorkerReports, selectedZone, searchTerm]);
 
   // Filtered Vehicles for Assignment & Fleet Reports
   const filteredVehicleAssignmentReports = useMemo(() => {
@@ -1171,16 +1205,44 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
 
       return matchZone && matchType && (inPlate || inType || inDriver || inPhone || inWard || inAssignedWards || inAssignedStreets || inGps);
     });
-  }, [selectedZone, selectedVehicleType, searchTerm]);
+  }, [vehicleReports, selectedZone, selectedVehicleType, searchTerm]);
 
   // Filtered Vehicles
   const filteredVehicleReports = useMemo(() => {
     return filteredVehicleAssignmentReports;
   }, [filteredVehicleAssignmentReports]);
 
+  // Derived Street Reports from real QR Vehicle data & active collection records
+  const realStreetReports = useMemo<StreetReportItem[]>(() => {
+    return REAL_QR_VEHICLE_REPORTS.map((vr, i) => {
+      const matchedRecord = records.find(r => 
+        (r.streetName && r.streetName.toLowerCase().trim() === vr.assignedStreets[0]?.toLowerCase().trim()) ||
+        (r.vehicleNo && r.vehicleNo.replace(/[\s\-_]/g, '').toUpperCase() === vr.vehicleNo.replace(/[\s\-_]/g, '').toUpperCase())
+      );
+
+      const status = matchedRecord 
+        ? (matchedRecord.status === 'Collected' ? 'Collected' : 'Not Collected')
+        : 'Collected';
+
+      return {
+        id: `STR-24${(i + 1).toString().padStart(2, '0')}`,
+        streetName: vr.assignedStreets[0] || 'sree nagar',
+        ward: vr.ward,
+        zone: vr.zone,
+        totalHouses: vr.targetHouseholds,
+        coveredHouses: status === 'Collected' ? vr.targetHouseholds : 0,
+        workerName: vr.driverName,
+        vehicleNo: vr.vehicleNo,
+        status: status,
+        timeCompleted: matchedRecord?.time || '08:30 AM',
+        reasonIfNotCollected: status === 'Not Collected' ? (matchedRecord?.remarks || 'Pending Inspection') : undefined
+      };
+    });
+  }, [records]);
+
   // Filtered Streets / Daily Collection Records
   const filteredStreetReports = useMemo(() => {
-    return MOCK_STREET_REPORTS.filter((s) => {
+    return realStreetReports.filter((s) => {
       const matchZone = selectedZone === 'All' || s.zone === selectedZone;
       const matchStatus =
         dailyStatusFilter === 'all' || s.status === dailyStatusFilter;
@@ -1191,7 +1253,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         s.vehicleNo.toLowerCase().includes(searchTerm.toLowerCase());
       return matchZone && matchStatus && matchSearch;
     });
-  }, [selectedZone, dailyStatusFilter, searchTerm]);
+  }, [realStreetReports, selectedZone, dailyStatusFilter, searchTerm]);
 
   return (
     <div className="space-y-6">
@@ -1420,14 +1482,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
               activeReportType === 'vehicle' ? 'bg-white/20 text-white' : 'bg-teal-100 text-teal-800'
             }`}>
-              {lang === 'ta' ? 'பயணங்கள் & எரிபொருள்' : 'Trips & Fuel'}
+              {lang === 'ta' ? 'வாகனப் பயணங்கள்' : 'Vehicle Trips'}
             </span>
           </div>
           <div className="font-extrabold text-xs">
             {lang === 'ta' ? 'வாகனப் பயணங்கள்' : 'Vehicle Trips'}
           </div>
           <p className={`text-[10px] mt-0.5 ${activeReportType === 'vehicle' ? 'text-emerald-100' : 'text-gray-400'}`}>
-            {lang === 'ta' ? 'எரிபொருள், பயணங்கள் & கி.மீ' : 'Fuel, trips & km'}
+            {lang === 'ta' ? 'பயணங்கள் & கி.மீ விவரங்கள்' : 'Trips & distance covered'}
           </p>
         </button>
       </div>
@@ -2076,63 +2138,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         {/* ----------------- REPORT VIEW: VEHICLE ASSIGNED WARD LIST & DETAILS ----------------- */}
         {activeReportType === 'vehicle-assignment' && (
           <div className="p-5 sm:p-6 space-y-6">
-            {/* Fleet Summary Header Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-white border border-emerald-200/80 shadow-2xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-900">Total Deployed Fleet</span>
-                  <Truck className="w-4 h-4 text-emerald-700" />
-                </div>
-                <div className="text-2xl font-black text-emerald-950 mt-1">
-                  {filteredVehicleAssignmentReports.length} <span className="text-xs font-semibold text-emerald-700">Units</span>
-                </div>
-                <div className="text-[11px] text-emerald-800/80 font-medium mt-0.5">
-                  Tata Ace, BOV, Push Cart & OBL
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-white border border-blue-200/80 shadow-2xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-blue-900">Wards Assigned</span>
-                  <MapPin className="w-4 h-4 text-blue-700" />
-                </div>
-                <div className="text-2xl font-black text-blue-950 mt-1">
-                  100% <span className="text-xs font-semibold text-blue-700">Coverage</span>
-                </div>
-                <div className="text-[11px] text-blue-800/80 font-medium mt-0.5">
-                  Across North, South, Central, East & West
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-white border border-purple-200/80 shadow-2xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-purple-900">Target Households</span>
-                  <Users className="w-4 h-4 text-purple-700" />
-                </div>
-                <div className="text-2xl font-black text-purple-950 mt-1">
-                  {filteredVehicleAssignmentReports.reduce((acc, v) => acc + (v.targetHouseholds || 250), 0).toLocaleString()}{' '}
-                  <span className="text-xs font-semibold text-purple-700">Houses</span>
-                </div>
-                <div className="text-[11px] text-purple-800/80 font-medium mt-0.5">
-                  {filteredVehicleAssignmentReports.reduce((acc, v) => acc + (v.coveredHouseholds || 230), 0).toLocaleString()} Covered (92.0% Pace)
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-white border border-amber-200/80 shadow-2xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-900">Active On-Route Fleet</span>
-                  <Activity className="w-4 h-4 text-amber-700" />
-                </div>
-                <div className="text-2xl font-black text-amber-950 mt-1">
-                  {filteredVehicleAssignmentReports.filter(v => v.status === 'In Service').length} / {filteredVehicleAssignmentReports.length}{' '}
-                  <span className="text-xs font-semibold text-amber-700">Active</span>
-                </div>
-                <div className="text-[11px] text-amber-800/80 font-medium mt-0.5">
-                  Live GPS Tracking Active
-                </div>
-              </div>
-            </div>
-
             {/* TABULAR VIEW */}
             {vehicleViewMode === 'table' && (
               <div className="overflow-x-auto rounded-2xl border border-gray-200 shadow-2xs">
@@ -2148,7 +2153,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                       <th className="p-3.5 whitespace-nowrap">Driver / Crew Leader</th>
                       <th className="p-3.5 whitespace-nowrap">Target vs Covered</th>
                       <th className="p-3.5 whitespace-nowrap">Shift Timing & GPS</th>
-                      <th className="p-3.5 text-center whitespace-nowrap">Trips to Vellalore</th>
+                      <th className="p-3.5 text-center whitespace-nowrap">Distance (km)</th>
                       <th className="p-3.5 text-center whitespace-nowrap">Status</th>
                     </tr>
                   </thead>
@@ -2275,28 +2280,34 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                             </div>
                           </td>
 
-                          {/* Vellalore Trips */}
+                          {/* Distance Covered */}
                           <td className="p-3.5 text-center whitespace-nowrap">
                             <div className="font-extrabold text-emerald-900 text-xs">
-                              {v.tripsToDumpYard} trips
-                            </div>
-                            <div className="text-[10px] text-gray-500 font-mono">
                               {v.distanceCoveredKm} km
                             </div>
                           </td>
 
                           {/* Status */}
                           <td className="p-3.5 text-center whitespace-nowrap">
-                            <span
-                              className={`px-2.5 py-1 rounded-full font-bold text-[10px] inline-flex items-center gap-1 ${
-                                v.status === 'In Service'
-                                  ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                                  : 'bg-amber-100 text-amber-900 border border-amber-300'
-                              }`}
-                            >
-                              <span className={`w-1.5 h-1.5 rounded-full ${v.status === 'In Service' ? 'bg-emerald-600' : 'bg-amber-600'}`} />
-                              {v.status}
-                            </span>
+                            <div className="relative inline-flex items-center">
+                              <select
+                                value={v.status === 'Inactive' || v.status === 'Standby' || v.status === 'Maintenance' ? 'Inactive' : 'Active'}
+                                onChange={(e) => handleVehicleStatusChange(v.id, e.target.value)}
+                                className={`px-3 py-1 rounded-full font-black text-xs cursor-pointer focus:outline-none transition-all border appearance-none pr-6 ${
+                                  v.status === 'Inactive' || v.status === 'Standby' || v.status === 'Maintenance'
+                                    ? 'bg-rose-100 text-rose-900 border-rose-300 hover:bg-rose-200'
+                                    : 'bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200'
+                                }`}
+                              >
+                                <option value="Active" className="bg-white text-emerald-900 font-bold">
+                                  {lang === 'ta' ? 'Active (செயலில்)' : 'Active'}
+                                </option>
+                                <option value="Inactive" className="bg-white text-rose-900 font-bold">
+                                  {lang === 'ta' ? 'Inactive (செயலிழந்தது)' : 'Inactive'}
+                                </option>
+                              </select>
+                              <ChevronDown className="w-3.5 h-3.5 absolute right-2 pointer-events-none opacity-70" />
+                            </div>
                           </td>
                         </tr>
                       );
@@ -2337,13 +2348,21 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                             </div>
                           </div>
 
-                          <span
-                            className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
-                              v.status === 'In Service' ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'
-                            }`}
-                          >
-                            {v.status}
-                          </span>
+                          <div className="relative inline-flex items-center">
+                            <select
+                              value={v.status === 'Inactive' || v.status === 'Standby' || v.status === 'Maintenance' ? 'Inactive' : 'Active'}
+                              onChange={(e) => handleVehicleStatusChange(v.id, e.target.value)}
+                              className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] cursor-pointer focus:outline-none border appearance-none pr-5 ${
+                                v.status === 'Inactive' || v.status === 'Standby' || v.status === 'Maintenance'
+                                  ? 'bg-rose-100 text-rose-900 border-rose-300'
+                                  : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                              }`}
+                            >
+                              <option value="Active">{lang === 'ta' ? 'Active (செயலில்)' : 'Active'}</option>
+                              <option value="Inactive">{lang === 'ta' ? 'Inactive (செயலிழந்தது)' : 'Inactive'}</option>
+                            </select>
+                            <ChevronDown className="w-2.5 h-2.5 absolute right-1.5 pointer-events-none opacity-70" />
+                          </div>
                         </div>
 
                         {/* Zone & Assigned Wards */}
@@ -2479,8 +2498,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                     <th className="p-3">Driver Name & Contact</th>
                     <th className="p-3">Zone & Ward</th>
                     <th className="p-3 text-right">Distance (km)</th>
-                    <th className="p-3 text-center">Vellalore Trips</th>
-                    <th className="p-3 text-center">Battery / Fuel</th>
                     <th className="p-3 text-center">Status</th>
                   </tr>
                 </thead>
@@ -2505,22 +2522,26 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                         <div className="text-[11px] text-gray-500">{v.zone}</div>
                       </td>
                       <td className="p-3 text-right font-bold text-gray-900">{v.distanceCoveredKm} km</td>
-                      <td className="p-3 text-center font-bold text-emerald-800">{v.tripsToDumpYard} trips</td>
-                      <td className="p-3 text-center font-bold">
-                        <span className={`px-2 py-0.5 rounded text-[10px] ${v.fuelOrBattery > 50 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                          {v.fuelOrBattery}%
-                        </span>
-                      </td>
                       <td className="p-3 text-center">
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
-                            v.status === 'In Service'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-amber-100 text-amber-800'
-                          }`}
-                        >
-                          {v.status}
-                        </span>
+                        <div className="relative inline-flex items-center">
+                          <select
+                            value={v.status === 'Inactive' || v.status === 'Standby' || v.status === 'Maintenance' ? 'Inactive' : 'Active'}
+                            onChange={(e) => handleVehicleStatusChange(v.id, e.target.value)}
+                            className={`px-3 py-1 rounded-full font-black text-xs cursor-pointer focus:outline-none transition-all border appearance-none pr-6 ${
+                              v.status === 'Inactive' || v.status === 'Standby' || v.status === 'Maintenance'
+                                ? 'bg-rose-100 text-rose-900 border-rose-300 hover:bg-rose-200'
+                                : 'bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200'
+                            }`}
+                          >
+                            <option value="Active" className="bg-white text-emerald-900 font-bold">
+                              {lang === 'ta' ? 'Active (செயலில்)' : 'Active'}
+                            </option>
+                            <option value="Inactive" className="bg-white text-rose-900 font-bold">
+                              {lang === 'ta' ? 'Inactive (செயலிழந்தது)' : 'Inactive'}
+                            </option>
+                          </select>
+                          <ChevronDown className="w-3.5 h-3.5 absolute right-2 pointer-events-none opacity-70" />
+                        </div>
                       </td>
                     </tr>
                   ))}

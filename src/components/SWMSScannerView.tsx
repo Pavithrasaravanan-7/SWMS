@@ -13,11 +13,13 @@ import {
   VolumeX,
   Navigation,
   MapPin,
-  Globe
+  Globe,
+  Play,
+  Route
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { cmPhoto, cmFallbackPhoto, ccmcLogo, ccmcFallbackLogo } from '../constants/branding';
-import { ICCCLiveBadge } from './ICCCLiveBadge';
+import { SREE_NAGAR_QR_PAYLOAD } from './SWMSStreetScanQRCard';
 
 interface SWMSScannerViewProps {
   lang?: 'en' | 'ta';
@@ -132,7 +134,7 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
     }, 350);
   };
 
-  // Start Camera with resilient multi-stage fallback for mobile Android & iOS browsers
+  // Start Camera with resilient multi-stage fallback for mobile & laptop webcams
   const startCamera = async (facing: 'environment' | 'user' = 'environment') => {
     setCameraError(null);
     setIsCameraActive(false);
@@ -170,7 +172,7 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
         disableFlip: facing === 'environment'
       };
 
-      // Stage 1: Enumerate device cameras to select the optimal back camera
+      // Stage 1: Enumerate device cameras to select camera
       let cameras: Array<{ id: string; label: string }> = [];
       try {
         cameras = await Html5Qrcode.getCameras();
@@ -187,8 +189,7 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
             c.label.toLowerCase().includes('environment') ||
             c.label.toLowerCase().includes('0')
           );
-          // On mobile phones, if no specific label matched, the last camera in the list is usually the primary rear sensor
-          chosenCamera = backCam || cameras[cameras.length - 1];
+          chosenCamera = backCam || cameras[cameras.length - 1] || cameras[0];
         } else {
           const frontCam = cameras.find((c) =>
             c.label.toLowerCase().includes('front') ||
@@ -207,11 +208,25 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
           setIsCameraActive(true);
           return;
         } catch (err1) {
-          console.warn('Failed to start with enumerated camera ID, trying facingMode constraint:', err1);
+          console.warn('Failed to start with enumerated camera ID, trying fallback:', err1);
         }
       }
 
-      // Stage 2: Direct facingMode constraint
+      // Stage 2: Laptop Webcam / Default video constraint (Works on all Laptops!)
+      try {
+        await html5QrCode.start(
+          {},
+          qrConfig,
+          (decodedText) => handleDecodedCode(decodedText),
+          () => {}
+        );
+        setIsCameraActive(true);
+        return;
+      } catch (errLaptop) {
+        console.warn('Laptop default video start failed:', errLaptop);
+      }
+
+      // Stage 3: Direct facingMode constraint
       try {
         await html5QrCode.start(
           { facingMode: facing },
@@ -222,24 +237,10 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
         setIsCameraActive(true);
         return;
       } catch (err2) {
-        console.warn('Direct facingMode failed, trying facingMode ideal fallback:', err2);
+        console.warn('Direct facingMode failed:', err2);
       }
 
-      // Stage 3: Flexible facingMode ideal constraint
-      try {
-        await html5QrCode.start(
-          { facingMode: { ideal: facing } },
-          qrConfig,
-          (decodedText) => handleDecodedCode(decodedText),
-          () => {}
-        );
-        setIsCameraActive(true);
-        return;
-      } catch (err3) {
-        console.warn('facingMode ideal failed, trying other available cameras:', err3);
-      }
-
-      // Stage 4: Try each camera in device list
+      // Stage 4: Try any camera ID
       if (cameras && cameras.length > 0) {
         for (const cam of cameras) {
           try {
@@ -264,14 +265,14 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
       if (errMsg.includes('NotAllowedError') || errMsg.includes('Permission')) {
         setCameraError(
           lang === 'ta'
-            ? 'கேமரா அனுமதி தேவைப்படுகிறது. பிரவுசரில் கேமரா அனுமதியை வழங்கவும் அல்லது கீழே உள்ள "போன் கேமரா மூலம் படம் எடு" பொத்தானை அழுத்தவும்.'
-            : 'Camera permission is required. Please allow camera access in browser settings, or tap "Take Photo with Phone Camera" below.'
+            ? 'கேமரா அனுமதி தேவைப்படுகிறது. பிரவுசரில் கேமரா அனுமதியை வழங்கவும் அல்லது கீழே உள்ள "லேப்டாப் / டெஸ்ட் ஸ்கேன்" பொத்தானைப் பயன்படுத்தவும்.'
+            : 'Camera permission is required. Please allow camera access in browser settings, or click "Test Scan" below.'
         );
       } else {
         setCameraError(
           lang === 'ta'
-            ? 'நேரடி கேமரா ஸ்ட்ரீம் துவங்க முடியவில்லை. உங்கள் போன் கேமரா மூலம் படம் எடுக்க கீழே உள்ள "போன் கேமராவைத் திற" பொத்தானை அழுத்தவும்.'
-            : 'Live camera stream is unavailable in this view. Use the "Take Photo with Phone Camera" button below to capture the QR instantly.'
+            ? 'நேரடி கேமரா கிடைக்கவில்லை. சோதிக்க கீழே உள்ள "லேப்டாப் / டெஸ்ட் ஸ்கேன்" பொத்தானைப் அழுத்தவும்.'
+            : 'Live camera stream is unavailable. Click "Test Scan" below to simulate scanning.'
         );
       }
       setIsCameraActive(false);
@@ -335,244 +336,201 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
     setCameraFacing(nextFacing);
   };
 
+  // Quick Laptop Test Scan Handler — simulates scanning a QR checkpoint id (e.g. E-SCAN1)
+  const handleQuickTestScan = () => {
+    const sampleIds = ['E-SCAN1', 'E-SCAN2', 'E-SCAN3', 'E-SCAN4', 'E-SCAN5'];
+    const randomQrId = sampleIds[Math.floor(Math.random() * sampleIds.length)];
+    handleDecodedCode(randomQrId);
+  };
+
+  // Sree Nagar Route Test Scan — simulates scanning the Sree Nagar QR card
+  const handleSreeNagarScan = () => {
+    handleDecodedCode(SREE_NAGAR_QR_PAYLOAD);
+  };
+
   return (
-    <div className="flex flex-col flex-1 h-full min-h-[560px] bg-white text-slate-900 rounded-none overflow-hidden w-full relative">
-      {/* Top Header - CCMC Municipal Green with 1st CM Photo Full Height */}
-      <div className="bg-[#1E7A38] pl-2 sm:pl-3 lg:pl-4 pr-3.5 sm:pr-4 lg:pr-6 py-2 lg:py-2.5 flex items-center justify-between border-b border-[#166534] shadow-md text-white sticky top-0 z-30 min-h-[56px] lg:min-h-[62px]">
-        <div className="flex items-center space-x-2">
-          {onBackToDashboard && (
-            <button
-              onClick={onBackToDashboard}
-              className="w-8 h-8 bg-[#166534] hover:bg-[#113B22] active:scale-95 text-white rounded-full transition flex items-center justify-center border border-emerald-500/30 shadow-xs cursor-pointer flex-shrink-0"
-              title="Back to Dashboard / முதன்மைப் பக்கத்திற்குச் செல்"
-            >
-              <ArrowLeft className="w-4 h-4 text-white" />
-            </button>
-          )}
+    <div className="flex flex-col flex-1 h-full min-h-0 bg-black text-white overflow-hidden w-full relative">
 
-          {/* 1st: Hon'ble CM Portrait - Full Height rectangular frame */}
-          <div 
-            className="h-10 w-9 sm:w-10 flex-shrink-0 overflow-hidden border-r-2 border-amber-400 shadow-xs bg-emerald-950 -my-1.5 relative"
-            title="Hon'ble Chief Minister of Tamil Nadu"
+      {/* ── TOP BAR ── compact, floats over camera */}
+      <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-3 py-2 bg-gradient-to-b from-black/80 to-transparent">
+        {/* Back */}
+        {onBackToDashboard && (
+          <button
+            onClick={onBackToDashboard}
+            className="w-9 h-9 bg-black/50 backdrop-blur-md text-white rounded-full flex items-center justify-center border border-white/20 cursor-pointer active:scale-95 transition"
           >
-            <img
-              src={cmPhoto}
-              alt="CM"
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                if (e.currentTarget.src !== cmFallbackPhoto) {
-                  e.currentTarget.src = cmFallbackPhoto;
-                }
-              }}
-              className="w-full h-full object-cover object-top"
-            />
-          </div>
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+        )}
 
-          {/* CCMC Emblem */}
-          <div className="relative flex-shrink-0 flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-white rounded-full border-2 border-amber-400 shadow-xs overflow-hidden">
-            <img
-              src={ccmcLogo}
-              alt="CCMC"
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                if (e.currentTarget.src !== ccmcFallbackLogo) {
-                  e.currentTarget.src = ccmcFallbackLogo;
-                }
-              }}
-              className="w-full h-full object-contain p-0.5"
-            />
+        {/* Title */}
+        <div className="flex-1 text-center">
+          <div className="text-xs font-black text-white tracking-wider uppercase">
+            {lang === 'ta' ? 'QR ஸ்கேனர்' : 'QR Scanner'}
           </div>
-
-          {/* Municipal Title - Responsive, Crisp Multi-line Format (Matching Image 1) */}
-          <div className="min-w-0 flex flex-col justify-center">
-            {/* Line 1: Coimbatore City */}
-            <div className="text-[12px] sm:text-sm lg:text-base font-black tracking-tight text-white leading-tight whitespace-nowrap drop-shadow-xs">
-              Coimbatore City
-            </div>
-            {/* Line 2: Municipal Corporation */}
-            <div className="text-[11px] sm:text-xs lg:text-[14px] font-black tracking-tight text-amber-300 leading-tight whitespace-nowrap drop-shadow-xs">
-              Municipal Corporation
-            </div>
-            {/* Line 3: Sanitary Field Worker */}
-            <div className="text-[9px] sm:text-[10.5px] lg:text-xs font-black tracking-wider text-cyan-300 uppercase leading-tight mt-0.5 whitespace-nowrap drop-shadow-xs">
-              {lang === 'ta' ? 'க்யூஆர் ஸ்கேனர்' : 'SANITARY FIELD WORKER'}
-            </div>
+          <div className="text-[11px] text-emerald-300 font-medium">
+            CCMC • SWMS
           </div>
         </div>
 
-        {/* Header Controls: Language Selector, Sound & Flashlight */}
-        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-          {/* Language Switcher Segment [ தமிழ் | English ] - Compact */}
-          <div className="bg-[#113B22] border border-emerald-500/40 rounded-full p-0.5 flex items-center shadow-xs flex-shrink-0 scale-90 sm:scale-100 origin-right">
-            <button
-              type="button"
-              onClick={() => {
-                if (onSetLanguage) onSetLanguage('ta');
-                else if (lang !== 'ta' && onToggleLang) onToggleLang();
-              }}
-              className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black transition-all cursor-pointer flex items-center gap-0.5 sm:gap-1 ${
-                lang === 'ta'
-                  ? 'bg-[#FF9E00] text-slate-950 shadow-xs'
-                  : 'text-emerald-200 hover:text-white hover:bg-emerald-800/50'
-              }`}
-              title="தமிழ் மொழியைத் தேர்வு செய்"
-            >
-              <Globe className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${lang === 'ta' ? 'text-slate-950' : 'text-emerald-300'}`} />
-              <span>தமிழ்</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (onSetLanguage) onSetLanguage('en');
-                else if (lang !== 'en' && onToggleLang) onToggleLang();
-              }}
-              className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black transition-all cursor-pointer ${
-                lang === 'en'
-                  ? 'bg-[#FF9E00] text-slate-950 shadow-xs'
-                  : 'text-emerald-200 hover:text-white hover:bg-emerald-800/50'
-              }`}
-              title="Select English Language"
-            >
-              <span>English</span>
-            </button>
-          </div>
-
+        {/* Sound + Flash controls */}
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#166534] hover:bg-[#113B22] text-white flex items-center justify-center transition active:scale-95 border border-emerald-500/30 cursor-pointer"
-            title={soundEnabled ? 'Mute Chime' : 'Enable Chime'}
+            className="w-9 h-9 bg-black/50 backdrop-blur-md text-white rounded-full flex items-center justify-center border border-white/20 cursor-pointer active:scale-95 transition"
           >
-            {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5 text-slate-400" />}
+            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-white/40" />}
           </button>
-
           <button
             onClick={toggleFlashlight}
-            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full transition flex items-center justify-center border border-emerald-500/30 shadow-xs cursor-pointer active:scale-95 ${
-              flashlightOn ? 'bg-amber-400 text-slate-950 shadow-md font-bold' : 'bg-[#166534] hover:bg-[#113B22] text-white'
+            className={`w-9 h-9 rounded-full flex items-center justify-center border cursor-pointer active:scale-95 transition ${
+              flashlightOn
+                ? 'bg-amber-400 border-amber-300 text-black'
+                : 'bg-black/50 backdrop-blur-md border-white/20 text-white'
             }`}
-            title="Toggle Flashlight / டார்ச்"
           >
-            {flashlightOn ? <Zap className="w-3.5 h-3.5 fill-current" /> : <ZapOff className="w-3.5 h-3.5" />}
+            {flashlightOn ? <Zap className="w-4 h-4 fill-current" /> : <Zap className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
-      {/* Operational Status Sub-Bar: Hidden on mobile & tablet view (< lg), visible only on large desktop */}
-      <div className="hidden lg:flex bg-[#113B22] px-2.5 py-1.5 sm:px-4 items-center justify-between text-[9px] sm:text-xs text-emerald-100 font-medium border-t border-emerald-700/50">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <div className="flex items-center gap-1 bg-[#0A2E17] border border-emerald-400/50 rounded-full px-2 py-0.5 shadow-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
-            <span className="text-amber-300 font-black text-[9px] sm:text-[10px] whitespace-nowrap">
-              {lang === 'ta' ? 'கள அதிகாரி' : 'Field Officer'}:
-            </span>
-            <span className="text-white font-bold text-[9px] sm:text-[10px] truncate max-w-[110px] sm:max-w-[180px]">
-              Karthik Muthusamy
-            </span>
-          </div>
-        </div>
+      {/* ── FULL SCREEN CAMERA ── */}
+      <div className="relative flex-1 w-full h-full overflow-hidden">
 
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <ICCCLiveBadge lang={lang} />
-        </div>
-      </div>
-
-      {/* Google Pay / PhonePe / Emerald Reticle Camera Stage */}
-      <div className="relative flex-1 bg-slate-900 flex flex-col items-center justify-center overflow-hidden min-h-[380px] select-none">
-        
-        {/* Real-time HTML5 Camera video container */}
-        <div 
-          id={readerElementId} 
-          className="absolute inset-0 w-full h-full object-cover flex items-center justify-center [&_video]:w-full [&_video]:h-full [&_video]:object-cover"
+        {/* Html5Qrcode video container */}
+        <div
+          id={readerElementId}
+          className="absolute inset-0 w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover"
         />
 
-        {/* Translucent Dark Overlay with Emerald Cutout Frame */}
-        <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-between py-5 px-4 z-10">
-          
-          {/* Top Instruction Pill & GPS Status HUD */}
-          <div className="flex flex-col items-center space-y-1.5 max-w-full">
-            <div className="bg-white/95 backdrop-blur-md border border-[#1E7A38] shadow-md px-4 py-1.5 rounded-full flex items-center space-x-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#1E7A38] animate-ping" />
-              <span className="text-xs sm:text-sm font-black tracking-wide text-[#1E7A38]">
-                {lang === 'ta' ? 'கதவு QR ஐ கட்டத்தில் வைக்கவும் (Align Door QR)' : 'Align Door QR Code within frame'}
-              </span>
-            </div>
+        {/* Dark vignette overlay — corners dark, center clear */}
+        <div className="absolute inset-0 z-10 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse 55% 55% at 50% 48%, transparent 0%, rgba(0,0,0,0.65) 100%)'
+          }}
+        />
 
-            <div className="bg-black/60 backdrop-blur-md border border-emerald-400/30 px-3 py-1 rounded-full flex items-center space-x-2 text-[10px] text-emerald-200">
-              <Navigation className="w-3 h-3 text-emerald-400 animate-pulse" />
-              <span className="font-mono font-bold">11.0168° N, 76.9558° E</span>
-              <span className="text-white/40">•</span>
-              <span className="font-medium truncate max-w-[140px] sm:max-w-[200px]">Gandhipuram, Ward 12</span>
-            </div>
+        {/* ── SCAN FRAME (GPay-style) ── */}
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center pointer-events-none gap-4">
+
+          {/* Top label */}
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black tracking-wide transition-all ${
+            isSuccessFlash
+              ? 'bg-[#1E7A38] text-white scale-105'
+              : 'bg-white/90 text-[#1E7A38]'
+          }`}>
+            {isSuccessFlash
+              ? <><CheckCircle2 className="w-4 h-4" /> {lang === 'ta' ? 'ஸ்கேன் வெற்றி!' : 'Scan Successful!'}</>
+              : <><span className="w-2 h-2 rounded-full bg-[#1E7A38] animate-ping inline-block" />{lang === 'ta' ? 'QR கோட்டை கட்டத்தில் வையுங்கள்' : 'Place QR code inside the frame'}</>
+            }
           </div>
 
-          {/* Center Target Box */}
-          <div className="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center">
-            
-            {/* 4 Glowing Corner Markers in Municipal Green */}
-            <div className="absolute -top-1 -left-1 w-10 h-10 border-t-4 border-l-4 border-[#1E7A38] rounded-tl-2xl shadow-[0_0_15px_#1E7A38]" />
-            <div className="absolute -top-1 -right-1 w-10 h-10 border-t-4 border-r-4 border-[#1E7A38] rounded-tr-2xl shadow-[0_0_15px_#1E7A38]" />
-            <div className="absolute -bottom-1 -left-1 w-10 h-10 border-b-4 border-l-4 border-[#1E7A38] rounded-bl-2xl shadow-[0_0_15px_#1E7A38]" />
-            <div className="absolute -bottom-1 -right-1 w-10 h-10 border-b-4 border-r-4 border-[#1E7A38] rounded-br-2xl shadow-[0_0_15px_#1E7A38]" />
+          {/* Scanned QR code badge — shows after a successful scan */}
+          {isSuccessFlash && scannedResult && (
+            <div className="px-4 py-2 rounded-2xl bg-black/70 backdrop-blur-md border border-[#1E7A38] text-white">
+              <div className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider text-center">{lang === 'ta' ? 'ஸ்கேன் செய்யப்பட்ட QR' : 'Scanned QR'}</div>
+              <div className="text-sm sm:text-base font-black font-mono tracking-widest text-center mt-0.5">{scannedResult}</div>
+            </div>
+          )}
 
-            {/* Glowing Laser Scan Line Animation */}
-            <div className="absolute left-1 right-1 h-1 bg-[#1E7A38] shadow-[0_0_16px_#1E7A38] animate-[scan_2s_ease-in-out_infinite] z-10" />
+          {/* The square scan window */}
+          <div className="relative w-64 h-64 sm:w-72 sm:h-72">
 
-            {/* Green QR Center Reticle Target */}
-            <div className="w-16 h-16 rounded-full border-2 border-[#1E7A38] bg-white/80 backdrop-blur-xs flex flex-col items-center justify-center shadow-md">
-              <div className="relative flex flex-col items-center justify-center">
-                <QrCode className="w-7 h-7 text-[#1E7A38]" />
-                <span className="text-[8px] font-black text-[#1E7A38] tracking-widest leading-none mt-0.5">QR</span>
-              </div>
+            {/* Semi-transparent cutout sides */}
+            <div className="absolute inset-0 rounded-2xl overflow-hidden">
+              <div className="absolute inset-0 border-0" />
             </div>
 
-            {/* Success Flash on Detection */}
+            {/* 4 corner L-brackets — GPay signature */}
+            <span className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-[#1E7A38] rounded-tl-2xl drop-shadow-[0_0_8px_#1E7A38]" />
+            <span className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-[#1E7A38] rounded-tr-2xl drop-shadow-[0_0_8px_#1E7A38]" />
+            <span className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-[#1E7A38] rounded-bl-2xl drop-shadow-[0_0_8px_#1E7A38]" />
+            <span className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-[#1E7A38] rounded-br-2xl drop-shadow-[0_0_8px_#1E7A38]" />
+
+            {/* Animated laser scan line */}
+            {!isSuccessFlash && (
+              <div className="absolute left-2 right-2 h-[3px] rounded-full bg-[#1E7A38] shadow-[0_0_12px_4px_#1E7A38] animate-[scan_2s_ease-in-out_infinite]" />
+            )}
+
+            {/* Success green fill overlay */}
             {isSuccessFlash && (
-              <div className="absolute inset-0 bg-[#1E7A38]/50 rounded-2xl flex flex-col items-center justify-center backdrop-blur-xs transition animate-pulse z-20 shadow-lg">
-                <div className="w-16 h-16 rounded-full bg-white text-[#1E7A38] flex items-center justify-center shadow-lg scale-110 transform transition">
-                  <CheckCircle2 className="w-10 h-10 text-[#1E7A38] font-black" />
+              <div className="absolute inset-0 rounded-2xl bg-[#1E7A38]/40 flex items-center justify-center animate-pulse">
+                <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-2xl">
+                  <CheckCircle2 className="w-12 h-12 text-[#1E7A38]" />
                 </div>
-                <span className="text-sm font-black text-[#1E7A38] mt-2 bg-white border border-[#1E7A38] px-4 py-1.5 rounded-full shadow-md">
-                  {scannedResult || 'QR Scanned!'}
-                </span>
               </div>
             )}
           </div>
 
-          {/* Bottom Scanner Toolbar inside Camera View (Clean Minimal Flip Camera Button) */}
-          <div className="flex items-center justify-center gap-2 pointer-events-auto z-20 px-2 max-w-full">
-            {/* Flip Camera Button */}
+          {/* Bottom hint */}
+          {!isSuccessFlash && (
+            <div className="text-[11px] text-white/60 font-medium text-center px-8">
+              {lang === 'ta'
+                ? 'தானாக ஸ்கேன் ஆகும் — பட்டன் அழுத்த வேண்டாம்'
+                : 'Auto-detects instantly • No button needed'}
+            </div>
+          )}
+        </div>
+
+        {/* ── BOTTOM TOOLBAR (floats over camera) ── */}
+        <div className="absolute bottom-0 left-0 right-0 z-30 pb-6 pt-4 flex flex-col items-center gap-3 bg-gradient-to-t from-black/80 to-transparent pointer-events-auto">
+
+          {/* Flip camera button */}
+          <button
+            onClick={handleFlipCamera}
+            className="flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/20 text-white font-black text-xs px-5 py-2.5 rounded-full transition active:scale-95 cursor-pointer"
+          >
+            <SwitchCamera className="w-4 h-4" />
+            {cameraFacing === 'environment'
+              ? (lang === 'ta' ? 'முன் கேமரா' : 'Front Camera')
+              : (lang === 'ta' ? 'பின் கேமரா' : 'Rear Camera')}
+          </button>
+
+          {/* Test buttons row */}
+          <div className="flex items-center gap-2 flex-wrap justify-center px-4">
             <button
-              onClick={handleFlipCamera}
-              className="bg-white/90 hover:bg-white border border-slate-200 hover:border-[#1E7A38] shadow-md px-4 py-1.5 sm:py-2 rounded-full transition-all duration-200 active:scale-95 cursor-pointer flex items-center space-x-1.5 text-slate-800 hover:text-[#1E7A38] group backdrop-blur-xs"
-              title="Flip Camera / கேமராவை மாற்று"
+              onClick={handleQuickTestScan}
+              className="flex items-center gap-2 bg-[#1E7A38] hover:bg-[#166534] text-white font-black text-xs px-5 py-2.5 rounded-full transition active:scale-95 cursor-pointer shadow-lg border border-emerald-400"
             >
-              <SwitchCamera className="w-3.5 h-3.5 text-[#1E7A38] group-hover:scale-110 transition-transform" />
-              <span className="text-[11px] sm:text-xs font-black">
-                {cameraFacing === 'environment' ? 'Rear' : 'Front'}
-              </span>
+              <QrCode className="w-4 h-4" />
+              {lang === 'ta' ? 'ஸ்கேன்' : 'Scan'}
             </button>
           </div>
         </div>
 
-        {/* Camera Permission / Error Fallback Screen (Clean White Background) */}
+        {/* Camera error fallback */}
         {cameraError && (
-          <div className="absolute inset-0 bg-white z-20 flex flex-col items-center justify-center p-5 text-center space-y-3">
-            <div className="w-14 h-14 rounded-full bg-emerald-50 text-[#1E7A38] flex items-center justify-center border-2 border-[#1E7A38] shadow-md">
-              <Camera className="w-7 h-7 text-[#1E7A38]" />
+          <div className="absolute inset-0 z-40 bg-black flex flex-col items-center justify-center p-6 text-center gap-4">
+            <div className="w-16 h-16 rounded-full border-2 border-[#1E7A38] bg-emerald-950 flex items-center justify-center">
+              <Camera className="w-8 h-8 text-[#1E7A38]" />
             </div>
-            <h3 className="text-sm sm:text-base font-black text-slate-900">
-              {lang === 'ta' ? 'கேமரா அனுமதி மற்றும் நிலை' : 'Camera Access Status'}
-            </h3>
-            <p className="text-xs text-slate-600 max-w-sm leading-relaxed font-medium">
-              {cameraError}
-            </p>
-            <div className="pt-1 w-full max-w-xs">
+            <div>
+              <h3 className="text-sm font-black text-white mb-1">
+                {lang === 'ta' ? 'கேமரா கிடைக்கவில்லை' : 'Camera Not Available'}
+              </h3>
+              <p className="text-xs text-white/60 max-w-xs leading-relaxed">{cameraError}</p>
+            </div>
+            <div className="flex flex-col gap-2 w-full max-w-xs">
               <button
                 onClick={() => startCamera(cameraFacing)}
-                className="w-full bg-[#1E7A38] hover:bg-[#166534] text-white font-black text-xs px-4 py-2.5 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center space-x-2 cursor-pointer"
+                className="w-full bg-[#1E7A38] hover:bg-[#166534] text-white font-black text-xs px-4 py-3 rounded-xl transition shadow-lg active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
               >
-                <RefreshCw className="w-4 h-4 text-white" />
-                <span>{lang === 'ta' ? 'கேமராவை மீண்டும் தொடங்கு' : 'Start Camera'}</span>
+                <RefreshCw className="w-4 h-4" />
+                {lang === 'ta' ? 'கேமரா திறக்க முயற்சி' : 'Retry Camera'}
+              </button>
+              <button
+                onClick={handleQuickTestScan}
+                className="w-full bg-[#1E7A38] hover:bg-[#166534] text-white font-black text-xs px-4 py-3 rounded-xl transition shadow-lg active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <QrCode className="w-4 h-4" />
+                {lang === 'ta' ? 'சோதனை ஸ்கேன் (டெமோ QR)' : 'Test Scan (Demo QR)'}
+              </button>
+              <button
+                onClick={handleSreeNagarScan}
+                className="w-full bg-amber-500 hover:bg-amber-400 text-black font-black text-xs px-4 py-3 rounded-xl transition shadow-lg active:scale-95 flex items-center justify-center gap-2 cursor-pointer border border-amber-400"
+              >
+                <Route className="w-4 h-4" />
+                {lang === 'ta' ? 'ஸ்ரீ நகர் ஸ்கேன் (சோதனை)' : 'Sree Nagar Test Scan'}
               </button>
             </div>
           </div>
@@ -581,5 +539,3 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
     </div>
   );
 };
-
-

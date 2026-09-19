@@ -161,6 +161,48 @@ export const NotCollectedView: React.FC<NotCollectedViewProps> = ({
         </div>
       </div>
 
+      {/* Uncollected Vehicles Summary Banner (Zone-wise Vehicle Tracking) */}
+      <div className="bg-rose-50/70 border border-rose-200/90 rounded-2xl p-4 shadow-2xs space-y-3">
+        <div className="flex items-center gap-2">
+          <Truck className="w-5 h-5 text-rose-700" />
+          <h3 className="text-sm font-black text-rose-950 uppercase tracking-tight">
+            {lang === 'ta' ? 'மண்டலம் வாரியாக இன்னும் குப்பை சேகரிக்காத வாகனங்கள்' : 'Uncollected Vehicles Breakdown by Zone'}
+          </h3>
+          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-rose-200 text-rose-900 ml-auto">
+            LIVE UNCOLLECTED VEHICLE TRACKER
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {['South Zone', 'East Zone', 'West Zone', 'North Zone', 'Central Zone'].map((z) => {
+            const zonePending = pendingRecords.filter((r) => r.zone === z);
+            const vehiclesInZone = Array.from(
+              new Set(zonePending.map((r) => r.vehicleNo || 'TN66AD6465'))
+            );
+            return (
+              <div key={z} className="bg-white p-3 rounded-xl border border-rose-200/80 shadow-2xs space-y-1">
+                <div className="text-[11px] font-extrabold text-gray-500 uppercase">{z}</div>
+                <div className="text-xs font-black text-rose-800">
+                  {zonePending.length} {lang === 'ta' ? 'வீடுகள் நிலுவை' : 'Households Missed'}
+                </div>
+                <div className="text-[11px] font-mono font-bold text-slate-800 pt-1 border-t border-gray-100 flex items-center gap-1 flex-wrap">
+                  <span className="text-gray-400 font-sans">{lang === 'ta' ? 'வாகனம்:' : 'Vehicle:'}</span>
+                  {vehiclesInZone.length > 0 ? (
+                    vehiclesInZone.map((v) => (
+                      <span key={v} className="bg-rose-100 text-rose-900 px-1.5 py-0.5 rounded text-[10px] font-black">
+                        {v}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-emerald-700 text-[10px] font-bold">✓ None</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Filter bar */}
       <div className="bg-white rounded-2xl p-4 border border-gray-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-3 text-sm">
         <div className="relative flex-1 min-w-[240px]">
@@ -169,8 +211,8 @@ export const NotCollectedView: React.FC<NotCollectedViewProps> = ({
             type="text"
             placeholder={
               lang === 'ta'
-                ? 'சேகரிக்கப்படாத தெரு, வார்டு அல்லது பணியாளர் பெயரைத் தேடவும்...'
-                : 'Search uncollected street, ward or worker name...'
+                ? 'சேகரிக்கப்படாத தெரு, வார்டு, வாகனம் அல்லது பணியாளர் பெயரைத் தேடவும்...'
+                : 'Search uncollected street, ward, vehicle or worker name...'
             }
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -218,6 +260,7 @@ export const NotCollectedView: React.FC<NotCollectedViewProps> = ({
                 <th className="px-5 py-3.5">{lang === 'ta' ? 'மண்டலம்' : 'Zone'}</th>
                 <th className="px-5 py-3.5">{lang === 'ta' ? 'வார்டு' : 'Ward'}</th>
                 <th className="px-5 py-3.5">{lang === 'ta' ? 'தெரு முகவரி' : 'Street Address'}</th>
+                <th className="px-5 py-3.5">{lang === 'ta' ? 'வாகன எண் & வகை' : 'Vehicle No. & Type'}</th>
                 <th className="px-5 py-3.5">{lang === 'ta' ? 'காரணம் / தடை' : 'Reason / Obstacle'}</th>
                 <th className="px-5 py-3.5">{lang === 'ta' ? 'பணியாளர் பெயர்' : 'Worker Name'}</th>
                 <th className="px-5 py-3.5 text-center">{lang === 'ta' ? 'நிலை' : 'Status'}</th>
@@ -233,6 +276,13 @@ export const NotCollectedView: React.FC<NotCollectedViewProps> = ({
                   <td className="px-5 py-3.5 font-bold text-gray-900 flex items-center gap-1.5">
                     <MapPin className="w-4 h-4 text-[#C5221F] flex-shrink-0" />
                     <span>{item.street}</span>
+                  </td>
+                  <td className="px-5 py-3.5 font-mono font-bold text-gray-900 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <Truck className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
+                      <span className="bg-rose-100 text-rose-900 px-1.5 py-0.5 rounded font-black">{item.vehicleNo || 'TN66AD6465'}</span>
+                    </div>
+                    <div className="text-[10px] text-gray-500 font-sans font-semibold mt-0.5">{item.vehicleType || 'Tata Ace'}</div>
                   </td>
                   <td className="px-5 py-3.5 text-xs text-rose-900 font-bold max-w-[220px]">
                     <span className="bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-md block truncate">

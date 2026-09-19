@@ -210,7 +210,7 @@ export const FrequentlyNotCollectedSection: React.FC<FrequentlyNotCollectedSecti
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900 flex items-center gap-1.5">
-                <span>{lang === 'ta' ? 'அடிக்கடி சேகரிக்கப்படாத பகுதிகள்' : 'Frequently Not Collected Hotspots'}</span>
+                <span>{lang === 'ta' ? 'அடிக்கடி சேகரிக்கப்படாத வீடுகள்' : 'Frequently Not Collected Households'}</span>
               </h2>
               <span className="bg-rose-50 text-rose-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-rose-200 uppercase tracking-wider">
                 {lang === 'ta' ? 'தொடர் கண்காணிப்பு' : 'Chronic Watchlist'}
@@ -218,8 +218,8 @@ export const FrequentlyNotCollectedSection: React.FC<FrequentlyNotCollectedSecti
             </div>
             <p className="text-xs text-slate-600 font-medium mt-0.5">
               {lang === 'ta'
-                ? 'தொடர்ந்து 3+ நாட்கள் குப்பை சேகரிக்கப்படாத தொடர் சிக்கல் வீடுகள் & பகுதிகள்'
-                : 'Repeat uncollected households & chronic obstacle corridors requiring SBM intervention'}
+                ? 'தொடர்ந்து 3+ நாட்கள் குப்பை சேகரிக்கப்படாத தொடர் சிக்கல் வீடுகள்'
+                : 'Repeat uncollected households requiring SBM intervention'}
             </p>
           </div>
         </div>
@@ -228,7 +228,7 @@ export const FrequentlyNotCollectedSection: React.FC<FrequentlyNotCollectedSecti
         <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
           <div className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-center shadow-2xs">
             <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">
-              {lang === 'ta' ? 'மொத்த வீடுகள்' : 'Hotspot Houses'}
+              {lang === 'ta' ? 'மொத்த வீடுகள்' : 'Total Houses'}
             </span>
             <span className="text-sm sm:text-base font-black text-slate-900">{stats.total}</span>
           </div>

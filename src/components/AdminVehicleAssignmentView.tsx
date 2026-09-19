@@ -550,8 +550,8 @@ export const AdminVehicleAssignmentView: React.FC<AdminVehicleAssignmentViewProp
                 {/* Card Footer Actions */}
                 <div className="p-3 sm:px-5 sm:py-3.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-2">
                   <div className="text-xs text-gray-600 font-semibold flex items-center gap-1">
-                    <span>{isTa ? 'வெள்ளலூர் டிரிப்ஸ்:' : 'Vellalore Trips:'}</span>
-                    <span className="font-bold text-gray-900">{v.tripsToDumpYard} {isTa ? 'முறை' : 'trips/day'}</span>
+                    <span>{isTa ? 'பயணித்த தூரம்:' : 'Distance:'}</span>
+                    <span className="font-bold text-gray-900">{v.distanceCoveredKm} km</span>
                   </div>
 
                   <div className="flex items-center gap-2">

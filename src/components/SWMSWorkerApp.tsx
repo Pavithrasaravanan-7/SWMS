@@ -1,18 +1,38 @@
 import React, { useState } from 'react';
-import { SWMSHouseholdRecord, SWMSDashboardStats, CoverageStatus } from '../types';
-import { SWMSHistoryHomeView } from './SWMSHistoryHomeView';
+import {
+  SWMSHouseholdRecord,
+  SWMSDashboardStats,
+  CoverageStatus,
+  SWMSAssignment,
+  CheckpointResolveResponse,
+} from '../types';
 import { SWMSHouseholdFormView } from './SWMSHouseholdFormView';
 import { SWMSScannerView } from './SWMSScannerView';
 import { DustbinAnimationModal } from './DustbinAnimationModal';
-import { 
+import { SWMSStreetScanQRCard } from './SWMSStreetScanQRCard';
+import { SWMSCollectionDashboardView, getVehicleRouteDetails } from './SWMSCollectionDashboardView';
+import { SWMSCollectionFormView } from './SWMSCollectionFormView';
+import { resolveCheckpoint } from '../api/client';
+import {
   QrCode,
-  Globe
+  MapPin,
+  Truck,
+  User,
+  Phone,
+  Shield,
+  X,
+  ArrowLeft,
+  Loader2,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 
 interface SWMSWorkerAppProps {
   stats: SWMSDashboardStats;
   records: SWMSHouseholdRecord[];
   lang: 'en' | 'ta';
+  token?: string | null;
+  assignment?: SWMSAssignment | null;
   assignedVehicleId?: string;
   onSetAssignedVehicle?: (vehicleId: string) => void;
   onSetLanguage?: (lang: 'en' | 'ta') => void;
@@ -21,13 +41,18 @@ interface SWMSWorkerAppProps {
   onRefreshData: () => void;
   onRecordCreated?: (newRecord: SWMSHouseholdRecord) => void;
   userName?: string;
+  workerInfo?: any;
   onLogout?: () => void;
 }
+
+type WorkerTab = 'history' | 'scan' | 'form' | 'collectform' | 'routedetails' | 'qrcard';
 
 export const SWMSWorkerApp: React.FC<SWMSWorkerAppProps> = ({
   stats,
   records,
   lang,
+  token,
+  assignment,
   assignedVehicleId = 'v-push-cart',
   onSetAssignedVehicle,
   onSetLanguage,
@@ -36,13 +61,22 @@ export const SWMSWorkerApp: React.FC<SWMSWorkerAppProps> = ({
   onRefreshData,
   onRecordCreated,
   userName = 'Karthik Muthusamy',
-  onLogout
+  workerInfo,
+  onLogout,
 }) => {
-  // Opens directly on 'history' (Area Coverage History Dashboard)
-  const [activeTab, setActiveTab] = useState<'history' | 'scan' | 'form'>('history');
+  const [activeTab, setActiveTab] = useState<WorkerTab>('history');
   const [scannedHouseId, setScannedHouseId] = useState('HID100101');
+  const [scannedRouteData, setScannedRouteData] = useState<Record<string, string> | null>(null);
+  const [resolution, setResolution] = useState<CheckpointResolveResponse | null>(null);
 
-  // Animation Modal state
+  // Checkpoint resolution status (used as overlay over the scanner)
+  const [scanBusy, setScanBusy] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+
+  // Bump to force the dashboard to refetch after saves
+  const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
+
+  // Animation Modal state (legacy household form flow)
   const [isAnimationOpen, setIsAnimationOpen] = useState(false);
   const [lastSubmittedRecord, setLastSubmittedRecord] = useState<SWMSHouseholdRecord | null>(null);
   const [submittedStatus, setSubmittedStatus] = useState<CoverageStatus>('Covered');
@@ -53,28 +87,93 @@ export const SWMSWorkerApp: React.FC<SWMSWorkerAppProps> = ({
     }
   };
 
-  // Handle Scan completion -> navigates to household form
-  const handleScanComplete = (houseId: string) => {
-    setScannedHouseId(houseId);
+  // Handle Scan completion: validate vehicle match & route directly to Officer Scan Page
+  const handleScanComplete = async (scannedText: string) => {
+    setScanError(null);
+
+    const assignedKey = assignment?.vehicleNumber || assignedVehicleId || userName || 'YOGARAJ';
+    const assignedRoute = getVehicleRouteDetails(assignedKey);
+
+    let scannedVehNo = '';
+    let scannedStreetName = '';
+
+    try {
+      const parsed = JSON.parse(scannedText);
+      if (parsed && (parsed.type === 'SWMS_STREET_SCAN' || parsed.vehicleNo || parsed.streetName)) {
+        scannedVehNo = parsed.vehicleNo || '';
+        scannedStreetName = parsed.streetName || '';
+
+        const cleanAssignedVeh = (assignedRoute.vehicleNo || '').replace(/[\s\-_]/g, '').toUpperCase();
+        const cleanScannedVeh = (scannedVehNo || '').replace(/[\s\-_]/g, '').toUpperCase();
+
+        const cleanAssignedStreet = (assignedRoute.streetName || '').replace(/[\s\-_]/g, '').toUpperCase();
+        const cleanScannedStreet = (scannedStreetName || '').replace(/[\s\-_]/g, '').toUpperCase();
+
+        const isMatch = (cleanScannedVeh && cleanAssignedVeh.includes(cleanScannedVeh)) ||
+                        (cleanScannedVeh && cleanScannedVeh.includes(cleanAssignedVeh)) ||
+                        (cleanScannedStreet && cleanAssignedStreet.includes(cleanScannedStreet)) ||
+                        (cleanScannedStreet && cleanScannedStreet.includes(cleanAssignedStreet));
+
+        if (!isMatch) {
+          // MISMATCH DETECTED!
+          const errorMsg = lang === 'ta'
+            ? `🚫 வாகன முரண்பாடு எச்சரிக்கை (QR Mismatch Alert)!\n\n• நீங்கள் ஒதுக்கப்பட்டுள்ள வாகனம்: ${assignedRoute.streetName} (${assignedRoute.vehicleNo})\n• நீங்கள் ஸ்கேன் செய்த QR: ${(scannedStreetName || 'வெவ்வேறு பகுதி').toUpperCase()} (${scannedVehNo || 'வெவ்வேறு வாகனம்'})\n\nதயவுசெய்து உங்கள் வாகனத்திற்குரிய (${assignedRoute.vehicleNo}) QR குறியீட்டை மட்டும் ஸ்கேன் செய்யவும்!`
+            : `🚫 Vehicle QR Mismatch Alert!\n\n• Your Assigned Vehicle: ${assignedRoute.streetName} (${assignedRoute.vehicleNo})\n• Scanned QR: ${(scannedStreetName || 'Different Route').toUpperCase()} (${scannedVehNo || 'Different Vehicle'})\n\nPlease scan your assigned vehicle's (${assignedRoute.vehicleNo}) QR code only!`;
+
+          setScanError(errorMsg);
+          return;
+        }
+
+        setScannedRouteData(parsed);
+        setActiveTab('routedetails');
+        return;
+      }
+    } catch {
+      // Not JSON format
+    }
+
+    // Check if raw text QR code contains a different vehicle registration or street name
+    const cleanRawText = scannedText.replace(/[\s\-_]/g, '').toUpperCase();
+    const cleanAssignedVeh = (assignedRoute.vehicleNo || '').replace(/[\s\-_]/g, '').toUpperCase();
+
+    const otherRouteInfo = getVehicleRouteDetails(scannedText);
+    const cleanOtherVeh = (otherRouteInfo.vehicleNo || '').replace(/[\s\-_]/g, '').toUpperCase();
+
+    if (
+      otherRouteInfo &&
+      cleanOtherVeh !== cleanAssignedVeh &&
+      (cleanRawText.includes('TN66') || cleanRawText.includes('PUSHCART') || cleanRawText.includes('AE6121') || cleanRawText.includes('AD6465'))
+    ) {
+      const errorMsg = lang === 'ta'
+        ? `🚫 வாகன முரண்பாடு எச்சரிக்கை (QR Mismatch Alert)!\n\n• நீங்கள் ஒதுக்கப்பட்டுள்ள வாகனம்: ${assignedRoute.streetName} (${assignedRoute.vehicleNo})\n• நீங்கள் ஸ்கேன் செய்த QR: ${otherRouteInfo.streetName} (${otherRouteInfo.vehicleNo})\n\nதயவுசெய்து உங்கள் வாகனத்திற்குரிய (${assignedRoute.vehicleNo}) QR குறியீட்டை மட்டும் ஸ்கேன் செய்யவும்!`
+        : `🚫 Vehicle QR Mismatch Alert!\n\n• Your Assigned Vehicle: ${assignedRoute.streetName} (${assignedRoute.vehicleNo})\n• Scanned QR: ${otherRouteInfo.streetName} (${otherRouteInfo.vehicleNo})\n\nPlease scan your assigned vehicle's (${assignedRoute.vehicleNo}) QR code only!`;
+
+      setScanError(errorMsg);
+      return;
+    }
+
+    const clean = scannedText.trim();
+    setScannedHouseId(clean || 'HID100101');
     setActiveTab('form');
   };
 
-  // Handle Bottom SCAN Button click
-  const handleBottomScanClick = () => {
-    if (activeTab === 'scan') {
-      const targetHouse = 'HID' + Math.floor(100101 + Math.random() * 10);
-      setScannedHouseId(targetHouse);
-      setActiveTab('form');
-    } else {
-      setActiveTab('scan');
-    }
+  // Bottom SCAN button on the dashboard
+  const handleOpenScanner = () => {
+    setScanError(null);
+    setActiveTab('scan');
   };
 
-  // Handle Form Submission Success -> Opens Modal & Navigates back to front Area History View
+  // After a collection record is saved → refresh dashboard when the user returns
+  const handleCollectionSaved = () => {
+    setDashboardRefreshKey(k => k + 1);
+  };
+
+  // Handle legacy Form Submission Success → opens Modal & navigates back to front Area History View
   const handleFormSubmitSuccess = (newRecord: SWMSHouseholdRecord, status: CoverageStatus) => {
     setLastSubmittedRecord(newRecord);
     setSubmittedStatus(status);
     setIsAnimationOpen(true);
+
     if (onRecordCreated) {
       onRecordCreated(newRecord);
     }
@@ -83,45 +182,99 @@ export const SWMSWorkerApp: React.FC<SWMSWorkerAppProps> = ({
 
   return (
     <div className="w-full flex-1 flex flex-col min-h-screen relative bg-white font-sans overflow-hidden">
-      
+
       {/* App Main Content Stage */}
       <div className="flex-1 overflow-y-auto relative bg-white flex flex-col">
-        
-        {/* VIEW 1: AREA COVERAGE HISTORY (FIRST LANDING DASHBOARD) */}
+
+        {/* VIEW 1: FIELD COLLECTION DASHBOARD (LANDING) */}
         {activeTab === 'history' && (
-          <SWMSHistoryHomeView
-            stats={stats}
-            records={records}
+          <SWMSCollectionDashboardView
             lang={lang}
-            assignedVehicleId={assignedVehicleId}
-            onSetAssignedVehicle={onSetAssignedVehicle}
-            onSetLanguage={onSetLanguage}
-            onToggleLang={toggleLanguage}
+            token={token ?? null}
+            assignment={assignment}
+            records={records}
             userName={userName}
+            workerInfo={workerInfo}
             onLogout={onLogout}
+            onOpenScanner={handleOpenScanner}
+            onOpenStreetCoverageView={() => setActiveTab('form')}
+            onToggleLang={toggleLanguage}
             onOpenVehicleAssignment={onOpenVehicleAssignment}
-            onSelectDoor={(houseId) => {
-              setScannedHouseId(houseId);
-              setActiveTab('form');
-            }}
-            onOpenScanner={() => setActiveTab('scan')}
+            refreshKey={dashboardRefreshKey}
           />
         )}
 
-        {/* VIEW 2: SCANNER PAGE (WITH BACK ARROW TO DASHBOARD) */}
+        {/* VIEW 2: SCANNER PAGE */}
         {activeTab === 'scan' && (
-          <div className="flex-1 w-full h-full flex flex-col overflow-hidden pb-20">
+          <div className="flex-1 w-full h-full flex flex-col overflow-hidden pb-20 relative">
             <SWMSScannerView
               lang={lang}
               onSetLanguage={onSetLanguage}
               onToggleLang={toggleLanguage}
-              onScanComplete={handleScanComplete}
+              onScanComplete={(text: string) => { void handleScanComplete(text); }}
               onBackToDashboard={() => setActiveTab('history')}
+            />
+
+            {/* ── RESOLUTION OVERLAY ── */}
+            {scanBusy && (
+              <div className="absolute inset-0 z-50 bg-black/85 flex flex-col items-center justify-center p-8 text-center gap-4">
+                <Loader2 className="w-12 h-12 text-[#1E7A38] animate-spin" />
+                <div className="text-sm font-black text-white">{lang === 'ta' ? 'சரிபார்க்கிறது...' : 'Resolving checkpoint...'}</div>
+                <div className="text-[12px] text-emerald-300 font-mono">{lang === 'ta' ? 'பாதுகாப்பு & சோனை சரிபார்ப்பு' : 'Security & zone validation'}</div>
+              </div>
+            )}
+
+            {scanError && !scanBusy && (
+              <div className="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-6 text-center gap-4 animate-in fade-in duration-200">
+                <div className="w-16 h-16 rounded-full border-2 border-rose-500 bg-rose-950/80 flex items-center justify-center shadow-lg">
+                  <AlertTriangle className="w-8 h-8 text-rose-400" />
+                </div>
+                <div className="max-w-md w-full bg-rose-950/60 border-2 border-rose-500/60 rounded-2xl p-5 shadow-2xl space-y-3">
+                  <h3 className="text-base font-black text-rose-300 uppercase tracking-wide">
+                    {lang === 'ta' ? '🚫 வாகன முரண்பாடு எச்சரிக்கை' : '🚫 Vehicle QR Mismatch Alert'}
+                  </h3>
+                  <div className="text-xs text-white/90 font-medium whitespace-pre-line text-left leading-relaxed bg-black/60 p-3.5 rounded-xl border border-rose-500/30 font-mono">
+                    {scanError}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2.5 w-full max-w-xs mt-2">
+                  <button
+                    onClick={() => setScanError(null)}
+                    className="w-full flex items-center justify-center gap-2 bg-[#1E7A38] hover:bg-[#166534] text-white font-black text-xs px-4 py-3.5 rounded-xl transition shadow-lg active:scale-95 cursor-pointer border border-emerald-400"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    {lang === 'ta' ? 'மீண்டும் ஸ்கேன் செய்யவும்' : 'Scan Assigned Vehicle Again'}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('history')}
+                    className="w-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-black text-xs px-4 py-3 rounded-xl transition active:scale-95 cursor-pointer"
+                  >
+                    {lang === 'ta' ? 'டாஷ்போர்டு திரைக்கு செல்' : 'Back to Dashboard'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* VIEW 3: POST-SCAN COLLECTION FORM (QR CHECKPOINT FLOW) */}
+        {activeTab === 'collectform' && resolution && (
+          <div className="flex-1 overflow-y-auto pb-28 h-full">
+            <SWMSCollectionFormView
+              lang={lang}
+              token={token ?? null}
+              resolution={resolution}
+              onBack={() => setActiveTab('history')}
+              onSaved={handleCollectionSaved}
+              onNextScan={() => {
+                setActiveTab('scan');
+                setScanError(null);
+              }}
             />
           </div>
         )}
 
-        {/* VIEW 3: HOUSEHOLD / STREET FORM ENTRY */}
+        {/* VIEW 4: LEGACY HOUSEHOLD FORM ENTRY */}
         {activeTab === 'form' && (
           <div className="flex-1 overflow-y-auto pb-28 h-full">
             <SWMSHouseholdFormView
@@ -136,16 +289,105 @@ export const SWMSWorkerApp: React.FC<SWMSWorkerAppProps> = ({
           </div>
         )}
 
+        {/* VIEW 5: ROUTE DETAILS PANEL — shown after scanning a SWMS_STREET_SCAN QR */}
+        {activeTab === 'routedetails' && scannedRouteData && (
+          <div className="flex-1 overflow-y-auto pb-28">
+            <div className="bg-[#1E7A38] text-white px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+              <button onClick={() => setActiveTab('history')} className="w-8 h-8 rounded-full bg-[#166534] hover:bg-[#113B22] flex items-center justify-center cursor-pointer border border-emerald-500/30">
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <div className="text-center">
+                <div className="text-xs font-black tracking-wide">Route Details</div>
+                <div className="text-[12px] text-emerald-200">{scannedRouteData.routeId}</div>
+              </div>
+              <button onClick={() => { setScannedRouteData(null); setActiveTab('history'); }} className="w-8 h-8 rounded-full bg-[#166534] hover:bg-[#113B22] flex items-center justify-center cursor-pointer border border-emerald-500/30">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3 bg-white min-h-full">
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+                <MapPin className="w-5 h-5 text-[#1E7A38] mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="text-[12px] font-black text-amber-700 uppercase tracking-wide">Street / Zone</div>
+                  <div className="text-base font-black text-slate-900">{scannedRouteData.streetName}</div>
+                  <div className="text-xs text-slate-500 font-mono">{scannedRouteData.zone} • Ward {scannedRouteData.wardNo}</div>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3">
+                <Truck className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="text-[12px] font-black text-blue-700 uppercase tracking-wide">Vehicle</div>
+                  <div className="text-sm font-black text-slate-900">{scannedRouteData.vehicleType}</div>
+                  <div className="text-xs text-slate-500 font-mono">{scannedRouteData.vehicleNo}</div>
+                </div>
+              </div>
+
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
+                <User className="w-5 h-5 text-emerald-700 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="text-[12px] font-black text-emerald-700 uppercase tracking-wide">Sanitary Worker</div>
+                  <div className="text-sm font-black text-slate-900">{scannedRouteData.workerName}</div>
+                  <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5"><Phone className="w-3 h-3" /><span className="font-mono">{scannedRouteData.workerContact}</span></div>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-1.5 text-[12px] font-black text-slate-600 uppercase tracking-wide">
+                  <Shield className="w-3.5 h-3.5" /> Supervisory Chain
+                </div>
+                {[
+                  { role: lang === 'ta' ? 'சுகாதார ஆய்வாளர் (SI)' : 'Sanitary Inspector (SI)', name: scannedRouteData.siName, contact: scannedRouteData.siContact },
+                  { role: lang === 'ta' ? 'சுகாதார மேற்பார்வையாளர் (SS)' : 'Sanitary Supervisor (SS)', name: scannedRouteData.ssName, contact: scannedRouteData.ssContact },
+                  { role: lang === 'ta' ? 'தலைமை சுகாதார மேற்பார்வையாளர் (CSS)' : 'Chief Sanitary Supervisor (CSS)', name: scannedRouteData.cssName, contact: scannedRouteData.cssContact },
+                ].map((entry) => (
+                  <div key={entry.role} className="flex items-start justify-between gap-2 border-t border-slate-100 pt-2.5 first:border-0 first:pt-0">
+                    <div>
+                      <div className="text-sm font-black text-slate-800 leading-tight">{entry.name}</div>
+                      <div className="text-[12px] text-slate-500 mt-0.5">{entry.role}</div>
+                    </div>
+                    <a href={`tel:${entry.contact}`} className="flex items-center gap-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-mono font-bold text-[11px] px-2.5 py-1 rounded-full transition cursor-pointer flex-shrink-0">
+                      <Phone className="w-3 h-3" />{entry.contact}
+                    </a>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={handleOpenScanner}
+                className="w-full flex items-center justify-center gap-2 bg-[#1E7A38] hover:bg-[#166534] text-white font-black py-3 rounded-2xl shadow-md active:scale-95 transition cursor-pointer"
+              >
+                <QrCode className="w-4 h-4" />
+                {lang === 'ta' ? 'மீண்டும் ஸ்கேன் செய்' : 'Scan Next QR'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* VIEW 6: QR CARD GENERATOR (Sree Nagar) */}
+        {activeTab === 'qrcard' && (
+          <div className="flex-1 overflow-y-auto pb-28">
+            <div className="bg-[#1E7A38] text-white px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+              <button onClick={() => setActiveTab('history')} className="w-8 h-8 rounded-full bg-[#166534] flex items-center justify-center cursor-pointer border border-emerald-500/30">
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <div className="text-xs font-black tracking-wide">Sree Nagar QR Card</div>
+              <div className="w-8" />
+            </div>
+            <SWMSStreetScanQRCard lang={lang} />
+          </div>
+        )}
+
       </div>
 
-      {/* FLOATING SCAN BUTTON - SHOWN ONLY ON HISTORY HOME DASHBOARD */}
-      {activeTab === 'history' && (
+      {/* FLOATING SCAN BUTTON - SHOWN ONLY ON COLLECTION DASHBOARD (DISABLED: SWMSCollectionDashboardView renders its own; this caused a DOUBLED SCAN button) */}
+      {false && activeTab === 'history' && (
         <div className="fixed bottom-4 left-0 right-0 z-40 flex items-center justify-center pointer-events-auto">
           <div className="bg-white/95 backdrop-blur-md rounded-full p-1.5 border border-emerald-300 shadow-2xl flex items-center justify-center">
             <button
-              onClick={handleBottomScanClick}
-              className="flex items-center space-x-2 px-7 py-2.5 rounded-full transition transform active:scale-95 text-white font-black shadow-xl cursor-pointer bg-[#1E7A38] hover:bg-[#166534] hover:scale-105 ring-4 ring-emerald-500/20"
-              title="Scan QR Code / க்யூஆர் ஸ்கேன் செய்யவும்"
+              onClick={handleOpenScanner}
+              className="flex items-center space-x-2 px-7 py-2.5 rounded-full transition transform active:scale-95 text-white font-black shadow-xl cursor-pointer bg-[#213B22] hover:bg-[#166534] hover:scale-105 ring-4 ring-emerald-500/20"
             >
               <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center border border-white/40">
                 <QrCode className="w-4 h-4 text-white" />
@@ -158,7 +400,7 @@ export const SWMSWorkerApp: React.FC<SWMSWorkerAppProps> = ({
         </div>
       )}
 
-      {/* DUSTBIN DROP & NOT COVERED ANIMATION MODAL */}
+      {/* DUSTBIN DROP & NOT COVERED ANIMATION MODAL (legacy household flow) */}
       <DustbinAnimationModal
         isOpen={isAnimationOpen}
         coverageStatus={submittedStatus}
@@ -174,7 +416,7 @@ export const SWMSWorkerApp: React.FC<SWMSWorkerAppProps> = ({
         assignedVehicleId={assignedVehicleId}
         onClose={() => {
           setIsAnimationOpen(false);
-          setActiveTab('history'); // Navigates back to front history dashboard
+          setActiveTab('history');
         }}
         onNextScan={() => {
           setIsAnimationOpen(false);

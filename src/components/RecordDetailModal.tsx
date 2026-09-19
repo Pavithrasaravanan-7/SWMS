@@ -119,10 +119,86 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
                 <Truck className="w-3.5 h-3.5 text-[#1E7A38]" />
                 <span>Assigned Vehicle</span>
               </div>
-              <div className="font-mono font-bold text-gray-900">{record.vehicleNo || 'TN 37 CZ 1022'}</div>
+              <div className="font-mono font-bold text-gray-900">{(record.vehicleNo && !record.vehicleNo.includes('38 PV 9001')) ? record.vehicleNo : ((record.streetName?.toLowerCase().includes('mageshwari') || record.street?.toLowerCase().includes('mageshwari')) ? 'TN66AD6465' : (record.vehicleNo || 'TN66AD6465'))}</div>
               <div className="text-xs text-gray-600 font-medium">GPS Compactor Unit</div>
             </div>
           </div>
+
+          {/* 5-Scan Checkpoints Telemetry Card for Admin */}
+          {(() => {
+            const isPushCart = (record.vehicleType || '').toLowerCase().includes('push') || record.vehicleNo === 'PUSHCART';
+            const totalScans = isPushCart ? 1 : 5;
+
+            let streetScanList: any[] = record.streetScans || [];
+            if ((!streetScanList || streetScanList.length === 0) && (record.streetName || record.street)) {
+              try {
+                const rawScans = localStorage.getItem('ccmc_street_5scans');
+                if (rawScans) {
+                  const parsed = JSON.parse(rawScans);
+                  const stName = record.streetName || record.street;
+                  if (stName && parsed[stName] && Array.isArray(parsed[stName])) {
+                    streetScanList = parsed[stName];
+                  }
+                }
+              } catch (e) {}
+            }
+
+            let scannedCount = typeof record.completedScansCount === 'number' ? record.completedScansCount : 0;
+            if (streetScanList && streetScanList.length > 0) {
+              scannedCount = streetScanList.filter((s: any) => s.isScanned).length;
+            } else if (record.status === 'Collected') {
+              scannedCount = totalScans;
+            }
+
+            const displayVehicleNo = (record.vehicleNo && !record.vehicleNo.includes('38 PV 9001'))
+              ? record.vehicleNo
+              : ((record.streetName?.toLowerCase().includes('mageshwari') || record.street?.toLowerCase().includes('mageshwari')) ? 'TN66AD6465' : (record.vehicleNo || 'TN66AD6465'));
+
+            return (
+              <div className="p-4 bg-[#F8FAFC] rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                    <Truck className="w-4 h-4 text-emerald-700" />
+                    Vehicle 5-Scan Checkpoints Telemetry ({displayVehicleNo})
+                  </span>
+                  <span className={`text-xs font-black px-2.5 py-0.5 rounded-full ${
+                    scannedCount === totalScans
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      : scannedCount > 0
+                      ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                      : 'bg-rose-100 text-rose-800 border border-rose-300'
+                  }`}>
+                    {scannedCount}/{totalScans} Scanned
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-5 gap-1.5">
+                  {Array.from({ length: 5 }).map((_, idx) => {
+                    const scanNum = idx + 1;
+                    const pointItem = streetScanList.find((s: any) => s.id === scanNum || s.checkpointNo === scanNum) || streetScanList[idx];
+                    const isScanned = pointItem ? !!pointItem.isScanned : (record.status === 'Collected');
+                    const timeStr = pointItem?.scannedAt || pointItem?.scannedTime || (isScanned ? (record.scannedAt?.split(',')[1]?.trim() || record.time || 'Scanned ✓') : undefined);
+
+                    return (
+                      <div
+                        key={scanNum}
+                        className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center ${
+                          isScanned
+                            ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                            : 'bg-rose-50 border-rose-200 text-rose-900'
+                        }`}
+                      >
+                        <span className="text-[11px] font-extrabold">Scan {scanNum}</span>
+                        <span className={`text-[10px] font-extrabold mt-0.5 ${isScanned ? 'text-emerald-700' : 'text-rose-600'}`}>
+                          {isScanned ? (timeStr || 'Scanned ✓') : 'Pending X'}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Bin Level Progress */}
           <div className="space-y-1.5 bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-100">

@@ -483,7 +483,7 @@ export const DustbinAnimationModal: React.FC<DustbinAnimationModalProps> = ({
                       : (lang === 'ta' ? '⚠ மூடப்படாத பகுதி (≤3 Not Covered)' : '⚠ Not Covered Recorded (≤3)'))}
             </span>
 
-            {/* Clean Area / Street Name & Door Number Details */}
+            {/* Clean Area / Street Name Details */}
             <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3 text-center space-y-2 mt-1 shadow-2xs">
               {/* Area / Street Name */}
               <div className="flex items-center justify-center space-x-1.5 text-slate-900">
@@ -491,21 +491,6 @@ export const DustbinAnimationModal: React.FC<DustbinAnimationModalProps> = ({
                 <span className="text-sm font-black tracking-tight">
                   {streetName || 'Kamaraj Salai'} {ward ? `• ${ward}` : ''}
                 </span>
-              </div>
-
-              {/* Door No & House ID Badges */}
-              <div className="flex items-center justify-center gap-2 pt-0.5 flex-wrap">
-                {doorNo && (
-                  <div className="bg-white border border-slate-200 px-3 py-1 rounded-xl text-xs shadow-2xs flex items-center space-x-1">
-                    <span className="text-slate-500 font-semibold">{lang === 'ta' ? 'கதவு எண்:' : 'Door No:'}</span>
-                    <span className="text-slate-900 font-black">{doorNo}</span>
-                  </div>
-                )}
-                
-                <div className="bg-white border border-slate-200 px-3 py-1 rounded-xl text-xs shadow-2xs flex items-center space-x-1">
-                  <span className="text-slate-500 font-semibold">{lang === 'ta' ? 'வீட்டு எண்:' : 'House ID:'}</span>
-                  <span className="text-[#1E7A38] font-black">{displayHouseId}</span>
-                </div>
               </div>
             </div>
           </div>

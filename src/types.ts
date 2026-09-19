@@ -51,6 +51,8 @@ export interface SWMSHouseholdRecord {
   assignedVehicleId?: string; // e.g. "v-push-cart", "v-tata-ace", "v-bov", "v-obl-pvt"
   vehicleNo?: string; // e.g. "TN 38 BG 4410"
   vehicleType?: string; // e.g. "TATA ACE", "PUSH CART", "BOV"
+  completedScansCount?: number;
+  streetScans?: StreetScanPoint[];
 }
 
 export interface AreaWardStats {
@@ -164,6 +166,9 @@ export interface CollectionRecord {
   proofPhoto?: string;
   proofTimestamp?: string;
   reasonIfNotCollected?: string;
+  completedScansCount?: number;
+  streetScans?: StreetScanPoint[];
+  coverageStatus?: CoverageStatus;
 }
 
 
@@ -186,15 +191,13 @@ export interface DailySummaryStats {
 
 export type NavigationTab = 
   | 'overview' 
-  | 'vehicle-assignment'
-  | 'live-tracking' 
-  | 'alerts' 
   | 'reports' 
   | 'collected' 
   | 'not-collected'
   | 'frequently-not-covered-area'
   | 'ai-prediction'
-  | 'sbm-admin';
+  | 'sbm-admin'
+  | 'qr-management';
 
 // CCMC Commissioner Review Console Types
 export type AlertCategory = 
@@ -448,6 +451,216 @@ export interface FrequentlyNotCoveredAreaSummary {
   coordinates: { lat: number; lng: number };
   lastAttemptTime: string;
   status: 'Critical Attention' | 'Warning' | 'Dispatched' | 'Cleared';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// CCMC Field Collection Module — Auto-Assigned Vehicle/Worker + QR Checkpoint Collection
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+export type FieldRole = 'admin' | 'driver' | 'worker';
+
+/** Vehicle/worker assignment auto-loaded from the backend after login. Never typed manually. */
+export interface SWMSAssignment {
+  userId: number;
+  username: string;
+  role: FieldRole;
+  fullName?: string | null;
+  vehicleId?: number | null;
+  vehicleType?: string | null;
+  vehicleName?: string | null;
+  /** Hidden for Pushcart users — only worker details shown. */
+  vehicleNumber?: string | null;
+  workerId?: number | null;
+  workerName?: string | null;
+  workerCode?: string | null;
+  workerPhone?: string | null;
+  isPushcart: boolean;
+  zone?: string | null;
+  ward?: string | null;
+}
+
+export type CheckpointStatus = 'Collected' | 'Not Collected' | 'Pending';
+
+/** QR checkpoint metadata resolved by the backend after a scan. QR payload is ONLY the id (e.g. E-SCAN1). */
+export interface QRCheckpoint {
+  qrId: string;
+  position: number;
+  streetId: number;
+  streetName: string;
+  zone: string;
+  ward: string;
+  area?: string | null;
+  status: CheckpointStatus;
+  recordedAt?: string | null;
+  remarks?: string | null;
+  // Rich checkpoint details (fetched AFTER scan, not encoded in the QR)
+  zoneCode?: string | null;
+  checkpointNumber?: number | null;
+  households?: number;
+  workerName?: string | null;
+  workerCode?: string | null;
+  workerContact?: string | null;
+  siName?: string | null;
+  siContact?: string | null;
+  ssName?: string | null;
+  ssContact?: string | null;
+  cssName?: string | null;
+  cssContact?: string | null;
+}
+
+export interface StreetDashboard {
+  streetId: number;
+  streetName: string;
+  zone: string;
+  ward: string;
+  area?: string | null;
+  checkpoints: QRCheckpoint[];
+}
+
+export interface SWMSCollectionStats {
+  totalStreets: number;
+  totalCheckpoints: number;
+  collectedCheckpoints: number;
+  notCollectedCheckpoints: number;
+  pendingCheckpoints: number;
+  coveragePercentage: number;
+  status: 'Covered' | 'Partially Covered' | 'Not Covered';
+}
+
+export interface SWMSDashboardData {
+  success: boolean;
+  stats: SWMSCollectionStats;
+  streets: StreetDashboard[];
+  message?: string | null;
+}
+
+export interface CheckpointResolveResponse {
+  success: boolean;
+  checkpoint: QRCheckpoint;
+  assignment: SWMSAssignment;
+  alreadySubmitted: boolean;
+  existingRecord?: {
+    status: string;
+    remarks?: string | null;
+    scannedAt?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+  } | null;
+  message?: string | null;
+}
+
+export interface CollectionSubmitResponse {
+  success: boolean;
+  message: string;
+  record?: any;
+  stats?: SWMSCollectionStats;
+  duplicate: boolean;
+}
+
+export const NOT_COLLECTED_REASONS = [
+  'Vehicle not arrived',
+  'Vehicle breakdown',
+  'Worker unavailable',
+  'Road blocked',
+  'Waste not ready',
+  'Heavy rain',
+  'Other',
+] as const;
+
+export type NotCollectedReasonOption = typeof NOT_COLLECTED_REASONS[number];
+
+// ── QR Checkpoint Management (Admin) Types ───────────────────────────────────────────────
+
+export interface QRStaffInfo {
+  id: number;
+  staffCode: string;
+  staffName: string;
+  staffPhone: string | null;
+  role: string;
+}
+
+export interface QROptionStreet {
+  id: number;
+  streetName: string;
+  zone: string;
+  ward: string;
+  area: string | null;
+}
+
+export interface QROptionWorker {
+  id: number;
+  workerCode: string;
+  workerName: string;
+  workerPhone: string | null;
+}
+
+export interface QROptionsResult {
+  success: boolean;
+  zones: { zone: string; zoneCode: string }[];
+  streets: QROptionStreet[];
+  workers: QROptionWorker[];
+  staff: { SI: QRStaffInfo[]; SS: QRStaffInfo[]; CSS: QRStaffInfo[] };
+}
+
+export interface QRCheckpointAdmin {
+  id: number;
+  qrId: string;
+  zone: string;
+  zoneCode: string;
+  ward: string;
+  streetName: string;
+  area: string | null;
+  checkpointNumber: number;
+  households: number;
+  workerName: string | null;
+  workerCode: string | null;
+  workerContact: string | null;
+  siName: string | null;
+  siContact: string | null;
+  ssName: string | null;
+  ssContact: string | null;
+  cssName: string | null;
+  cssContact: string | null;
+  status: string;
+  position: number;
+  createdAt: string | null;
+  imageUrl: string;
+}
+
+export interface QRZoneSummary {
+  zone: string;
+  zoneCode: string;
+  streets: number;
+  checkpoints: number;
+  generatedQrs: string[];
+}
+
+export interface QRAdminListResult {
+  success: boolean;
+  zones: QRZoneSummary[];
+  checkpoints: QRCheckpointAdmin[];
+}
+
+export interface QRCreateResult {
+  success: boolean;
+  message: string;
+  checkpoints: QRCheckpointAdmin[];
+  qrLabels: { qrId: string; filename: string }[];
+  duplicateQrs?: string[];
+}
+
+export interface QRGenerateSinglePayload {
+  zone: string;
+  ward: string;
+  streetId: number;
+  households: number;
+  workerId?: number | null;
+  siName?: string | null;
+  siContact?: string | null;
+  ssName?: string | null;
+  ssContact?: string | null;
+  cssName?: string | null;
+  cssContact?: string | null;
 }
 
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { SWMSHouseholdRecord, SWMSDashboardStats } from './types';
+import { SWMSHouseholdRecord, SWMSDashboardStats, SWMSAssignment } from './types';
 import { SWMSWorkerApp } from './components/SWMSWorkerApp';
 import { AIAssistantModal } from './components/AIAssistantModal';
 import { LanguageSelectionModal } from './components/LanguageSelectionModal';
@@ -20,14 +20,21 @@ export default function App() {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          // Exclude any legacy dummy records
-          const realOnly = parsed.filter(
-            (r: any) =>
-              r &&
-              r.id &&
-              !r.id.startsWith('REC-100') &&
-              !r.houseId?.startsWith('HID10010')
-          );
+          // Exclude any legacy dummy records & sanitize vehicle numbers
+          const realOnly = parsed
+            .filter(
+              (r: any) =>
+                r &&
+                r.id &&
+                !r.id.startsWith('REC-100') &&
+                !r.houseId?.startsWith('HID10010')
+            )
+            .map((r: any) => {
+              if (r.streetName?.toLowerCase().includes('mageshwari') || r.vehicleNo?.includes('38 PV 9001')) {
+                return { ...r, vehicleNo: 'TN66AD6465', vehicleType: 'TATA ACE' };
+              }
+              return r;
+            });
           return realOnly;
         }
       } catch {
@@ -86,16 +93,51 @@ export default function App() {
 
   // User Session State - Default to null so initial link load always opens the Login Screen first
   const [user, setUser] = useState<{ role: 'worker' | 'admin'; name: string } | null>(null);
+  // Officer profile info (area, cssContact, vehicles) from login
+  const [workerInfo, setWorkerInfo] = useState<any>(null);
+  // Backend session token + auto-loaded vehicle/worker assignment
+  const [token, setToken] = useState<string | null>(() => {
+    return localStorage.getItem('ccmc_session_token');
+  });
+  const [assignment, setAssignment] = useState<SWMSAssignment | null>(() => {
+    const saved = localStorage.getItem('ccmc_assignment');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3500);
   };
 
-  const handleLoginSuccess = (loggedInUser: { role: 'worker' | 'admin'; name: string }) => {
-    setUser(loggedInUser);
-    localStorage.setItem('ccmc_session', JSON.stringify(loggedInUser));
+  const handleLoginSuccess = (loggedInUser: { role: 'worker' | 'admin'; name: string; token?: string; assignment?: SWMSAssignment; workerInfo?: any }) => {
+    setUser({ role: loggedInUser.role, name: loggedInUser.name });
+    localStorage.setItem('ccmc_session', JSON.stringify({ role: loggedInUser.role, name: loggedInUser.name }));
+
+    if (loggedInUser.token) {
+      setToken(loggedInUser.token);
+      localStorage.setItem('ccmc_session_token', loggedInUser.token);
+    }
+    if (loggedInUser.assignment) {
+      setAssignment(loggedInUser.assignment);
+      localStorage.setItem('ccmc_assignment', JSON.stringify(loggedInUser.assignment));
+    }
+    if (loggedInUser.workerInfo) {
+      setWorkerInfo(loggedInUser.workerInfo);
+      localStorage.setItem('ccmc_worker_info', JSON.stringify(loggedInUser.workerInfo));
+    }
+
     if (loggedInUser.role === 'worker') {
+      // Worker login: reset all cached street scan states so all 5 vehicle scan points start 100% fresh in RED (Pending X)
+      localStorage.removeItem('ccmc_street_5scans');
+      localStorage.removeItem('ccmc_scanned_addresses');
+      sessionStorage.clear();
       setIsLangModalOpen(true);
     } else {
       setIsLangModalOpen(false);
@@ -105,7 +147,13 @@ export default function App() {
 
   const handleLogout = () => {
     setUser(null);
+    setWorkerInfo(null);
+    setToken(null);
+    setAssignment(null);
     localStorage.removeItem('ccmc_session');
+    localStorage.removeItem('ccmc_worker_info');
+    localStorage.removeItem('ccmc_session_token');
+    localStorage.removeItem('ccmc_assignment');
     setIsLangModalOpen(false);
     setShowVehicleAssignment(false);
     showToast('Session logged out.');
@@ -127,27 +175,68 @@ export default function App() {
   }, [stats]);
 
   const fetchSwmsData = useCallback(async () => {
-    setIsLoading(false);
-  }, []);
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const live = await fetchSWMSData(token);
+      const liveRecords = Array.isArray(live?.records) ? live.records : [];
+      if (liveRecords.length === 0) {
+        setIsLoading(false);
+        return;
+      }
+      setRecords(prev => {
+        const merged = [...liveRecords, ...prev.filter(p => !liveRecords.some(l => l.id === p.id))];
+        localStorage.setItem('swms_household_records', JSON.stringify(merged));
+        return merged;
+      });
+      if (live?.stats) {
+        setStats(live.stats);
+        localStorage.setItem('swms_household_stats', JSON.stringify(live.stats));
+      }
+      showToast('Live SWMS data synced from Neon DB.');
+    } catch {
+      setIsLoading(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
 
   useEffect(() => {
     fetchSwmsData();
   }, [fetchSwmsData]);
 
   const handleRecordCreated = (newRecord: SWMSHouseholdRecord) => {
-    setRecords(prev => [newRecord, ...prev.filter(r => r.id !== newRecord.id)]);
+    setRecords(prev => {
+      const filtered = prev.filter(
+        r => r.id !== newRecord.id && r.streetName.toLowerCase().trim() !== newRecord.streetName.toLowerCase().trim()
+      );
+      const updated = [newRecord, ...filtered];
+      localStorage.setItem('swms_household_records', JSON.stringify(updated));
+      return updated;
+    });
+
     setStats(prev => {
+      setRecords(currentRecords => {
+        const covered = currentRecords.filter(r => r.coverageStatus === 'Covered').length;
+        const notCovered = currentRecords.filter(r => r.coverageStatus === 'Not Covered').length;
+        const total = currentRecords.length;
+        return currentRecords;
+      });
+
       const isCovered = newRecord.coverageStatus === 'Covered';
-      const total = prev.totalHouseholds + 1;
-      const covered = isCovered ? prev.coveredHouseholds + 1 : prev.coveredHouseholds;
-      const notCovered = !isCovered ? prev.notCoveredHouseholds + 1 : prev.notCoveredHouseholds;
+      const total = prev.totalHouseholds > 0 ? prev.totalHouseholds : 1;
+      const covered = isCovered ? Math.max(1, prev.coveredHouseholds + 1) : prev.coveredHouseholds;
+      const notCovered = !isCovered ? prev.notCoveredHouseholds : Math.max(0, prev.notCoveredHouseholds - 1);
       return {
         ...prev,
         totalHouseholds: total,
         coveredHouseholds: covered,
         notCoveredHouseholds: notCovered,
         todaysEntries: prev.todaysEntries + 1,
-        coveragePercentage: total > 0 ? Math.round((covered / total) * 100) : 0
+        coveragePercentage: total > 0 ? Math.round((covered / total) * 100) : 100
       };
     });
   };
@@ -155,8 +244,7 @@ export default function App() {
   const handleSelectLanguage = (selectedLang: 'en' | 'ta') => {
     setLang(selectedLang);
     setIsLangModalOpen(false);
-    // Directly transition to the requested Vehicle & Area Assignment page
-    setShowVehicleAssignment(true);
+    setShowVehicleAssignment(false);
     showToast(selectedLang === 'ta' ? 'தமிழ் மொழி தேர்ந்தெடுக்கப்பட்டது' : 'English Language Selected');
   };
 
@@ -208,6 +296,7 @@ export default function App() {
           onSwitchRole={handleSwitchToWorker}
           lang={lang}
           onSetLang={handleSetLang}
+          token={token}
         />
       </ErrorBoundary>
     );
@@ -223,41 +312,7 @@ export default function App() {
           onSelectLanguage={handleSelectLanguage}
           onClose={() => {
             setIsLangModalOpen(false);
-            setShowVehicleAssignment(true);
-          }}
-        />
-      </ErrorBoundary>
-    );
-  }
-
-  // Field worker sequence: Language -> Vehicle & Area Assignment screen
-  if (showVehicleAssignment) {
-    return (
-      <ErrorBoundary>
-        <VehicleAreaAssignmentView
-          lang={lang}
-          userName={user.name || 'Karthik Muthusamy'}
-          onSetLanguage={setLang}
-          onToggleLang={() => {
-            const nextLang = lang === 'en' ? 'ta' : 'en';
-            setLang(nextLang);
-            showToast(nextLang === 'ta' ? 'தமிழ் மொழி மாற்றப்பட்டது' : 'Language switched to English');
-          }}
-          onLogout={handleLogout}
-          onComplete={(assignments, chosenVehicleId) => {
-            const selected = chosenVehicleId || assignments[0]?.vehicleId || 'v-push-cart';
-            setAssignedVehicleId(selected);
-            localStorage.setItem('ccmc_assigned_vehicle', selected);
             setShowVehicleAssignment(false);
-            showToast(
-              lang === 'ta'
-                ? `வாகனம் மற்றும் பகுதிகள் வெற்றிகரமாக ஒதுக்கப்பட்டன`
-                : `Vehicle & areas assigned successfully`
-            );
-          }}
-          onSkip={() => {
-            setShowVehicleAssignment(false);
-            showToast(lang === 'ta' ? 'ஒதுக்கீடு தவிர்க்கப்பட்டது' : 'Assignment skipped');
           }}
         />
       </ErrorBoundary>
@@ -273,16 +328,18 @@ export default function App() {
             stats={stats}
             records={records}
             lang={lang}
+            token={token}
+            assignment={assignment}
             assignedVehicleId={assignedVehicleId}
             onSetAssignedVehicle={(vId) => {
               setAssignedVehicleId(vId);
               localStorage.setItem('ccmc_assigned_vehicle', vId);
             }}
             userName={user.name || 'Karthik Muthusamy'}
+            workerInfo={workerInfo}
             onLogout={handleLogout}
             onSetLanguage={setLang}
             onOpenLanguageModal={() => setIsLangModalOpen(true)}
-            onOpenVehicleAssignment={() => setShowVehicleAssignment(true)}
             onRefreshData={fetchSwmsData}
             onRecordCreated={handleRecordCreated}
           />

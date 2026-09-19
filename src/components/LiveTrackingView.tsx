@@ -1830,15 +1830,6 @@ export const LiveTrackingView: React.FC<LiveTrackingViewProps> = ({ lang = 'en' 
                   </div>
                   <span className="text-[10px] text-sky-700 font-medium">Waste Capacity</span>
                 </div>
-
-                <div className="bg-amber-50 p-3 rounded-2xl border border-amber-200">
-                  <span className="text-[11px] font-bold text-amber-800 block">Battery / Fuel</span>
-                  <div className="text-base font-black text-amber-950 flex items-center gap-1 mt-0.5">
-                    <Zap className="w-4 h-4 text-amber-600" />
-                    <span>{selectedVehicle.batteryLevel || 84}%</span>
-                  </div>
-                  <span className="text-[10px] text-amber-700 font-medium">Optimal Status</span>
-                </div>
               </div>
 
               {/* Traversed Route Section (Green Dotted Line info) */}

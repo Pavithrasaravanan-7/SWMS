@@ -39,7 +39,6 @@ import {
   ccmcLogo, 
   ccmcFallbackLogo
 } from '../constants/branding';
-import { ICCCLiveBadge } from './ICCCLiveBadge';
 import { 
   TotalHouseholdsLogo,
   CollectedTruckLogo,
@@ -81,6 +80,7 @@ interface SWMSHistoryHomeViewProps {
   onOpenScanner: () => void;
   onOpenVehicleAssignment?: () => void;
   userName?: string;
+  workerInfo?: any;
   onLogout?: () => void;
 }
 
@@ -152,10 +152,25 @@ export const SWMSHistoryHomeView: React.FC<SWMSHistoryHomeViewProps> = ({
   onOpenScanner,
   onOpenVehicleAssignment,
   userName = 'Karthik Muthusamy',
+  workerInfo,
   onLogout
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Covered' | 'Partially Covered' | 'Not Covered'>('All');
+
+  // Per-street vehicle number assignment (stored in localStorage)
+  const [streetVehicleMap, setStreetVehicleMap] = useState<Record<string, string>>(() => {
+    try {
+      const raw = localStorage.getItem('ccmc_street_vehicle');
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  });
+
+  const handleSetStreetVehicle = (streetName: string, vehicleNo: string) => {
+    const next = { ...streetVehicleMap, [streetName]: vehicleNo };
+    setStreetVehicleMap(next);
+    localStorage.setItem('ccmc_street_vehicle', JSON.stringify(next));
+  };
   
   const isPushCart = !assignedVehicleId || assignedVehicleId === 'v-push-cart' || assignedVehicleId.includes('push');
 
@@ -262,6 +277,15 @@ export const SWMSHistoryHomeView: React.FC<SWMSHistoryHomeViewProps> = ({
   // State for collapsible cards (expand / collapse details via down arrow)
   const [expandedStreetIds, setExpandedStreetIds] = useState<Record<string, boolean>>({ 'st-group-0': true });
   const [expandedDoorIds, setExpandedDoorIds] = useState<Record<string, boolean>>({ 'REC-1001': true, '1': true });
+
+  // State for selected scan card (streetId-scanId), to show detail panel
+  const [selectedScanKey, setSelectedScanKey] = useState<string | null>(null);
+
+  const handleScanCardClick = (e: React.MouseEvent, streetId: string, scanId: number) => {
+    e.stopPropagation();
+    const key = `${streetId}-${scanId}`;
+    setSelectedScanKey(prev => prev === key ? null : key);
+  };
   const [selectedMapRecord, setSelectedMapRecord] = useState<SWMSHouseholdRecord | null>(null);
 
   const toggleStreetExpand = (e: React.MouseEvent, streetId: string) => {
@@ -287,8 +311,8 @@ export const SWMSHistoryHomeView: React.FC<SWMSHistoryHomeViewProps> = ({
     const matchingRec = records.find(r => r.streetName.toLowerCase() === stName.toLowerCase()) || records[0];
 
     const scans = streetScansState[stName] || [
-      { id: 1, label: 'Scan 1', taLabel: 'ஸ்கேன் 1', locationName: 'North Point QR', taLocationName: 'வடமுனை QR', isScanned: true, scannedAt: '08:00 AM' },
-      { id: 2, label: 'Scan 2', taLabel: 'ஸ்கேன் 2', locationName: 'Cross 1 QR', taLocationName: 'குறுக்கு 1 QR', isScanned: true, scannedAt: '08:07 AM' },
+      { id: 1, label: 'Scan 1', taLabel: 'ஸ்கேன் 1', locationName: 'North Point QR', taLocationName: 'வடமுனை QR', isScanned: false },
+      { id: 2, label: 'Scan 2', taLabel: 'ஸ்கேன் 2', locationName: 'Cross 1 QR', taLocationName: 'குறுக்கு 1 QR', isScanned: false },
       { id: 3, label: 'Scan 3', taLabel: 'ஸ்கேன் 3', locationName: 'Center QR', taLocationName: 'மைய QR', isScanned: false },
       { id: 4, label: 'Scan 4', taLabel: 'ஸ்கேன் 4', locationName: 'Cross 2 QR', taLocationName: 'குறுக்கு 2 QR', isScanned: false },
       { id: 5, label: 'Scan 5', taLabel: 'ஸ்கேன் 5', locationName: 'Exit QR', taLocationName: 'முடிவு QR', isScanned: false },
@@ -444,25 +468,42 @@ export const SWMSHistoryHomeView: React.FC<SWMSHistoryHomeViewProps> = ({
               </div>
             </div>
 
-            {/* Municipal Title - Responsive, Crisp Multi-line Format (Exactly Matching Image 1) */}
+            {/* Municipal Title - Responsive Layout: Desktop single line, Mobile stacked */}
             <div className="min-w-0 flex flex-col justify-center">
-              {/* Line 1: Coimbatore City */}
-              <div className="text-[12px] sm:text-sm lg:text-base font-black tracking-tight text-white leading-tight whitespace-nowrap drop-shadow-xs">
-                Coimbatore City
+              {/* Mobile View: Stacked line-by-line (< sm) */}
+              <div className="sm:hidden flex flex-col justify-center leading-none">
+                <div className="text-[12px] font-black tracking-tight text-white truncate leading-tight drop-shadow-xs">
+                  Coimbatore City
+                </div>
+                <div className="text-[10px] font-black tracking-tight text-amber-300 truncate leading-tight mt-0.5 drop-shadow-xs">
+                  Municipal Corporation
+                </div>
+                <div className="text-[9px] font-bold text-cyan-300 tracking-wide uppercase truncate leading-tight mt-0.5">
+                  USER
+                </div>
               </div>
-              {/* Line 2: Municipal Corporation */}
-              <div className="text-[11px] sm:text-xs lg:text-[14px] font-black tracking-tight text-amber-300 leading-tight whitespace-nowrap drop-shadow-xs">
-                Municipal Corporation
-              </div>
-              {/* Line 3: Sanitary Field Worker */}
-              <div className="text-[9px] sm:text-[10.5px] lg:text-xs font-black tracking-wider text-cyan-300 uppercase leading-tight mt-0.5 whitespace-nowrap drop-shadow-xs">
-                SANITARY FIELD WORKER
+
+              {/* Desktop View: Single horizontal line (>= sm) */}
+              <div className="hidden sm:flex sm:items-center sm:gap-2 leading-tight">
+                <span className="text-sm lg:text-base font-black tracking-tight text-white whitespace-nowrap drop-shadow-xs">
+                  Coimbatore City Municipal Corporation
+                </span>
+                <span className="text-xs lg:text-sm font-black tracking-wider text-amber-300 uppercase whitespace-nowrap drop-shadow-xs">
+                  • USER
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Right: Worker Profile Pill (Desktop/Tablet), Language Toggle & Logout */}
+          {/* Right: Assigned Vehicle Badge (Fixed Header), Worker Profile Pill, Language Toggle & Logout */}
           <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 flex-shrink-0">
+            
+            {/* FIXED ASSIGNED VEHICLE NAME BADGE IN HEADER */}
+            <div className="flex items-center gap-1 sm:gap-1.5 bg-[#FF9E00] text-slate-950 px-2 sm:px-3 py-1 rounded-full font-black text-[10px] sm:text-xs shadow-md border border-amber-300 flex-shrink-0">
+              <span className="text-xs sm:text-sm">{activeVehicle.icon}</span>
+              <span className="uppercase tracking-tight">{lang === 'ta' ? activeVehicle.taName : activeVehicle.name}</span>
+            </div>
+
             {/* Worker Profile Pill - Hidden on small mobile to give full room to title */}
             <div className="hidden sm:flex items-center gap-1 sm:gap-2 bg-[#113B22] border border-emerald-500/30 rounded-full p-1 sm:px-2.5 sm:py-1 shadow-xs">
               <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-white flex items-center justify-center shadow-xs flex-shrink-0 overflow-hidden p-0.5 border border-emerald-200">
@@ -482,11 +523,6 @@ export const SWMSHistoryHomeView: React.FC<SWMSHistoryHomeViewProps> = ({
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                 </div>
               </div>
-            </div>
-
-            {/* ICCC Live Status Pill - Large Desktop Only */}
-            <div className="hidden lg:flex items-center">
-              <ICCCLiveBadge lang={lang} />
             </div>
 
             {/* Language Switcher Segment [ தமிழ் | English ] - Compact */}
@@ -538,29 +574,16 @@ export const SWMSHistoryHomeView: React.FC<SWMSHistoryHomeViewProps> = ({
           </div>
         </div>
 
-        {/* Operational Status Sub-Bar - Hidden on mobile & tablet view (< lg), visible only on large desktop */}
-        <div className="hidden lg:flex px-2.5 sm:px-4 lg:px-6 py-1.5 items-center justify-between text-[9px] sm:text-[10px] lg:text-xs text-emerald-100 font-semibold border-t border-emerald-700/50 bg-[#113B22]">
-          {/* Left: Field Officer Info */}
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="flex items-center gap-1 bg-[#0A2E17] border border-emerald-400/50 rounded-full px-2 py-0.5 shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
-              <span className="text-amber-300 font-black text-[9px] sm:text-[10px] whitespace-nowrap">
-                {lang === 'ta' ? 'கள அதிகாரி' : 'Field Officer'}:
-              </span>
-              <span className="text-white font-bold text-[9px] sm:text-[10px] truncate max-w-[120px] sm:max-w-[180px]">
-                {userName || 'Karthik Muthusamy'}
-              </span>
-            </div>
-            
-            <span className="hidden md:inline text-emerald-300/80 text-[10px]">
-              • {lang === 'ta' ? 'GPS ஒத்திசைக்கப்பட்டது' : 'GPS Synced'}
-            </span>
+        {/* Operational Status Sub-Bar */}
+        <div className="flex px-2.5 sm:px-4 lg:px-6 py-1.5 items-center gap-3 text-[9px] sm:text-[10px] lg:text-xs text-emerald-100 font-semibold border-t border-emerald-700/50 bg-[#113B22]">
+          {/* Vehicle badge */}
+          <div className="hidden sm:flex items-center gap-1 bg-amber-400/20 border border-amber-400/50 text-amber-300 font-bold px-2 py-0.5 rounded-full text-[9px] sm:text-[10px]">
+            <span>{activeVehicle.icon}</span>
+            <span>{lang === 'ta' ? activeVehicle.taName : activeVehicle.name}</span>
           </div>
-
-          {/* Right: ICCC Live Badge */}
-          <div className="flex items-center flex-shrink-0">
-            <ICCCLiveBadge lang={lang} />
-          </div>
+          <span className="hidden md:inline text-emerald-300/80 text-[10px]">
+            • {lang === 'ta' ? 'GPS ஒத்திசைக்கப்பட்டது' : 'GPS Synced'}
+          </span>
         </div>
 
       </div>
@@ -652,6 +675,7 @@ export const SWMSHistoryHomeView: React.FC<SWMSHistoryHomeViewProps> = ({
           </div>
 
         </div>
+
 
         {/* 🎙️ AREA COVERAGE HISTORY & RECORD LIST */}
         <div id="push-cart-records-section" className="bg-white text-slate-900 rounded-3xl p-4 sm:p-5 lg:p-6 shadow-md border-2 border-emerald-300 space-y-4 relative overflow-hidden">
@@ -943,30 +967,29 @@ export const SWMSHistoryHomeView: React.FC<SWMSHistoryHomeViewProps> = ({
                                 <QrCode className="w-4 h-4 text-[#1E7A38]" />
                                 <span>
                                   {lang === 'ta' 
-                                    ? `5 QR ஸ்கேன் நிலவரம் (${completedScans} சரி ✓, ${totalScans - completedScans} தவறு X)` 
-                                    : `5 QR Scan Checkpoints (${completedScans} Done ✓, ${totalScans - completedScans} Pending X)`}
+                                     ? `5 QR ஸ்கேன் நிலவரம் (${completedScans} சரி ✓, ${totalScans - completedScans} மீதம்)` 
+                                     : `5 QR Scan Checkpoints (${completedScans} Done ✓, ${totalScans - completedScans} Pending)`}
                                 </span>
                               </span>
-                              <span className="text-[10px] text-slate-400 font-mono">
-                                {lang === 'ta' ? 'தொடவும்' : 'Tap to toggle'}
+                              <span className="text-[10px] text-blue-500 font-bold flex items-center gap-1">
+                                <QrCode className="w-3 h-3" />
+                                {lang === 'ta' ? 'QR ஸ்கேன் மட்டும்' : 'QR scan only'}
                               </span>
                             </div>
 
-                            {/* 5 Scan Cards Row matching image */}
+                            {/* 5 Scan Cards Row — Display only, updated by real QR scan */}
                             <div className="grid grid-cols-5 gap-2 sm:gap-3">
                               {stGroup.scans.map((scan) => {
                                 const isDone = scan.isScanned;
                                 return (
-                                  <button
+                                  <div
                                     key={scan.id}
-                                    type="button"
-                                    onClick={(e) => handleToggleStreetScan(e, stGroup.streetName, scan.id)}
-                                    className={`flex flex-col items-center justify-center py-2.5 px-1.5 sm:py-3 sm:px-2 rounded-2xl border-2 transition-all duration-150 shadow-2xs cursor-pointer active:scale-95 text-center ${
+                                    className={`flex flex-col items-center justify-center py-2.5 px-1.5 sm:py-3 sm:px-2 rounded-2xl border-2 shadow-2xs text-center select-none w-full ${
                                       isDone
-                                        ? 'bg-[#ECFDF5] border-[#10B981] text-slate-900 hover:bg-[#D1FAE5]'
-                                        : 'bg-[#FFF1F2] border-[#FDA4AF] text-[#991B1B] hover:bg-[#FFE4E6]'
+                                        ? 'bg-[#ECFDF5] border-[#10B981] text-slate-900'
+                                        : 'bg-[#FFF1F2] border-[#FDA4AF] text-[#991B1B] opacity-80'
                                     }`}
-                                    title={isDone ? `${scan.label}: Done (${scan.scannedAt || 'Scanned'})` : `${scan.label}: Pending (Click to mark scanned)`}
+                                    title={isDone ? `${scan.label}: Done (${scan.scannedAt || 'Scanned'})` : `${scan.label}: Pending`}
                                   >
                                     {/* Circle Icon: Green Check or Red X */}
                                     <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-black mb-1.5 shadow-2xs ${
@@ -981,18 +1004,18 @@ export const SWMSHistoryHomeView: React.FC<SWMSHistoryHomeViewProps> = ({
                                       )}
                                     </div>
 
-                                    {/* Scan Number Label e.g. "Scan 1" */}
+                                    {/* Scan Number Label */}
                                     <span className="text-[11px] sm:text-xs font-black truncate w-full leading-tight text-slate-900">
                                       {lang === 'ta' ? scan.taLabel : scan.label}
                                     </span>
 
-                                    {/* Status or Time e.g. "08:02 AM" or "Pending X" */}
+                                    {/* Status or Time */}
                                     <span className={`text-[9px] sm:text-[10.5px] font-bold mt-1 leading-tight ${
-                                      isDone ? 'text-emerald-700 font-mono' : 'text-rose-600'
+                                      isDone ? 'text-emerald-700 font-mono' : 'text-rose-500'
                                     }`}>
-                                      {isDone ? (scan.scannedAt || (lang === 'ta' ? 'சரி ✓' : 'Done ✓')) : (lang === 'ta' ? 'தவறு X' : 'Pending X')}
+                                      {isDone ? (scan.scannedAt || (lang === 'ta' ? 'சரி ✓' : 'Done ✓')) : (lang === 'ta' ? 'மீதம்' : 'Pending')}
                                     </span>
-                                  </button>
+                                  </div>
                                 );
                               })}
                             </div>
@@ -1012,13 +1035,18 @@ export const SWMSHistoryHomeView: React.FC<SWMSHistoryHomeViewProps> = ({
                                 </span>
                               </div>
                               {completedScans < 5 && (
-                                <span className={`text-[10px] font-extrabold flex-shrink-0 ${
+                                <span className={`text-[10px] font-extrabold flex-shrink-0 flex items-center gap-1 ${
                                   completedScans === 4 ? 'text-orange-700' : 'text-rose-700'
                                 }`}>
-                                  {lang === 'ta' ? 'தொட்டு முடிக்கலாம்' : 'Tap X to finish'}
+                                  <QrCode className="w-3 h-3" />
+                                  {lang === 'ta' 
+                                    ? `${5 - completedScans} ஸ்கேன் மீதம்` 
+                                    : `${5 - completedScans} scan(s) left`}
                                 </span>
                               )}
                             </div>
+
+
                           </div>
 
                           {/* 📍 GPS TELEMETRY & LOCATION BOX - Styled matching Door view image */}
@@ -1069,18 +1097,7 @@ export const SWMSHistoryHomeView: React.FC<SWMSHistoryHomeViewProps> = ({
                                 <span>{lang === 'ta' ? 'QR ஸ்கேன்' : 'Scan QR'}</span>
                               </button>
 
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onSelectDoor(stGroup.representativeHouseId);
-                                }}
-                                className="text-white font-black flex items-center space-x-1.5 bg-[#1E7A38] hover:bg-[#166534] px-4 py-2 rounded-2xl border border-emerald-700 cursor-pointer transition shadow-xs text-xs active:scale-95"
-                              >
-                                <Edit3 className="w-4 h-4" />
-                                <span>{lang === 'ta' ? 'விவரங்கள் & திருத்து' : 'Edit Details'}</span>
-                                <ChevronRight className="w-4 h-4" />
-                              </button>
+
                             </div>
                           </div>
                         </div>
@@ -1226,18 +1243,7 @@ export const SWMSHistoryHomeView: React.FC<SWMSHistoryHomeViewProps> = ({
                               {rec.submittedAt || '12 May 2025, 08:04 AM'}
                             </span>
                             
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onSelectDoor(rec.houseId);
-                              }}
-                              className="text-white font-black flex items-center space-x-1.5 bg-[#1E7A38] hover:bg-[#166534] px-4 py-2 rounded-2xl border border-emerald-700 cursor-pointer transition shadow-xs text-xs active:scale-95"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                              <span>{lang === 'ta' ? 'விவரங்கள் & திருத்து' : 'Edit Details'}</span>
-                              <ChevronRight className="w-4 h-4" />
-                            </button>
+
                           </div>
                         </div>
                       )}

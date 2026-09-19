@@ -56,14 +56,7 @@ export const ICCCLiveBadge: React.FC<ICCCLiveBadgeProps> = ({
           <span className="relative inline-flex rounded-full h-2 sm:h-2.5 w-2 sm:w-2.5 bg-emerald-400 shadow-[0_0_8px_#34d399]" />
         </span>
 
-        {/* Text */}
-        <span
-          className={`font-black text-[9.5px] sm:text-[11px] tracking-wide text-emerald-300 drop-shadow-xs ${
-            showTextOnMobile ? 'inline' : 'hidden sm:inline'
-          }`}
-        >
-          ICCC Live
-        </span>
+
       </button>
 
       {/* ICCC Live Telemetry & Explanation Modal */}
