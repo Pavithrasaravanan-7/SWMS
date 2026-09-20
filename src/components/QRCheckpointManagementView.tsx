@@ -13,7 +13,7 @@ import { QrCode,
   AlertTriangle,
   RefreshCw,
 } from 'lucide-react';
-import { appLogo, appLogoFallback } from '../constants/branding';
+import { ccmcLogo, ccmcFallbackLogo } from '../constants/branding';
 import {
   adminQROptions,
   adminQRZones,
@@ -489,11 +489,11 @@ export const QRCheckpointManagementView: React.FC<Props> = ({ token }) => {
               <div className="qr-label-sheet border-2 border-emerald-900 rounded-2xl p-4 bg-white text-center">
                 <div className="mx-auto w-12 h-12 rounded-full border-[2.5px] border-[#F59E0B] bg-white p-0.5 flex items-center justify-center overflow-hidden mb-2">
                   <img
-                    src={appLogo}
+                    src={ccmcLogo}
                     alt="Coimbatore City Municipal Corporation Logo"
                     referrerPolicy="no-referrer"
                     onError={(e) => {
-                      if (e.currentTarget.src !== appLogoFallback) e.currentTarget.src = appLogoFallback;
+                      if (e.currentTarget.src !== ccmcFallbackLogo) e.currentTarget.src = ccmcFallbackLogo;
                     }}
                     className="w-full h-full object-contain"
                   />

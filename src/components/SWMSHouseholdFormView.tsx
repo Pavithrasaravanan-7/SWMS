@@ -32,7 +32,7 @@ import {
   XCircle,
   AlertTriangle
 } from 'lucide-react';
-import { cmPhoto, cmFallbackPhoto, ccmcLogo, ccmcFallbackLogo } from '../constants/branding';
+import { ccmcLogo, ccmcFallbackLogo, smartCityLogo, smartCityFallbackLogo } from '../constants/branding';
 import { SREE_NAGAR_SCAN_ROUTE, MAGESHWARI_NAGAR_SCAN_ROUTE, THIYAGIKUMAR_STREET_SCAN_ROUTE, MGR_VEEDHI_SCAN_ROUTE, KALYANAM_SUNDHARAM_STREET_SCAN_ROUTE, PONNI_NAGAR_SCAN_ROUTE, PONNI_NAGAR_2_SCAN_ROUTE, KANDHASAMY_LAYOUT_SCAN_ROUTE, LAKSHMI_MILLS_SIGNAL_SCAN_ROUTE, MARIYAMMAN_KOVIL_STREET_SCAN_ROUTE, KK_NAGAR_SCAN_ROUTE, RANGANATHAN_KOVIL_STREET_SCAN_ROUTE, BAJANA_KOVIL_VEEDHI_SCAN_ROUTE, BAARI_NAGAR_VEEDHI_CUT_ROAD_SCAN_ROUTE, RAMASAMY_KOONARCUT_ROAD_SCAN_ROUTE, MADHURA_ENCLAVE_SCAN_ROUTE, SENTHOORA_PURAM_SCAN_ROUTE, MEENAKSHI_NAGAR_SCAN_ROUTE, VISAGA_GARDEN_SCAN_ROUTE, MARUTHI_ENVUE_SCAN_ROUTE, PALANI_AANDAVAR_KOVIL_VEEDHI_SCAN_ROUTE, KGK_MAIN_ROAD_SCAN_ROUTE, NAGAMMA_NAYAGAR_VEEDHI_SCAN_ROUTE, ALAGAACHI_THOTTAM_SCAN_ROUTE, MUTHUSAMY_SERKAI_VEEDHI_SCAN_ROUTE } from './SWMSStreetScanQRCard';
 
 interface SWMSHouseholdFormViewProps {
@@ -109,9 +109,10 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
   });
 
   const isPushCart = assignedVehicleId === 'v-push-cart' || 
-                     formData?.vehicleType === 'PUSH CART' || 
-                     formData?.vehicleType === 'BOV' ||
-                     (formData?.vehicleType && formData.vehicleType.toUpperCase().includes('PUSH'));
+                     (formData?.vehicleType && (
+                       formData.vehicleType.toUpperCase().includes('PUSH') ||
+                       formData.vehicleType.toUpperCase().includes('PTC')
+                     ));
 
   // Helper to format exact real-time live scan timestamp (e.g. "11:32 AM" or "01:27 PM")
   const getLiveScanTimeStr = (): string => {
@@ -481,17 +482,6 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
               <ArrowLeft className="w-4 h-4 text-white" />
             </button>
 
-            {/* CM Stalin Photo */}
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400 bg-amber-500/20 shadow-xs flex-shrink-0 flex items-center justify-center">
-              <img
-                src={cmPhoto}
-                alt="Hon'ble Chief Minister"
-                referrerPolicy="no-referrer"
-                onError={(e) => { if (e.currentTarget.src !== cmFallbackPhoto) e.currentTarget.src = cmFallbackPhoto; }}
-                className="w-full h-full object-cover object-top scale-110"
-              />
-            </div>
-
             {/* CCMC Emblem */}
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400 bg-white p-0.5 shadow-xs flex-shrink-0 flex items-center justify-center">
               <img
@@ -500,6 +490,17 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
                 referrerPolicy="no-referrer"
                 onError={(e) => { if (e.currentTarget.src !== ccmcFallbackLogo) e.currentTarget.src = ccmcFallbackLogo; }}
                 className="w-full h-full object-contain"
+              />
+            </div>
+
+            {/* Smart City Logo */}
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400 bg-white p-0.5 shadow-xs flex-shrink-0 flex items-center justify-center">
+              <img
+                src={smartCityLogo}
+                alt="Smart City Mission Logo"
+                referrerPolicy="no-referrer"
+                onError={(e) => { if (e.currentTarget.src !== smartCityFallbackLogo) e.currentTarget.src = smartCityFallbackLogo; }}
+                className="w-full h-full object-contain p-0.5"
               />
             </div>
 

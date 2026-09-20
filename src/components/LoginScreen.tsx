@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, User, Eye, EyeOff, AlertCircle, ArrowRight, Leaf } from 'lucide-react';
-import { cmPhoto, cmFallbackPhoto, ccmcLogo, ccmcFallbackLogo, loginBgImage } from '../constants/branding';
+import { ccmcLogo, ccmcFallbackLogo, smartCityLogo, smartCityFallbackLogo, loginBgImage } from '../constants/branding';
 import { authLogin } from '../api/client';
 import type { SWMSAssignment } from '../types';
 
@@ -216,24 +216,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         {/* Top Dual Badges with Gold Rings */}
         <div className="flex items-center justify-center gap-3.5 mb-5">
           
-          {/* CM / Leader Portrait with Golden Ring */}
-          <div 
-            className="w-16 h-16 sm:w-[68px] sm:h-[68px] rounded-full border-[3px] border-[#F59E0B] p-0.5 bg-[#FFFBEB] shadow-xs flex items-center justify-center overflow-hidden transition-transform duration-300"
-            title="Hon'ble Chief Minister"
-          >
-            <img 
-              src={cmPhoto} 
-              alt="Hon'ble Chief Minister" 
-              referrerPolicy="no-referrer" 
-              onError={(e) => {
-                if (e.currentTarget.src !== cmFallbackPhoto) {
-                  e.currentTarget.src = cmFallbackPhoto;
-                }
-              }}
-              className="w-full h-full object-cover object-top scale-110" 
-            />
-          </div>
-
           {/* CCMC Municipal Emblem with Golden Ring */}
           <div 
             className="w-16 h-16 sm:w-[68px] sm:h-[68px] rounded-full border-[3px] border-[#F59E0B] p-1 bg-white shadow-xs flex items-center justify-center overflow-hidden transition-transform duration-300"
@@ -249,6 +231,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 }
               }}
               className="w-full h-full object-contain" 
+            />
+          </div>
+
+          {/* Smart City Mission Logo with Golden Ring */}
+          <div 
+            className="w-16 h-16 sm:w-[68px] sm:h-[68px] rounded-full border-[3px] border-[#F59E0B] p-1 bg-white shadow-xs flex items-center justify-center overflow-hidden transition-transform duration-300"
+            title="Smart City Mission"
+          >
+            <img 
+              src={smartCityLogo} 
+              alt="Smart City Mission Logo" 
+              referrerPolicy="no-referrer" 
+              onError={(e) => {
+                if (e.currentTarget.src !== smartCityFallbackLogo) {
+                  e.currentTarget.src = smartCityFallbackLogo;
+                }
+              }}
+              className="w-full h-full object-contain p-0.5" 
             />
           </div>
 

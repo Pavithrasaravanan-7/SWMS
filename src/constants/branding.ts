@@ -1,5 +1,6 @@
-import localCmPhoto from '../assets/cm_stalin.jpg';
 import localCcmcLogo from '../assets/ccmc_logo.jpg';
+import localSmartCityLogo from '../assets/smart_city_logo.svg';
+import localSmartCityPng from '../assets/smart_city_logo.png';
 import localCommissionerPhoto from '../assets/commissioner.jpg';
 import localTotalCollected from '../assets/total_collected.jpg';
 import localHouseholdCovered from '../assets/household_covered.jpg';
@@ -9,9 +10,8 @@ import localAiPrediction from '../assets/ai_prediction_icon.jpg';
 import localVehicleAssignment from '../assets/images/vehicle_assignment_1788169899349.jpg';
 import loginBackgroundImg from '../assets/images/swms_exact_bg_1787311840654.jpg';
 
-// User-specified CM Logo URL
-export const CM_LOGO_URL = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4ea0deQgUTsKEUDvVMOznEKHOU7klVFrJQ-Kc-cQMjpWcNXG8JCvOVSqc&s=10';
 export const CCMC_LOGO_URL = 'https://ccmc.gov.in/img/upload/icon.png';
+export const SMART_CITY_LOGO_URL = localSmartCityPng;
 export const LIVE_GPS_URL = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQIj06f6-crEgnX5909hdgIHpFkyk93N3q3uUZVJ_QdQA&s=10';
 export const COLLECTED_URL = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRhjRxIas0GNrojwojRiQPKEYYH35KJqhGyGkrwU-RwPbczIzKohb0Iv1M&s=10';
 export const TOTAL_COLLECTED_URL = 'https://www.shutterstock.com/image-photo/pile-overflowing-black-garbage-bags-260nw-2489341561.jpg';
@@ -24,18 +24,18 @@ export const VEHICLE_ASSIGNMENT_LOGO_URL = localVehicleAssignment;
 
 export const loginBgImage = loginBackgroundImg;
 
-export const cmPhoto = CM_LOGO_URL;
-export const cmFallbackPhoto = localCmPhoto;
 export const ccmcLogo = CCMC_LOGO_URL;
 export const ccmcFallbackLogo = localCcmcLogo;
+export const smartCityLogo = SMART_CITY_LOGO_URL;
+export const smartCityFallbackLogo = localSmartCityPng;
+
+// Aliases for backwards compatibility (CM photo replaced by Smart City logo)
+export const cmPhoto = smartCityLogo;
+export const cmFallbackPhoto = smartCityFallbackLogo;
 export const commissionerPhoto = COMMISSIONER_LOGO_URL;
 export const commissionerFallbackPhoto = localCommissionerPhoto;
 
-// SINGLE SOURCE OF TRUTH: the exact logo asset used on the Login Page.
-// Reuse this same logo everywhere (header, dashboard, sidebar, QR scanner, QR checkpoint,
-// zones, workers, reports, profile, settings, and every other page).
-// Do not create, replace, redraw, or modify this logo. Keep its original colors, proportions, and quality.
-export const appLogo = CCMC_LOGO_URL;
+export const appLogo = ccmcLogo;
 export const appLogoFallback = localCcmcLogo;
 
 // KPI Card Logos matching user specification

@@ -3,10 +3,10 @@ import { Truck, MapPin, Check, ArrowRight, RotateCcw, Globe, LogOut, Bell, Chevr
 import { motion, AnimatePresence } from 'motion/react';
 import { ICCCLiveBadge } from './ICCCLiveBadge';
 import { 
-  cmPhoto, 
-  cmFallbackPhoto, 
   ccmcLogo, 
-  ccmcFallbackLogo
+  ccmcFallbackLogo,
+  smartCityLogo,
+  smartCityFallbackLogo
 } from '../constants/branding';
 import { 
   getStoredAssignedAreas, 
@@ -560,25 +560,7 @@ export const VehicleAreaAssignmentView: React.FC<VehicleAreaAssignmentViewProps>
           <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-1 overflow-hidden">
             {/* Unified Government Brand Insignia Duo */}
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              {/* Hon'ble Chief Minister Portrait */}
-              <div
-                className="w-7 h-7 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400 bg-amber-500/20 shadow-sm relative flex-shrink-0 flex items-center justify-center"
-                title="Hon'ble Chief Minister of Tamil Nadu"
-              >
-                <img
-                  src={cmPhoto}
-                  alt="Hon'ble Chief Minister"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    if (e.currentTarget.src !== cmFallbackPhoto) {
-                      e.currentTarget.src = cmFallbackPhoto;
-                    }
-                  }}
-                  className="w-full h-full object-cover object-top scale-110"
-                />
-              </div>
-
-              {/* Coimbatore City Municipal Corporation Emblem */}
+              {/* 1. Coimbatore City Municipal Corporation Emblem */}
               <div
                 className="w-7 h-7 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400 bg-white p-0.5 shadow-sm relative flex-shrink-0 flex items-center justify-center"
                 title="Coimbatore City Municipal Corporation Emblem"
@@ -593,6 +575,24 @@ export const VehicleAreaAssignmentView: React.FC<VehicleAreaAssignmentViewProps>
                     }
                   }}
                   className="w-full h-full object-contain"
+                />
+              </div>
+
+              {/* 2. Smart City Mission Logo */}
+              <div
+                className="w-7 h-7 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400 bg-white p-0.5 shadow-sm relative flex-shrink-0 flex items-center justify-center"
+                title="Smart City Mission"
+              >
+                <img
+                  src={smartCityLogo}
+                  alt="Smart City Mission Logo"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    if (e.currentTarget.src !== smartCityFallbackLogo) {
+                      e.currentTarget.src = smartCityFallbackLogo;
+                    }
+                  }}
+                  className="w-full h-full object-contain p-0.5"
                 />
               </div>
             </div>

@@ -63,10 +63,10 @@ import {
   reportsIcon,
   vehicleAssignmentIcon,
   vehicleAssignmentFallbackIcon,
-  cmPhoto,
-  cmFallbackPhoto,
   ccmcLogo,
-  ccmcFallbackLogo
+  ccmcFallbackLogo,
+  smartCityLogo,
+  smartCityFallbackLogo
 } from '../constants/branding';
 
 const REPORTS_ICON_URL = reportsIcon;
@@ -737,10 +737,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
 
-      // Preload Dashboard Header images (CM Stalin photo and CCMC logo with fallback handling)
-      const [cmImgData, ccmcImgData] = await Promise.all([
-        loadHeaderImageCanvas(cmPhoto, cmFallbackPhoto, '#F59E0B', 3, '#1E7A38'),
+      // Preload Dashboard Header images (CCMC logo and Smart City logo with fallback handling)
+      const [ccmcImgData, smartCityImgData] = await Promise.all([
         loadHeaderImageCanvas(ccmcLogo, ccmcFallbackLogo, '#F59E0B', 3, '#FFFFFF'),
+        loadHeaderImageCanvas(smartCityLogo, smartCityFallbackLogo, '#F59E0B', 3, '#FFFFFF'),
       ]);
 
       const drawOfficialHeader = () => {
@@ -751,48 +751,48 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         doc.setLineWidth(0.5);
         doc.line(0, 22, pageWidth, 22);
 
-        // CM Stalin Photo (Dashboard Header image)
-        if (cmImgData.canvas) {
-          try {
-            doc.addImage(cmImgData.canvas, 'PNG', 6, 3.5, 15, 15);
-          } catch (e) {
-            console.error('Failed to add CM canvas:', e);
-          }
-        } else if (cmImgData.dataUri && cmImgData.dataUri.startsWith('data:image')) {
-          try {
-            doc.addImage(cmImgData.dataUri, 'JPEG', 6, 3.5, 15, 15);
-          } catch {}
-        } else {
-          doc.setFillColor(245, 158, 11);
-          doc.circle(13.5, 11, 7.5, 'F');
-          doc.setFillColor(22, 101, 52);
-          doc.circle(13.5, 11, 6.8, 'F');
-          doc.setTextColor(255, 255, 255);
-          doc.setFontSize(7);
-          doc.setFont('helvetica', 'bold');
-          doc.text('TN', 13.5, 13, { align: 'center' });
-        }
-
-        // CCMC Logo Emblem (Dashboard Header emblem)
+        // 1. CCMC Logo Emblem (First Header emblem)
         if (ccmcImgData.canvas) {
           try {
-            doc.addImage(ccmcImgData.canvas, 'PNG', 23, 3.5, 15, 15);
+            doc.addImage(ccmcImgData.canvas, 'PNG', 6, 3.5, 15, 15);
           } catch (e) {
             console.error('Failed to add CCMC canvas:', e);
           }
         } else if (ccmcImgData.dataUri && ccmcImgData.dataUri.startsWith('data:image')) {
           try {
-            doc.addImage(ccmcImgData.dataUri, 'JPEG', 23, 3.5, 15, 15);
+            doc.addImage(ccmcImgData.dataUri, 'JPEG', 6, 3.5, 15, 15);
           } catch {}
         } else {
           doc.setFillColor(255, 255, 255);
-          doc.circle(30.5, 11, 7.5, 'F');
+          doc.circle(13.5, 11, 7.5, 'F');
           doc.setFillColor(30, 122, 56);
-          doc.circle(30.5, 11, 6.8, 'F');
+          doc.circle(13.5, 11, 6.8, 'F');
           doc.setTextColor(255, 255, 255);
           doc.setFontSize(6.5);
           doc.setFont('helvetica', 'bold');
-          doc.text('CCMC', 30.5, 13, { align: 'center' });
+          doc.text('CCMC', 13.5, 13, { align: 'center' });
+        }
+
+        // 2. Smart City Logo Emblem (Second Header emblem)
+        if (smartCityImgData.canvas) {
+          try {
+            doc.addImage(smartCityImgData.canvas, 'PNG', 23, 3.5, 15, 15);
+          } catch (e) {
+            console.error('Failed to add Smart City canvas:', e);
+          }
+        } else if (smartCityImgData.dataUri && smartCityImgData.dataUri.startsWith('data:image')) {
+          try {
+            doc.addImage(smartCityImgData.dataUri, 'JPEG', 23, 3.5, 15, 15);
+          } catch {}
+        } else {
+          doc.setFillColor(245, 158, 11);
+          doc.circle(30.5, 11, 7.5, 'F');
+          doc.setFillColor(22, 101, 52);
+          doc.circle(30.5, 11, 6.8, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(6);
+          doc.setFont('helvetica', 'bold');
+          doc.text('SMART', 30.5, 13, { align: 'center' });
         }
 
         // Main Title & Subtitle (Prominent & Clear)

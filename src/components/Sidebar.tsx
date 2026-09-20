@@ -9,8 +9,10 @@ import {
   frequentlyNotCollectedIcon,
   reportsIcon,
   aiPredictionIcon,
-  appLogo,
-  appLogoFallback
+  ccmcLogo,
+  ccmcFallbackLogo,
+  smartCityLogo,
+  smartCityFallbackLogo
 } from '../constants/branding';
 
 const REPORTS_ICON_URL = reportsIcon;
@@ -106,11 +108,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center gap-3 px-2 pb-3 mb-1 border-b border-gray-200">
             <div className="w-12 h-12 rounded-full border-[2.5px] border-[#F59E0B] bg-white p-0.5 flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0">
               <img
-                src={appLogo}
+                src={ccmcLogo}
                 alt="Coimbatore City Municipal Corporation Logo"
                 referrerPolicy="no-referrer"
                 onError={(e) => {
-                  if (e.currentTarget.src !== appLogoFallback) e.currentTarget.src = appLogoFallback;
+                  if (e.currentTarget.src !== ccmcFallbackLogo) e.currentTarget.src = ccmcFallbackLogo;
                 }}
                 className="w-full h-full object-contain"
               />
@@ -313,11 +315,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="flex items-center gap-2">
                   <div className="w-9 h-9 rounded-full border-2 border-[#F59E0B] bg-white p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0">
                     <img
-                      src={appLogo}
+                      src={ccmcLogo}
                       alt="Coimbatore City Municipal Corporation Logo"
                       referrerPolicy="no-referrer"
                       onError={(e) => {
-                        if (e.currentTarget.src !== appLogoFallback) e.currentTarget.src = appLogoFallback;
+                        if (e.currentTarget.src !== ccmcFallbackLogo) e.currentTarget.src = ccmcFallbackLogo;
                       }}
                       className="w-full h-full object-contain"
                     />

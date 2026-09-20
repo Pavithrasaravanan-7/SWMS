@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { SWMSHouseholdRecord, SWMSDashboardStats } from '../types';
 import { FrequentlyNotCollectedSection } from './FrequentlyNotCollectedSection';
-import { appLogo, appLogoFallback } from '../constants/branding';
+import { ccmcLogo, ccmcFallbackLogo } from '../constants/branding';
 import { INITIAL_FREQUENTLY_NOT_COLLECTED } from '../data/frequentlyNotCollectedData';
 import { 
   LayoutDashboard, 
@@ -172,11 +172,11 @@ export const SWMSAdminDashboardView: React.FC<SWMSAdminDashboardViewProps> = ({
             <div className="flex items-center space-x-3">
               <div className="w-11 h-11 rounded-full border-[2.5px] border-[#F59E0B] bg-white p-0.5 flex items-center justify-center overflow-hidden shadow-md flex-shrink-0">
                 <img
-                  src={appLogo}
+                  src={ccmcLogo}
                   alt="Coimbatore City Municipal Corporation Logo"
                   referrerPolicy="no-referrer"
                   onError={(e) => {
-                    if (e.currentTarget.src !== appLogoFallback) e.currentTarget.src = appLogoFallback;
+                    if (e.currentTarget.src !== ccmcFallbackLogo) e.currentTarget.src = ccmcFallbackLogo;
                   }}
                   className="w-full h-full object-contain"
                 />
