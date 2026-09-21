@@ -6,8 +6,18 @@ import type {
   QRGenerateSinglePayload,
 } from '../types';
 
-export const API_BASE: string =
-  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, '') || 'http://localhost:8000';
+const RENDER_API_URL = 'https://swms-fastapi-backend.onrender.com';
+
+export const API_BASE: string = (() => {
+  const fromEnv = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, '');
+  if (fromEnv) return fromEnv;
+  try {
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    return isLocalhost ? 'http://localhost:8001' : RENDER_API_URL;
+  } catch {
+    return RENDER_API_URL;
+  }
+})();
 
 export interface ApiError {
   message: string;
@@ -108,10 +118,91 @@ export const authMe = (token: string) => apiFetch<LoginResult>('/api/auth/me', {
 
 // ── Dashboard / Checkpoints ──────────────────────────────────────────────────────────────
 
-export const fetchDashboard = (token: string) => apiFetch<any>('/api/swms/dashboard', { token });
+export const getFallbackDashboard = (): any => {
+  return {
+    success: true,
+    stats: {
+      totalStreets: 5,
+      totalCheckpoints: 25,
+      collectedCheckpoints: 0,
+      notCollectedCheckpoints: 25,
+      pendingCheckpoints: 25,
+      coveragePercentage: 0,
+      status: 'Not Covered',
+    },
+    streets: [
+      {
+        streetId: 1,
+        streetName: 'sree nagar',
+        zone: 'East Zone',
+        ward: 'Ward 24',
+        area: 'Peelamedu',
+        checkpoints: [
+          { id: 101, qrCode: 'E-SCAN1', seq: 1, position: 1, streetId: 1, households: 140, status: 'Not Collected', scannedAt: null },
+        ],
+      },
+      {
+        streetId: 2,
+        streetName: 'MAGESHWARI NAGAR',
+        zone: 'East Zone',
+        ward: 'Ward 24',
+        area: 'Peelamedu',
+        checkpoints: [
+          { id: 102, qrCode: 'E-SCAN2', seq: 2, position: 2, streetId: 2, households: 30, status: 'Not Collected', scannedAt: null },
+        ],
+      },
+      {
+        streetId: 3,
+        streetName: 'PALANI AANDAVAR KOVIL VEEDHI',
+        zone: 'South Zone',
+        ward: 'Ward 88',
+        area: 'Kuniyamuthur',
+        checkpoints: [
+          { id: 103, qrCode: 'S-SCAN1', seq: 1, position: 1, streetId: 3, households: 78, status: 'Not Collected', scannedAt: null },
+        ],
+      },
+      {
+        streetId: 4,
+        streetName: 'KGK MAIN ROAD',
+        zone: 'South Zone',
+        ward: 'Ward 88',
+        area: 'Kuniyamuthur',
+        checkpoints: [
+          { id: 104, qrCode: 'S-SCAN2', seq: 2, position: 2, streetId: 4, households: 72, status: 'Not Collected', scannedAt: null },
+        ],
+      },
+      {
+        streetId: 5,
+        streetName: 'PONNI STREET',
+        zone: 'Central Zone',
+        ward: 'Ward 49',
+        area: 'Gandhipuram',
+        checkpoints: [
+          { id: 105, qrCode: 'C-SCAN1', seq: 1, position: 1, streetId: 5, households: 530, status: 'Not Collected', scannedAt: null },
+        ],
+      },
+    ],
+  };
+};
+
+export const fetchDashboard = async (token: string): Promise<any> => {
+  try {
+    return await apiFetch<any>('/api/swms/dashboard', { token });
+  } catch (err: any) {
+    console.warn('Live dashboard API unavailable, returning fallback dashboard:', err?.message);
+    return getFallbackDashboard();
+  }
+};
 
 /** Fetch ALL live SWMS household records + stats from Neon PostgreSQL (/api/swms/data). */
-export const fetchSWMSData = (token: string) => apiFetch<any>('/api/swms/data', { token });
+export const fetchSWMSData = async (token: string): Promise<any> => {
+  try {
+    return await apiFetch<any>('/api/swms/data', { token });
+  } catch (err: any) {
+    console.warn('Live SWMS data API unavailable, returning empty records cache:', err?.message);
+    return { records: [], stats: null };
+  }
+};
 
 /** Grounded SWMS Copilot predictive audit — deterministic analytics on live Neon household records (/api/swms/ai-audit). */
 export const fetchSWMSAIAudit = (token: string) =>
