@@ -30,7 +30,11 @@ import {
   QrCode,
   CheckCircle2,
   XCircle,
-  AlertTriangle
+  AlertTriangle,
+  Camera,
+  UploadCloud,
+  Trash2,
+  Image as ImageIcon
 } from 'lucide-react';
 import { ccmcLogo, ccmcFallbackLogo, smartCityLogo, smartCityFallbackLogo } from '../constants/branding';
 import { SREE_NAGAR_SCAN_ROUTE, MAGESHWARI_NAGAR_SCAN_ROUTE, THIYAGIKUMAR_STREET_SCAN_ROUTE, MGR_VEEDHI_SCAN_ROUTE, KALYANAM_SUNDHARAM_STREET_SCAN_ROUTE, PONNI_NAGAR_SCAN_ROUTE, PONNI_NAGAR_2_SCAN_ROUTE, KANDHASAMY_LAYOUT_SCAN_ROUTE, LAKSHMI_MILLS_SIGNAL_SCAN_ROUTE, MARIYAMMAN_KOVIL_STREET_SCAN_ROUTE, KK_NAGAR_SCAN_ROUTE, RANGANATHAN_KOVIL_STREET_SCAN_ROUTE, BAJANA_KOVIL_VEEDHI_SCAN_ROUTE, BAARI_NAGAR_VEEDHI_CUT_ROAD_SCAN_ROUTE, RAMASAMY_KOONARCUT_ROAD_SCAN_ROUTE, MADHURA_ENCLAVE_SCAN_ROUTE, SENTHOORA_PURAM_SCAN_ROUTE, MEENAKSHI_NAGAR_SCAN_ROUTE, VISAGA_GARDEN_SCAN_ROUTE, MARUTHI_ENVUE_SCAN_ROUTE, PALANI_AANDAVAR_KOVIL_VEEDHI_SCAN_ROUTE, KGK_MAIN_ROAD_SCAN_ROUTE, NAGAMMA_NAYAGAR_VEEDHI_SCAN_ROUTE, ALAGAACHI_THOTTAM_SCAN_ROUTE, MUTHUSAMY_SERKAI_VEEDHI_SCAN_ROUTE } from './SWMSStreetScanQRCard';
@@ -346,24 +350,113 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
   }, [streetScans, formData.streetName]);
 
   const [scanWarnMsg, setScanWarnMsg] = useState<string | null>(null);
+  const [proofPhoto, setProofPhoto] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const uploadInputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleToggleFormScanPoint = (scanId: number) => {
-    const liveTime = getLiveScanTimeStr();
-    setStreetScans(prev => {
-      const updated = prev.map(sc => {
-        if (sc.id === scanId) {
-          const nextState = !sc.isScanned;
-          playChimeTone(nextState ? 'success' : 'warning');
-          return {
-            ...sc,
-            isScanned: nextState,
-            scannedAt: nextState ? liveTime : undefined
-          };
-        }
-        return sc;
-      });
-      return updated;
-    });
+  // Live WebCam / Camera Viewfinder State & Refs
+  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+  const [cameraFacingMode, setCameraFacingMode] = useState<'environment' | 'user'>('environment');
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const streamRef = React.useRef<MediaStream | null>(null);
+
+  const handleStartCamera = async (mode: 'environment' | 'user' = cameraFacingMode) => {
+    setCameraError(null);
+    setIsCameraModalOpen(true);
+    setCameraFacingMode(mode);
+
+    try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not available');
+      }
+
+      const constraints: MediaStreamConstraints = {
+        video: { facingMode: { ideal: mode }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+    } catch (err: any) {
+      console.warn('Live camera stream error, opening fallback file camera:', err);
+      setCameraError(lang === 'ta' ? 'கேமரா நேரலை இயங்கவில்லை. கேமரா கோப்பைப் பயன்படுத்தவும்.' : 'Live camera unavailable. Using device camera selector.');
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+      setIsCameraModalOpen(false);
+    }
+  };
+
+  const handleStopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraModalOpen(false);
+  };
+
+  const handleSnapPhoto = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      setProofPhoto(dataUrl);
+      playChimeTone('success');
+    }
+    handleStopCamera();
+  };
+
+  const handleToggleFacingMode = () => {
+    const nextMode = cameraFacingMode === 'environment' ? 'user' : 'environment';
+    handleStartCamera(nextMode);
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setProofPhoto(dataUrl);
+        playChimeTone('success');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setProofPhoto(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (uploadInputRef.current) uploadInputRef.current.value = '';
+  };
+
+  const handleScanCardClick = (scan: StreetScanPoint) => {
+    if (scan.isScanned) return;
+    playChimeTone('warning');
+    setScanWarnMsg(
+      lang === 'ta'
+        ? `⚠️ ஸ்கேன் ${scan.id}: QR கேமரா மூலம் ஸ்கேன் செய்தால் மட்டுமே பச்சையாக மாறும்!`
+        : `⚠️ Scan ${scan.id}: Must be scanned using QR Camera to turn green!`
+    );
+    setTimeout(() => setScanWarnMsg(null), 4500);
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -458,6 +551,7 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
       vehicleType: formData.vehicleType || 'TATA ACE',
       completedScansCount: completedScansCount,
       streetScans: streetScans,
+      proofPhoto: proofPhoto || undefined,
       submittedAt: timestampStr
     };
 
@@ -837,9 +931,24 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
                 >
                   Reset Scans
                 </button>
-                <span className="text-[11px] text-slate-400 font-mono">Tap to toggle</span>
+                <span className="text-[11px] text-slate-400 font-mono">
+                  {lang === 'ta' ? 'கேமரா ஸ்கேன் மட்டும்' : 'Camera QR Only'}
+                </span>
               </div>
             </div>
+
+            {/* Warning msg if user tries to tap cards manually */}
+            {scanWarnMsg && (
+              <div className="bg-amber-50 border border-amber-300 text-amber-900 rounded-xl p-2.5 text-xs font-bold flex items-center justify-between gap-2 animate-fadeIn">
+                <div className="flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                  <span>{scanWarnMsg}</span>
+                </div>
+                <button type="button" onClick={() => setScanWarnMsg(null)} className="text-amber-700 hover:text-amber-900 font-black cursor-pointer">
+                  ✕
+                </button>
+              </div>
+            )}
 
             {/* 5 Checkpoints Grid */}
             <div className="grid grid-cols-5 gap-2 sm:gap-3">
@@ -848,13 +957,13 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
                 return (
                   <div
                     key={scan.id}
-                    onClick={() => handleToggleFormScanPoint(scan.id)}
+                    onClick={() => handleScanCardClick(scan)}
                     className={`flex flex-col items-center justify-center py-3 px-1 rounded-2xl border-2 text-center select-none cursor-pointer transition active:scale-95 ${
                       isDone
                         ? 'bg-[#E6F4EA] border-[#00D084] text-slate-900 shadow-2xs'
                         : 'bg-[#FEF2F2] border-[#FCA5A5] text-[#991B1B]'
                     }`}
-                    title={`Tap to toggle Scan ${scan.id}`}
+                    title={isDone ? `Scan ${scan.id} Scanned ✓` : `Scan ${scan.id}: QR Camera scan required`}
                   >
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black mb-1 shadow-2xs ${
                       isDone
@@ -920,6 +1029,98 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
             </div>
           </div>
         )}
+
+        {/* THIRD CARD: PROOF PHOTO COLLECTION */}
+        <div className="bg-white p-4 rounded-3xl border-2 border-emerald-300 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-1.5">
+              <Camera className="w-4 h-4 text-emerald-600" />
+              <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide">
+                {lang === 'ta' ? 'புகைப்படம் சேகரிப்பு (PROOF PHOTO)' : 'PROOF PHOTO COLLECTION'}
+              </h4>
+            </div>
+            <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${
+              proofPhoto
+                ? 'bg-emerald-100 text-[#00875A] border border-emerald-300'
+                : 'bg-amber-100 text-amber-800 border border-amber-300'
+            }`}>
+              {proofPhoto
+                ? (lang === 'ta' ? 'புகைப்படம் இணைக்கப்பட்டது ✓' : 'Photo Attached ✓')
+                : (lang === 'ta' ? 'விருப்பத்திற்குரியது / Optional' : 'Optional')}
+            </span>
+          </div>
+
+          <div className="border-t border-slate-100 pt-2.5">
+            {proofPhoto ? (
+              <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-400 bg-slate-900 shadow-sm group">
+                <img
+                  src={proofPhoto}
+                  alt="Waste Collection Proof"
+                  className="w-full h-48 sm:h-56 object-cover"
+                />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent p-3 text-white flex items-center justify-between">
+                  <div className="text-xs font-semibold">
+                    <div className="font-bold flex items-center gap-1 text-emerald-300">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{lang === 'ta' ? 'குப்பை சேகரிப்பு சான்றளிப்பு படம்' : 'Collection Proof Photo'}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-300 font-mono mt-0.5">
+                      {formData.streetName || 'Coimbatore'}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+                    title={lang === 'ta' ? 'புகைப்படத்தை நீக்கு' : 'Remove Photo'}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>{lang === 'ta' ? 'நீக்கு' : 'Remove'}</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  ref={fileInputRef}
+                  onChange={handlePhotoChange}
+                  className="hidden"
+                  id="photo-capture-input"
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={uploadInputRef}
+                  onChange={handlePhotoChange}
+                  className="hidden"
+                  id="photo-upload-input"
+                />
+
+                {/* Camera Capture Button */}
+                <button
+                  type="button"
+                  onClick={() => handleStartCamera('environment')}
+                  className="flex-1 flex items-center justify-center gap-2 bg-[#00875A] hover:bg-[#00704A] text-white font-black py-3 px-4 rounded-2xl shadow-xs cursor-pointer transition active:scale-95 text-xs sm:text-sm border border-emerald-600/40 select-none"
+                >
+                  <Camera className="w-5 h-5 text-emerald-100" />
+                  <span>{lang === 'ta' ? 'கேமரா படம் எடுக்கவும்' : 'Take Photo (Camera)'}</span>
+                </button>
+
+                {/* Upload File Button */}
+                <label
+                  htmlFor="photo-upload-input"
+                  className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-4 rounded-2xl cursor-pointer transition active:scale-95 text-xs sm:text-sm border border-slate-300 select-none"
+                >
+                  <UploadCloud className="w-5 h-5 text-slate-600" />
+                  <span>{lang === 'ta' ? 'பதிவேற்று' : 'Upload File'}</span>
+                </label>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* STICKY BOTTOM BUTTON (Image 2 Exact Layout) */}
         <div className="pt-2 sticky bottom-0 z-30 pb-3 bg-white/90 backdrop-blur-xs">
@@ -1220,6 +1421,101 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ── LIVE CAMERA VIEWFINDER MODAL ── */}
+      {isCameraModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col justify-between select-none animate-fadeIn">
+          {/* Top Bar */}
+          <div className="bg-slate-900/90 backdrop-blur-md px-4 py-3 flex items-center justify-between text-white border-b border-slate-800">
+            <div className="flex items-center space-x-2">
+              <Camera className="w-5 h-5 text-emerald-400 animate-pulse" />
+              <span className="text-sm font-black tracking-wide">
+                {lang === 'ta' ? 'புகைப்படம் எடுக்கவும் (Live Camera)' : 'Take Photo (Live Camera)'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleStopCamera}
+              className="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center cursor-pointer transition active:scale-95"
+              title="Close Camera"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Video Stream Container */}
+          <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-full object-cover"
+            />
+
+            {/* Viewfinder Target Framing Guide */}
+            <div className="absolute inset-8 sm:inset-16 border-2 border-emerald-400/60 rounded-3xl pointer-events-none flex flex-col justify-between p-4">
+              <div className="flex justify-between">
+                <div className="w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg" />
+                <div className="w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg" />
+              </div>
+              <div className="text-center text-xs font-bold text-white bg-black/50 backdrop-blur-xs py-1.5 px-4 rounded-full self-center border border-white/20">
+                {lang === 'ta' ? 'குப்பை சேகரிப்பு சான்றை படமெடுக்கவும்' : 'Frame waste collection proof'}
+              </div>
+              <div className="flex justify-between">
+                <div className="w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg" />
+                <div className="w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-lg" />
+              </div>
+            </div>
+
+            {/* Camera error message fallback */}
+            {cameraError && (
+              <div className="absolute top-4 inset-x-4 bg-rose-600/90 text-white text-xs font-bold p-3 rounded-2xl backdrop-blur-md text-center">
+                {cameraError}
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Shutter & Controls Bar */}
+          <div className="bg-slate-900/95 backdrop-blur-md px-6 py-5 flex items-center justify-around text-white border-t border-slate-800">
+            {/* Flip Camera Button */}
+            <button
+              type="button"
+              onClick={handleToggleFacingMode}
+              className="w-12 h-12 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex flex-col items-center justify-center text-[10px] font-bold cursor-pointer active:scale-95 border border-slate-700 shadow-md"
+              title="Switch Camera"
+            >
+              <RefreshCw className="w-5 h-5 text-emerald-300" />
+              <span className="text-[9px] mt-0.5">Flip</span>
+            </button>
+
+            {/* Main Shutter Button */}
+            <button
+              type="button"
+              onClick={handleSnapPhoto}
+              className="w-20 h-20 rounded-full border-4 border-white bg-emerald-600 hover:bg-emerald-500 active:scale-90 transition shadow-2xl flex items-center justify-center cursor-pointer relative"
+              title="Snap Photo"
+            >
+              <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-inner">
+                <div className="w-13 h-13 rounded-full bg-emerald-600 flex items-center justify-center">
+                  <Camera className="w-7 h-7 text-white" />
+                </div>
+              </div>
+            </button>
+
+            {/* Cancel Button */}
+            <button
+              type="button"
+              onClick={handleStopCamera}
+              className="w-12 h-12 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex flex-col items-center justify-center text-[10px] font-bold cursor-pointer active:scale-95 border border-slate-700 shadow-md"
+              title="Cancel"
+            >
+              <X className="w-5 h-5 text-rose-400" />
+              <span className="text-[9px] mt-0.5">Cancel</span>
+            </button>
           </div>
         </div>
       )}

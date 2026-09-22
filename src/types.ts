@@ -53,6 +53,7 @@ export interface SWMSHouseholdRecord {
   vehicleType?: string; // e.g. "TATA ACE", "PUSH CART", "BOV"
   completedScansCount?: number;
   streetScans?: StreetScanPoint[];
+  proofPhoto?: string;
 }
 
 export interface AreaWardStats {
