@@ -104,6 +104,7 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
           coordinates: r.latitude && r.longitude ? { lat: r.latitude, lng: r.longitude } : undefined,
           completedScansCount: isRealSubmission ? r.completedScansCount : 0,
           streetScans: isRealSubmission ? r.streetScans : [],
+          proofPhoto: r.proofPhoto,
           coverageStatus: isRealSubmission ? r.coverageStatus : ('Not Covered' as any)
         };
       });

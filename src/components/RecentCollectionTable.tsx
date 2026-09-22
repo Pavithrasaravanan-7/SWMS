@@ -213,6 +213,11 @@ export const RecentCollectionTable: React.FC<RecentCollectionTableProps> = ({
                         }`}>
                           {scannedCount}/{totalScans} Scanned
                         </span>
+                        {item.proofPhoto && (
+                          <span className="text-[10px] font-black bg-emerald-700 text-white px-1.5 py-0.5 rounded-md shadow-2xs">
+                            📸 Photo
+                          </span>
+                        )}
                         <div className="flex gap-0.5">
                           {dotStatusList.map((isScanned, i) => (
                             <div

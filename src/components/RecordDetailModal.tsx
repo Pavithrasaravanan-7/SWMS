@@ -10,6 +10,8 @@ import {
   Clock,
   Calendar,
   Navigation,
+  Camera,
+  CheckCircle2,
 } from 'lucide-react';
 import { CollectionRecord } from '../types';
 
@@ -93,6 +95,31 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
             <div className="bg-amber-50 border border-amber-200 text-amber-900 p-3.5 rounded-xl text-xs">
               <span className="font-bold block text-amber-800 mb-1">Reason for Delay / Non-Collection:</span>
               <p className="font-medium">{record.reasonIfNotCollected}</p>
+            </div>
+          )}
+
+          {/* Captured Proof Photo Card */}
+          {(record.proofPhoto || (record as any).proofPhoto) && (
+            <div className="p-4 bg-slate-900 rounded-2xl border border-slate-700 text-white space-y-2 shadow-md">
+              <div className="flex items-center justify-between text-xs font-bold text-emerald-400">
+                <div className="flex items-center gap-1.5">
+                  <Camera className="w-4 h-4 text-emerald-400 animate-pulse" />
+                  <span>Field Worker Collection Proof Photo</span>
+                </div>
+                <span className="text-[10px] bg-emerald-950 text-emerald-300 font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-500/40">
+                  Worker Photo Attached ✓
+                </span>
+              </div>
+              <div className="rounded-xl overflow-hidden border border-slate-700 max-h-64 bg-black flex items-center justify-center relative group">
+                <img
+                  src={record.proofPhoto || (record as any).proofPhoto}
+                  alt="Worker Collection Proof Photo"
+                  className="w-full h-56 object-cover"
+                />
+                <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-xs text-emerald-300 text-[10px] font-mono px-2.5 py-1 rounded-md border border-white/20">
+                  {record.date || record.time || 'Live On-Site Snap'}
+                </div>
+              </div>
             </div>
           )}
 
