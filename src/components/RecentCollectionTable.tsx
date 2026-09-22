@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Eye, Filter } from 'lucide-react';
+import { Eye, Filter, Camera, X, CheckCircle2 } from 'lucide-react';
 import { CollectionRecord } from '../types';
 
 interface RecentCollectionTableProps {
@@ -26,6 +26,7 @@ export const RecentCollectionTable: React.FC<RecentCollectionTableProps> = ({
   onViewAllReports,
 }) => {
   const [selectedZone, setSelectedZone] = useState<string>('All');
+  const [previewPhotoRecord, setPreviewPhotoRecord] = useState<CollectionRecord | null>(null);
 
   // Compute diverse set of records representing all 5 zones or filter by selected zone
   const displayRecords = useMemo(() => {
@@ -214,9 +215,20 @@ export const RecentCollectionTable: React.FC<RecentCollectionTableProps> = ({
                           {scannedCount}/{totalScans} Scanned
                         </span>
                         {item.proofPhoto && (
-                          <span className="text-[10px] font-black bg-emerald-700 text-white px-1.5 py-0.5 rounded-md shadow-2xs">
-                            📸 Photo
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewPhotoRecord(item)}
+                            className="inline-flex items-center gap-1 bg-[#00875A] hover:bg-[#00704A] text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-2xs transition active:scale-95 cursor-pointer border border-emerald-500/40"
+                            title={lang === 'ta' ? 'படத்தைப் பார்க்க கிளிக் செய்யவும்' : 'Click to view captured proof photo'}
+                          >
+                            <Camera className="w-3 h-3 text-emerald-100" />
+                            <span>Photo</span>
+                            <img
+                              src={item.proofPhoto}
+                              alt="Proof Thumbnail"
+                              className="w-4 h-4 rounded-xs object-cover border border-white/60 ml-0.5"
+                            />
+                          </button>
                         )}
                         <div className="flex gap-0.5">
                           {dotStatusList.map((isScanned, i) => (
@@ -278,6 +290,76 @@ export const RecentCollectionTable: React.FC<RecentCollectionTableProps> = ({
           {lang === 'ta' ? 'அனைத்து அறிக்கைகளையும் காண்க' : 'View All Reports'}
         </button>
       </div>
+
+      {/* ── INTERACTIVE PHOTO LIGHTBOX MODAL ── */}
+      {previewPhotoRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-slate-900 text-white rounded-3xl max-w-lg w-full overflow-hidden border border-slate-700 shadow-2xl space-y-3 p-4">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Camera className="w-5 h-5 text-emerald-400 animate-pulse" />
+                <div>
+                  <h3 className="text-sm font-black text-white leading-tight">
+                    {previewPhotoRecord.street} — {previewPhotoRecord.ward}
+                  </h3>
+                  <p className="text-[11px] text-emerald-300 font-mono">
+                    {previewPhotoRecord.zone} • {previewPhotoRecord.vehicleNo}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewPhotoRecord(null)}
+                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center cursor-pointer transition active:scale-95"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* High-res Image Preview */}
+            <div className="rounded-2xl overflow-hidden border border-slate-700 bg-black flex items-center justify-center relative">
+              <img
+                src={previewPhotoRecord.proofPhoto}
+                alt="Waste Collection Proof Photo"
+                className="w-full h-64 sm:h-80 object-cover"
+              />
+              <div className="absolute bottom-2 left-2 right-2 bg-black/80 backdrop-blur-xs text-white text-[11px] p-2 rounded-xl border border-white/20 flex items-center justify-between">
+                <span className="font-bold text-emerald-300 flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  Worker: {previewPhotoRecord.workerName}
+                </span>
+                <span className="font-mono text-[10px] text-slate-300">
+                  {previewPhotoRecord.date || previewPhotoRecord.time}
+                </span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-between pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const rec = previewPhotoRecord;
+                  setPreviewPhotoRecord(null);
+                  onInspectRecord(rec);
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-4 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95"
+              >
+                <Eye className="w-4 h-4" />
+                <span>Inspect Full Telemetry</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewPhotoRecord(null)}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer active:scale-95"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
