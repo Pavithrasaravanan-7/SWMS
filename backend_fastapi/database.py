@@ -14,7 +14,7 @@ if not DATABASE_URL:
 
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    
+
 SQLALCHEMY_DATABASE_URL = DATABASE_URL
 
 if DATABASE_URL.startswith("sqlite://"):
@@ -24,7 +24,7 @@ if DATABASE_URL.startswith("sqlite://"):
     )
 else:
     engine = create_engine(
-        DATABASE_URL,
+        SQLALCHEMY_DATABASE_URL,
         pool_pre_ping=True
     )
 
