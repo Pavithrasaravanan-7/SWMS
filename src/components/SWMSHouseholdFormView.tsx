@@ -77,6 +77,7 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
     zone: string;
     ward: string;
     vehicleType: string;
+    vehicleNo: string;
     siName: string;
     siContact: string;
     ssName: string;
@@ -96,6 +97,7 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
     zone: 'East Zone',
     ward: 'Ward 24',
     vehicleType: 'TATA ACE',
+    vehicleNo: assignedVehicleId && !assignedVehicleId.includes('v-') ? assignedVehicleId : 'TN66AD6465',
     siName: 'S.R.GERALD SATHIYA PUNITHAN',
     siContact: '9442504589',
     ssName: 'vibin',
@@ -221,6 +223,7 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
         ward: wardName,
         zone: zoneName,
         vehicleType: parsed.vehicleType || 'TATA ACE',
+        vehicleNo: parsed.vehicleNo || prev.vehicleNo || 'TN66AD6465',
         siName: parsed.siName || 'S.R.GERALD SATHIYA PUNITHAN',
         siContact: parsed.siContact || '9442504589',
         ssName: parsed.ssName || 'vibin',
@@ -560,7 +563,7 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
       gpsAccuracy: gpsAccuracy,
       gpsTimestamp: timestampStr,
       assignedVehicleId: assignedVehicleId || 'v-tata-ace',
-      vehicleNo: formData.vehicleType ? (assignedVehicleId || 'TN66AD6465') : 'TN66AD6465',
+      vehicleNo: formData.vehicleNo || (formData.vehicleType ? (assignedVehicleId || 'TN66AD6465') : 'TN66AD6465'),
       vehicleType: formData.vehicleType || 'TATA ACE',
       completedScansCount: completedScansCount,
       streetScans: streetScans,
@@ -1308,7 +1311,7 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
                   <Truck className="w-4 h-4" />
                   <span>DRIVER &amp; VEHICLE</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-600 mb-1">Vehicle Type</label>
                     <select
@@ -1322,6 +1325,16 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
                       <option value="COMPACTOR">COMPACTOR</option>
                       <option value="OBL PRIVATE">OBL PRIVATE</option>
                     </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Vehicle Number</label>
+                    <input
+                      type="text"
+                      value={formData.vehicleNo}
+                      onChange={(e) => setFormData({ ...formData, vehicleNo: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 font-mono uppercase focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      placeholder="e.g. TN66AE6121"
+                    />
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-slate-600 mb-1">Driver Name</label>
