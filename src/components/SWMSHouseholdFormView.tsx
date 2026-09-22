@@ -112,11 +112,24 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
     remarks: ''
   });
 
-  const isPushCart = assignedVehicleId === 'v-push-cart' || 
-                     (formData?.vehicleType && (
-                       formData.vehicleType.toUpperCase().includes('PUSH') ||
-                       formData.vehicleType.toUpperCase().includes('PTC')
-                     ));
+  const isPushCart = (() => {
+    if (formData?.vehicleType) {
+      const vUpper = formData.vehicleType.toUpperCase();
+      if (vUpper.includes('TATA') || vUpper.includes('ACE') || vUpper.includes('BOV') || vUpper.includes('AUTO') || vUpper.includes('TRUCK')) {
+        return false;
+      }
+      if (vUpper.includes('PUSH') || vUpper.includes('PTC') || vUpper.includes('CART')) {
+        return true;
+      }
+    }
+    if (assignedVehicleId) {
+      const aUpper = assignedVehicleId.toUpperCase();
+      if (aUpper.includes('ACE') || aUpper.includes('TATA') || aUpper.includes('BOV') || aUpper.includes('PVT')) {
+        return false;
+      }
+    }
+    return assignedVehicleId === 'v-push-cart';
+  })();
 
   // Helper to format exact real-time live scan timestamp (e.g. "11:32 AM" or "01:27 PM")
   const getLiveScanTimeStr = (): string => {

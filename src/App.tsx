@@ -127,6 +127,10 @@ export default function App() {
     if (loggedInUser.assignment) {
       setAssignment(loggedInUser.assignment);
       localStorage.setItem('ccmc_assignment', JSON.stringify(loggedInUser.assignment));
+      const isPush = !!loggedInUser.assignment.isPushcart;
+      const vehId = isPush ? 'v-push-cart' : 'v-tata-ace';
+      setAssignedVehicleId(vehId);
+      localStorage.setItem('ccmc_assigned_vehicle', vehId);
     }
     if (loggedInUser.workerInfo) {
       setWorkerInfo(loggedInUser.workerInfo);
