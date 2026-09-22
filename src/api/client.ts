@@ -229,6 +229,25 @@ export const submitCollection = (token: string, payload: CollectionSubmitPayload
     token,
   });
 
+// ── Scan Evidence Photos ──────────────────────────────────────────────────────────────
+
+export interface ScanPhotoUploadPayload {
+  routeId?: string;
+  streetName?: string;
+  photoBase64: string;
+  contentType?: string;
+}
+
+export const uploadScanPhoto = (token: string, payload: ScanPhotoUploadPayload) =>
+  apiFetch<any>('/api/swms/photos', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    token,
+  });
+
+export const scanPhotoUrl = (fileName: string, token?: string | null) =>
+  `${API_BASE}/api/swms/photos/${encodeURIComponent(fileName)}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+
 // ── QR Checkpoint Management (Admin) ──────────────────────────────────────────────────────
 
 export const adminQROptions = (

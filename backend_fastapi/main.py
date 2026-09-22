@@ -1,5 +1,6 @@
 import os
 import io
+import base64
 import hashlib
 import secrets
 import zipfile
@@ -7,7 +8,7 @@ from datetime import datetime, date
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, status, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
@@ -63,6 +64,10 @@ ZONE_SCAN_PREFIX = {
 }
 
 ALL_ZONES = list(ZONE_CODE.keys())
+
+# Directory where scan evidence photos are stored (filesystem, survives redeploy if persistent disk attached).
+PHOTO_STORAGE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "photos")
+os.makedirs(PHOTO_STORAGE_DIR, exist_ok=True)
 
 
 def zone_code_for(zone_name: str) -> str:
@@ -992,6 +997,65 @@ def submit_collection(
         record=to_record_volume(db, record),
         stats=response_stats,
     )
+
+
+# ---------------------------------------------------------------------------------------
+# Scan evidence photo upload (worker captures proof photos after every QR scan)
+# ---------------------------------------------------------------------------------------
+
+
+def _decode_photo_base64(data_url: str) -> bytes:
+    """Accept a raw base64 string or a 'data:image/...;base64,....' URL."""
+    if "," in data_url:
+        prefix, _, payload = data_url.partition(",")
+        if prefix.strip().startswith("data:"):
+            data_url = payload
+    try:
+        return base64.b64decode(data_url)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid image data. Please re-capture and try again.")
+
+
+@app.post("/api/swms/photos", response_model=schemas.PhotoUploadResponse)
+def upload_scan_photo(
+    data: schemas.PhotoUploadRequest,
+    authorization: Optional[str] = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    """Authenticated upload of a worker-captured scan evidence photo (route/checkpoint)."""
+    user = get_current_user(db, get_bearer_token(authorization))
+    if not data.photoBase64:
+        raise HTTPException(status_code=400, detail="Photo data is required.")
+
+    img_bytes = _decode_photo_base64(data.photoBase64)
+    if len(img_bytes) > 12 * 1024 * 1024:  # 12 MB safety cap
+        raise HTTPException(status_code=422, detail="Photo is too large. Please re-capture.")
+
+    ext = "png" if "png" in (data.contentType or "").lower() else "jpg"
+    stamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    fname = f"{date.today().isoformat()}_{stamp}_{secrets.token_hex(4)}_{user.id}.{ext}"
+
+    file_path = os.path.join(PHOTO_STORAGE_DIR, fname)
+    with open(file_path, "wb") as f:
+        f.write(img_bytes)
+
+    return schemas.PhotoUploadResponse(
+        success=True,
+        fileName=fname,
+        url=f"/api/swms/photos/{fname}",
+        message=f"Photo uploaded for route {data.routeId or data.qrId or '-'}.",
+    )
+
+
+@app.get("/api/swms/photos/{fname}")
+def get_scan_photo(fname: str, authorization: Optional[str] = Header(default=None), token: Optional[str] = None, db: Session = Depends(get_db)):
+    """Serve an uploaded scan evidence photo (auth required, path-traversal safe)."""
+    get_current_user(db, get_bearer_token(authorization) or token)
+    safe_name = os.path.basename(fname)
+    file_path = os.path.join(PHOTO_STORAGE_DIR, safe_name)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Photo not found.")
+    return FileResponse(file_path)
 
 
 # ---------------------------------------------------------------------------------------

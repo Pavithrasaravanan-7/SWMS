@@ -328,3 +328,24 @@ class SWMSDataResponse(BaseModel):
     records: List[SWMSHouseholdRecordSchema]
     stats: SWMSDashboardStatsSchema
     source: str = "Neon PostgreSQL Database"
+
+
+# ---------------------------------------------------------------------------------------
+# Scan Photo / Evidence Upload Schemas
+# ---------------------------------------------------------------------------------------
+
+
+class PhotoUploadRequest(BaseModel):
+    routeId: str = ""
+    qrId: str = ""
+    streetName: str = ""
+    vehicleNo: str = ""
+    photoBase64: str
+    contentType: str = "image/jpeg"
+
+
+class PhotoUploadResponse(BaseModel):
+    success: bool = True
+    fileName: str
+    url: str
+    message: Optional[str] = None

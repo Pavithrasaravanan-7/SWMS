@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   SWMSHouseholdRecord,
   SWMSDashboardStats,
@@ -12,7 +12,7 @@ import { DustbinAnimationModal } from './DustbinAnimationModal';
 import { SWMSStreetScanQRCard } from './SWMSStreetScanQRCard';
 import { SWMSCollectionDashboardView, getVehicleRouteDetails } from './SWMSCollectionDashboardView';
 import { SWMSCollectionFormView } from './SWMSCollectionFormView';
-import { resolveCheckpoint } from '../api/client';
+import { resolveCheckpoint, uploadScanPhoto } from '../api/client';
 import {
   QrCode,
   MapPin,
@@ -25,6 +25,11 @@ import {
   Loader2,
   AlertTriangle,
   RefreshCw,
+  Camera,
+  ImagePlus,
+  Trash2,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 
 interface SWMSWorkerAppProps {
@@ -75,6 +80,73 @@ export const SWMSWorkerApp: React.FC<SWMSWorkerAppProps> = ({
 
   // Bump to force the dashboard to refetch after saves
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
+
+  // Scan evidence photos (captured on the Route Details page after every scan)
+  const [scanPhotos, setScanPhotos] = useState<{ id: string; dataUrl: string; status: 'uploading' | 'done' | 'error'; fileName?: string }[]>([]);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+
+  const compressImage = (file: File, maxSize = 900): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext('2d');
+          if (!ctx) { reject(new Error('Canvas not supported')); return; }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.onerror = reject;
+        img.src = reader.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const uploadPhoto = async (id: string, dataUrl: string) => {
+    if (!token) {
+      setScanPhotos(prev => prev.map(p => (p.id === id ? { ...p, status: 'error' } : p)));
+      return;
+    }
+    try {
+      const res = await uploadScanPhoto(token, {
+        routeId: scannedRouteData?.routeId,
+        streetName: scannedRouteData?.streetName,
+        photoBase64: dataUrl,
+        contentType: 'image/jpeg',
+      });
+      if (res?.success && res.fileName) {
+        setScanPhotos(prev => prev.map(p => (p.id === id ? { ...p, status: 'done', fileName: res.fileName } : p)));
+      } else {
+        setScanPhotos(prev => prev.map(p => (p.id === id ? { ...p, status: 'error' } : p)));
+      }
+    } catch {
+      setScanPhotos(prev => prev.map(p => (p.id === id ? { ...p, status: 'error' } : p)));
+    }
+  };
+
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    for (const file of files) {
+      let dataUrl = '';
+      try {
+        dataUrl = await compressImage(file);
+      } catch {
+        continue;
+      }
+      const id = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      setScanPhotos(prev => [...prev, { id, dataUrl, status: 'uploading' }]);
+      void uploadPhoto(id, dataUrl);
+    }
+    if (photoInputRef.current) photoInputRef.current.value = '';
+  };
+
+  const removePhoto = (id: string) => setScanPhotos(prev => prev.filter(p => p.id !== id));
 
   // Animation Modal state (legacy household form flow)
   const [isAnimationOpen, setIsAnimationOpen] = useState(false);
@@ -352,6 +424,77 @@ export const SWMSWorkerApp: React.FC<SWMSWorkerAppProps> = ({
                     </a>
                   </div>
                 ))}
+              </div>
+
+              {/* ── PROOF PHOTOS (EVIDENCE) — captured after every scan ── */}
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div className="flex items-center gap-2 bg-sky-50 border-b border-sky-100 px-4 py-2.5">
+                  <Camera className="w-4 h-4 text-sky-700" />
+                  <span className="text-[11px] font-black uppercase tracking-wide text-sky-800">
+                    {lang === 'ta' ? 'சான்று புகைப்படங்கள்' : 'Proof Photos (Evidence)'}
+                  </span>
+                  <span className="ml-auto text-[11px] font-black text-sky-700">
+                    {scanPhotos.length} {lang === 'ta' ? 'புகைப்படம்' : 'photo(s)'}
+                  </span>
+                </div>
+
+                <div className="p-4 space-y-3">
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    multiple
+                    onChange={handlePhotoSelect}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={scanPhotos.some(p => p.status === 'uploading')}
+                    className="w-full flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-black py-3.5 rounded-2xl shadow-md active:scale-[0.98] transition cursor-pointer"
+                  >
+                    <ImagePlus className="w-4.5 h-4.5" />
+                    {lang === 'ta' ? '📷 புகைப்படம் எடு / இணை' : '📷 Capture / Attach Photo'}
+                  </button>
+                  <p className="text-[11px] text-slate-400 font-semibold text-center">
+                    {lang === 'ta' ? 'ஒவ்வொரு ஸ்கேனுக்கும் சேகரிப்பு ஆதார புகைப்படத்தை பதிவேற்றவும். புகைப்படங்கள் உடனே சேவையகத்தில் பதிவேற்றப்படும்.' : 'Take an evidence photo of the collection for this scan. Uploads to the server automatically.'}
+                  </p>
+
+                  {scanPhotos.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2.5">
+                      {scanPhotos.map(photo => (
+                        <div key={photo.id} className="relative rounded-xl overflow-hidden border border-slate-200 aspect-square bg-slate-50">
+                          <img src={photo.dataUrl} alt="scan evidence" className="w-full h-full object-cover" />
+                          {photo.status === 'uploading' && (
+                            <div className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center gap-1">
+                              <Loader2 className="w-5 h-5 text-white animate-spin" />
+                              <span className="text-[9px] font-black text-white uppercase">Uploading</span>
+                            </div>
+                          )}
+                          {photo.status === 'done' && (
+                            <div className="absolute inset-x-0 bottom-0 bg-black/55 flex items-center justify-center gap-1 py-1">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              <span className="text-[9px] font-black text-emerald-300 uppercase">Uploaded</span>
+                            </div>
+                          )}
+                          {photo.status === 'error' && (
+                            <div className="absolute inset-0 bg-black/65 flex items-center justify-center gap-1">
+                              <XCircle className="w-4 h-4 text-rose-400" />
+                              <span className="text-[9px] font-black text-rose-300 uppercase">Failed</span>
+                            </div>
+                          )}
+                          <button
+                            onClick={() => removePhoto(photo.id)}
+                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-rose-600 text-white flex items-center justify-center cursor-pointer border border-white/20"
+                            aria-label="Remove photo"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <button
