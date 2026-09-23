@@ -594,19 +594,23 @@ export const QRCheckpointManagementView: React.FC<Props> = ({ token }) => {
                     <img
                       src={qrImageUrl(c.qrId)}
                       alt={`QR ${c.qrId}`}
+                      onError={(e) => {
+                        const fallback = `https://chart.googleapis.com/chart?cht=qr&chs=250x250&chl=${encodeURIComponent(c.qrId)}`;
+                        if (e.currentTarget.src !== fallback) e.currentTarget.src = fallback;
+                      }}
                       className="w-20 h-20 rounded-xl border border-slate-200 bg-white object-contain flex-shrink-0"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between">
                         <span className="font-mono text-sm font-black text-emerald-800">{c.qrId}</span>
-                        <span className={`text-[11px] font-black px-2 py-0.5 rounded-full ${c.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
-                          {c.status}
+                        <span className={`text-[11px] font-black px-2 py-0.5 rounded-full ${c.status !== 'Inactive' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
+                          {c.status || 'Active'}
                         </span>
                       </div>
                       <div className="mt-1 space-y-0.5 text-[11px] text-slate-600 font-medium">
                         <div className="flex items-center space-x-1"><Home className="w-3 h-3 text-emerald-600" /><span>{c.streetName} · {c.ward}</span></div>
                         <div className="flex items-center space-x-1"><Users className="w-3 h-3 text-emerald-600" /><span className="truncate">{staffName(c)}</span></div>
-                        <div className="font-mono text-slate-500">Checkpoint #{String(c.checkpointNumber).padStart(2, '0')} · {c.households} households</div>
+                        <div className="font-mono text-slate-500">Checkpoint #{String(c.checkpointNumber || 1).padStart(2, '0')} · {c.households} households</div>
                       </div>
                       <div className="flex items-center space-x-1.5 mt-2">
                         <button onClick={() => setViewQr(c)} className="inline-flex items-center space-x-1 bg-emerald-700 text-white text-[12px] font-black px-2.5 py-1.5 rounded-lg hover:bg-emerald-600 transition">
@@ -615,6 +619,8 @@ export const QRCheckpointManagementView: React.FC<Props> = ({ token }) => {
                         <a
                           href={qrImageDownloadUrl(c.qrId)}
                           download={`${c.qrId}.png`}
+                          target="_blank"
+                          rel="noreferrer"
                           className="inline-flex items-center space-x-1 bg-white border border-slate-300 text-slate-700 text-[12px] font-black px-2.5 py-1.5 rounded-lg hover:border-emerald-300 transition"
                         >
                           <Download className="w-3 h-3" /> Download
@@ -670,13 +676,21 @@ export const QRCheckpointManagementView: React.FC<Props> = ({ token }) => {
                 <div className="text-xs font-extrabold text-slate-900">Coimbatore City Municipal Corporation</div>
                 <div className="text-[11px] text-slate-500 font-semibold">Smart Solid Waste Management</div>
                 <div className="my-3 mx-auto w-fit p-2 border border-slate-300 rounded-xl bg-white">
-                  <img src={qrImageUrl(viewQr.qrId, 20)} alt={`QR ${viewQr.qrId}`} className="w-48 h-48 object-contain" />
+                  <img
+                    src={qrImageUrl(viewQr.qrId, 300)}
+                    alt={`QR ${viewQr.qrId}`}
+                    onError={(e) => {
+                      const fallback = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(viewQr.qrId)}`;
+                      if (e.currentTarget.src !== fallback) e.currentTarget.src = fallback;
+                    }}
+                    className="w-48 h-48 object-contain"
+                  />
                 </div>
                 <div className="space-y-1 text-[11px] font-bold text-slate-800">
                   <div>Zone: <span className="font-mono">{viewQr.zone}</span></div>
                   <div>Ward: <span className="font-mono">{viewQr.ward}</span></div>
                   <div>Street: <span className="font-mono">{viewQr.streetName}</span></div>
-                  <div>Checkpoint: <span className="font-mono">#{String(viewQr.checkpointNumber).padStart(2, '0')}</span></div>
+                  <div>Checkpoint: <span className="font-mono">#{String(viewQr.checkpointNumber || 1).padStart(2, '0')}</span></div>
                   <div>QR ID: <span className="font-mono font-black text-emerald-800">{viewQr.qrId}</span></div>
                 </div>
                 <div className="mt-3 text-[11px] font-bold text-emerald-800 uppercase tracking-wider border-t border-slate-200 pt-2">

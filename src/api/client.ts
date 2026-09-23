@@ -292,12 +292,12 @@ export const adminQRGenerateZone = (token: string, zone: string): Promise<QRCrea
   });
 
 /** Absolute URL for the dynamically generated QR PNG. The image encodes ONLY the QR id (public). */
-export const qrImageUrl = (qrId: string, size = 14) =>
-  `${API_BASE}/api/admin/qr/image?qrId=${encodeURIComponent(qrId)}&size=${size}`;
+export const qrImageUrl = (qrId: string, size = 300) =>
+  `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(qrId)}`;
 
 /** Absolute URL that downloads the QR PNG (use with an anchor/link click). */
-export const qrImageDownloadUrl = (qrId: string, size = 20) =>
-  `${API_BASE}/api/admin/qr/image?qrId=${encodeURIComponent(qrId)}&size=${size}&download=1`;
+export const qrImageDownloadUrl = (qrId: string, size = 400) =>
+  `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(qrId)}`;
 
 /** ZIP download of every QR image in a zone (admin). */
 export const adminQRDownloadAll = (token: string, zone: string): Promise<Blob> =>
