@@ -439,8 +439,12 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
           }}
         />
 
-        {/* Viewfinder Window (exact match with media_1790162413143.png) */}
-        <div className="z-20 relative w-56 h-56 xs:w-64 xs:h-64 sm:w-72 sm:h-72 my-auto flex-shrink-0 flex items-center justify-center">
+        {/* Viewfinder Window (exact match with media_1790162413143.png - click to scan demo QR anytime) */}
+        <div
+          onClick={handleSreeNagarScan}
+          title={lang === 'ta' ? 'QR ஸ்கேன் செய்ய தட்டவும்' : 'Tap to scan QR code'}
+          className="z-20 relative w-56 h-56 xs:w-64 xs:h-64 sm:w-72 sm:h-72 my-auto flex-shrink-0 flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+        >
           {/* Top-Left Corner */}
           <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-white rounded-tl-xl drop-shadow-[0_0_8px_#10B981] z-20" />
           <div className="absolute top-1 left-1 w-8 h-8 rounded-tl-lg bg-emerald-500/20 border-t-2 border-l-2 border-emerald-400 z-10" />
