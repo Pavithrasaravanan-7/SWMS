@@ -368,19 +368,40 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
   return (
     <div className="flex flex-col h-full min-h-screen w-full max-w-full bg-[#0B132B] text-white overflow-hidden relative select-none font-sans">
       <style>{`
-        #${readerElementId} *:not(video) {
+        #${readerElementId},
+        #${readerElementId} > div,
+        #${readerElementId} [id*="__scan_region"] {
+          width: 100% !important;
+          height: 100% !important;
+          position: absolute !important;
+          inset: 0 !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          border: none !important;
+          background: transparent !important;
+        }
+        #${readerElementId} video {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+          position: absolute !important;
+          inset: 0 !important;
+          display: block !important;
+          z-index: 1 !important;
+        }
+        #${readerElementId} img,
+        #${readerElementId} svg,
+        #${readerElementId} canvas,
+        #${readerElementId} button,
+        #${readerElementId} span,
+        #${readerElementId} a,
+        #${readerElementId} [id*="__dashboard"] {
           display: none !important;
           visibility: hidden !important;
           opacity: 0 !important;
           width: 0 !important;
           height: 0 !important;
           pointer-events: none !important;
-        }
-        #${readerElementId} video {
-          width: 100% !important;
-          height: 100% !important;
-          object-fit: cover !important;
-          display: block !important;
         }
       `}</style>
 

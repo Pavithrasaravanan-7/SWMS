@@ -513,17 +513,39 @@ button, .btn-interactive {
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   FINAL HARD OVERRIDE: Suppress all html5-qrcode injected images/icons
-   This completely removes the camera-off white icon and dashboard SVG!
+   FINAL HARD OVERRIDE: Full-screen video stream + Suppress injected icons
+   Ensures live camera preview fills full screen behind viewfinder box.
    ════════════════════════════════════════════════════════════════════ */
+#gpay-style-qr-reader,
+#gpay-style-qr-reader > div,
+#gpay-style-qr-reader [id*="__scan_region"] {
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+  inset: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+#gpay-style-qr-reader video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  z-index: 1 !important;
+}
+
 #gpay-style-qr-reader img,
 #gpay-style-qr-reader svg,
 #gpay-style-qr-reader canvas,
 #gpay-style-qr-reader button,
 #gpay-style-qr-reader span,
-#gpay-style-qr-reader div:not(:has(video)),
-#gpay-style-qr-reader [id*="__scan_region"] img,
-#gpay-style-qr-reader [id*="__scan_region"] svg {
+#gpay-style-qr-reader a,
+#gpay-style-qr-reader [id*="__dashboard"] {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
