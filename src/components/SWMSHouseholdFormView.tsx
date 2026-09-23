@@ -576,13 +576,13 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 w-full relative font-sans">
+    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 w-full max-w-full overflow-x-hidden relative font-sans">
       
       {/* ── TOP GREEN CCMC HEADER (Image 1 Exact Layout) ── */}
-      <div className="bg-[#044D29] px-3 sm:px-4 py-2 border-b border-[#033A1F] sticky top-0 z-30 shadow-md text-white">
-        <div className="flex items-center justify-between gap-2">
+      <div className="bg-[#044D29] px-2.5 sm:px-4 py-2 border-b border-[#033A1F] sticky top-0 z-30 shadow-md text-white max-w-full overflow-hidden">
+        <div className="flex items-center justify-between gap-1.5 sm:gap-2">
           {/* Left: Back button + CM Stalin + CCMC Emblem + Titles */}
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <button
               type="button"
               onClick={onBackToScanner}
@@ -593,7 +593,7 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
             </button>
 
             {/* CCMC Emblem */}
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400 bg-white p-0.5 shadow-xs flex-shrink-0 flex items-center justify-center">
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400 bg-white p-0.5 shadow-xs flex-shrink-0 flex items-center justify-center">
               <img
                 src={ccmcLogo}
                 alt="Coimbatore City Municipal Corporation Emblem"
@@ -604,7 +604,7 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
             </div>
 
             {/* Smart City Logo */}
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400 bg-white p-0.5 shadow-xs flex-shrink-0 flex items-center justify-center">
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400 bg-white p-0.5 shadow-xs flex-shrink-0 flex items-center justify-center">
               <img
                 src={smartCityLogo}
                 alt="Smart City Mission Logo"
@@ -616,27 +616,27 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
 
             {/* Municipal Title */}
             <div className="min-w-0 flex flex-col justify-center leading-none">
-              <div className="text-[12px] sm:text-sm font-black tracking-tight text-[#FFEB3B] truncate leading-tight drop-shadow-xs">
+              <div className="text-[11px] sm:text-sm font-black tracking-tight text-[#FFEB3B] truncate leading-tight drop-shadow-xs">
                 Coimbatore City
               </div>
-              <div className="text-[11px] sm:text-xs font-black tracking-tight text-[#FFEB3B] truncate leading-tight mt-0.5 drop-shadow-xs">
+              <div className="text-[10px] sm:text-xs font-black tracking-tight text-[#FFEB3B] truncate leading-tight mt-0.5 drop-shadow-xs">
                 Municipal Corporation
               </div>
-              <div className="text-[10px] sm:text-[11px] font-black tracking-wider text-[#00E5FF] uppercase leading-tight mt-0.5 drop-shadow-xs">
+              <div className="text-[9px] sm:text-[11px] font-black tracking-wider text-[#00E5FF] uppercase leading-tight mt-0.5 drop-shadow-xs truncate">
                 SANITARY FIELD WORKER
               </div>
             </div>
           </div>
 
           {/* Right: Language Pill */}
-          <div className="bg-[#02381C] border border-emerald-600/40 rounded-full p-0.5 flex items-center shadow-xs flex-shrink-0">
+          <div className="bg-[#02381C] border border-emerald-600/40 rounded-full p-0.5 flex items-center shadow-xs flex-shrink-0 ml-auto">
             <button
               type="button"
               onClick={() => {
                 if (onSetLanguage) onSetLanguage('ta');
                 else if (lang !== 'ta' && onToggleLang) onToggleLang();
               }}
-              className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black transition-all cursor-pointer flex items-center gap-1 ${
+              className={`px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black transition-all cursor-pointer flex items-center gap-1 ${
                 lang === 'ta'
                   ? 'bg-[#FF9E00] text-slate-950 shadow-xs'
                   : 'text-emerald-200 hover:text-white hover:bg-emerald-800/50'
@@ -651,7 +651,7 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
                 if (onSetLanguage) onSetLanguage('en');
                 else if (lang !== 'en' && onToggleLang) onToggleLang();
               }}
-              className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black transition-all cursor-pointer ${
                 lang === 'en'
                   ? 'bg-[#FF9E00] text-slate-950 shadow-xs'
                   : 'text-emerald-200 hover:text-white hover:bg-emerald-800/50'
@@ -663,25 +663,25 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
         </div>
 
         {/* Subheader Pill Bar (Field Officer | KAMARAJ SALAI | ICCC Live) */}
-        <div className="mt-2 pt-1.5 border-t border-emerald-800/60 flex items-center justify-between gap-1.5 text-[11px] font-bold">
-          <div className="bg-[#02381C] text-white px-3 py-0.5 rounded-full border border-emerald-600/40 flex items-center gap-1.5 flex-shrink-0">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Field Officer: Karthik Muthusamy</span>
+        <div className="mt-2 pt-1.5 border-t border-emerald-800/60 flex flex-wrap items-center justify-between gap-1.5 text-[10px] sm:text-[11px] font-bold min-w-0">
+          <div className="bg-[#02381C] text-white px-2.5 py-0.5 rounded-full border border-emerald-600/40 flex items-center gap-1 min-w-0 max-w-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
+            <span className="truncate">Field Officer: Karthik Muthusamy</span>
           </div>
 
-          <div className="bg-white text-[#044D29] px-4 py-0.5 rounded-full shadow-sm font-black text-xs uppercase tracking-wider font-mono mx-auto flex-shrink-0">
+          <div className="bg-white text-[#044D29] px-3 py-0.5 rounded-full shadow-sm font-black text-[11px] sm:text-xs uppercase tracking-wider font-mono truncate max-w-[150px] sm:max-w-none">
             {formData.streetName || 'KAMARAJ SALAI'}
           </div>
 
-          <div className="bg-[#02381C] text-white px-3 py-0.5 rounded-full border border-emerald-600/40 flex items-center gap-1.5 flex-shrink-0">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <div className="bg-[#02381C] text-white px-2.5 py-0.5 rounded-full border border-emerald-600/40 flex items-center gap-1 flex-shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
             <span>ICCC Live</span>
           </div>
         </div>
       </div>
 
       {/* Main Form Area */}
-      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 text-xs text-slate-800 pb-28">
+      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto w-full max-w-full overflow-x-hidden p-2.5 sm:p-4 space-y-3.5 sm:space-y-4 text-xs text-slate-800 pb-28">
         
         {/* Toast feedback */}
         {editToast && (
@@ -701,32 +701,32 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
         )}
 
         {/* FIRST CARD: Location & Resident Summary */}
-        <div className="bg-white p-4 rounded-3xl border-2 border-emerald-300 shadow-sm space-y-3">
+        <div className="bg-white p-3 sm:p-4 rounded-3xl border-2 border-emerald-300 shadow-sm space-y-3 max-w-full overflow-hidden">
           {/* Header row with badges & action buttons */}
-          <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-            <div className="flex items-center space-x-2 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-emerald-50 border border-emerald-200 text-[#00875A] flex items-center justify-center font-black text-sm flex-shrink-0">
-                <MapPin className="w-4 h-4 text-[#00875A]" />
+          <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-50 border border-emerald-200 text-[#00875A] flex items-center justify-center font-black text-xs sm:text-sm flex-shrink-0">
+                <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#00875A]" />
               </div>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="bg-[#00875A] text-white text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-2xs uppercase">
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="bg-[#00875A] text-white text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-full shadow-2xs uppercase">
                   {formData.vehicleType || 'TATA ACE'}
                 </span>
-                <span className="bg-[#8B5CF6] text-white text-[11px] font-extrabold px-2.5 py-0.5 rounded-full">
+                <span className="bg-[#8B5CF6] text-white text-[10px] sm:text-[11px] font-extrabold px-2 py-0.5 rounded-full">
                   {formData.zone || 'East Zone'}
                 </span>
-                <span className="bg-[#FEF08A] text-slate-900 border border-amber-300 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full">
+                <span className="bg-[#FEF08A] text-slate-900 border border-amber-300 text-[10px] sm:text-[11px] font-extrabold px-2 py-0.5 rounded-full">
                   {formData.ward || 'Ward 12'}
                 </span>
               </div>
             </div>
 
             {/* Action buttons: Edit & Details */}
-            <div className="flex items-center space-x-2 flex-shrink-0">
+            <div className="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0 ml-auto">
               <button
                 type="button"
                 onClick={() => setShowMoreDetails(true)}
-                className="bg-[#00875A] hover:bg-[#00704A] text-white font-black text-xs px-3.5 py-1.5 rounded-xl shadow-xs flex items-center space-x-1.5 cursor-pointer transition active:scale-95"
+                className="bg-[#00875A] hover:bg-[#00704A] text-white font-black text-[11px] sm:text-xs px-2.5 sm:px-3.5 py-1.5 rounded-xl shadow-xs flex items-center space-x-1 cursor-pointer transition active:scale-95"
               >
                 <Pencil className="w-3.5 h-3.5 text-white" />
                 <span>Edit</span>
@@ -735,7 +735,7 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
               <button
                 type="button"
                 onClick={() => setShowMoreDetails(true)}
-                className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-2xs flex items-center space-x-1.5 cursor-pointer transition"
+                className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-[11px] sm:text-xs px-2.5 sm:px-3.5 py-1.5 rounded-xl shadow-2xs flex items-center space-x-1 cursor-pointer transition"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5 text-slate-600" />
                 <span>Details</span>
@@ -744,28 +744,28 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
           </div>
 
           {/* Body */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
+          <div className="space-y-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
+              <h3 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate max-w-full">
                 {formData.streetName || 'Kamaraj Salai'}
               </h3>
               {formData.doorNo && !formData.doorNo.toLowerCase().includes('optional') && !formData.doorNo.includes('விருப்பத்திற்குரியது') ? (
-                <span className="text-xs font-mono font-extrabold text-[#044D29] bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+                <span className="text-xs font-mono font-extrabold text-[#044D29] bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                   Door #{formData.doorNo}
                 </span>
               ) : isPushCart ? (
-                <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200/80">
+                <span className="text-[10px] sm:text-[11px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80">
                   {lang === 'ta' ? 'கதவு எண்: விருப்பத்திற்குரியது (Pushcart)' : 'Door No: Optional (Pushcart)'}
                 </span>
               ) : null}
             </div>
-            <p className="text-xs text-slate-600 font-medium flex items-center gap-1">
+            <p className="text-xs text-slate-600 font-medium flex items-center gap-1 flex-wrap min-w-0">
               <User className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-              <span>{formData.householderName || 'Ramanathan'}</span>
+              <span className="truncate">{formData.householderName || 'Ramanathan'}</span>
               <span className="text-slate-400">•</span>
               <span className="font-mono text-slate-700">{formData.householderContact || '9840123456'}</span>
             </p>
-            <p className="text-xs text-slate-500 font-medium">
+            <p className="text-xs text-slate-500 font-medium truncate">
               Officers: SI {formData.siName || 'K. Rajan'} ({formData.siContact || '9876543210'}) • Driver {formData.driverWorkerName || 'P. Murugan'}
             </p>
           </div>
@@ -912,16 +912,16 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
             </div>
           </div>
         ) : (
-          <div className="bg-white p-4 rounded-3xl border-2 border-emerald-300 shadow-sm space-y-3.5">
+          <div className="bg-white p-3 sm:p-4 rounded-3xl border-2 border-emerald-300 shadow-sm space-y-3 sm:space-y-3.5 max-w-full overflow-hidden">
             {/* Header row */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-1.5">
-                <Sparkles className="w-4 h-4 text-emerald-600" />
-                <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide">
+            <div className="flex flex-wrap items-center justify-between gap-1.5 min-w-0">
+              <div className="flex items-center space-x-1.5 min-w-0">
+                <Sparkles className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide truncate">
                   STREET COVERAGE STATUS (VEHICLE)
                 </h4>
               </div>
-              <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
+              <span className={`text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border flex-shrink-0 ${
                 completedScansCount === 5
                   ? 'bg-emerald-100 text-[#00875A] border-emerald-300'
                   : completedScansCount === 4
@@ -933,22 +933,22 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
             </div>
 
             {/* Subheader */}
-            <div className="flex items-center justify-between border-t border-slate-100 pt-2.5">
-              <div className="flex items-center space-x-1.5 text-xs font-black text-slate-800">
-                <QrCode className="w-4 h-4 text-[#00875A]" />
-                <span>5 Street QR Checkpoints ({completedScansCount}/5 Scanned)</span>
+            <div className="flex flex-wrap items-center justify-between gap-1.5 border-t border-slate-100 pt-2.5 min-w-0">
+              <div className="flex items-center space-x-1.5 text-[11px] sm:text-xs font-black text-slate-800 min-w-0">
+                <QrCode className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#00875A] flex-shrink-0" />
+                <span className="truncate">5 Checkpoints ({completedScansCount}/5 Scanned)</span>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0 ml-auto">
                 <button
                   type="button"
                   onClick={() => handleResetAllScans()}
-                  className="text-[11px] font-bold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-2.5 py-0.5 rounded-lg border border-rose-200 transition cursor-pointer"
+                  className="text-[10px] sm:text-[11px] font-bold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-2 py-0.5 rounded-lg border border-rose-200 transition cursor-pointer"
                   title="Reset all 5 checkpoints to Pending X"
                 >
                   Reset Scans
                 </button>
-                <span className="text-[11px] text-slate-400 font-mono">
-                  {lang === 'ta' ? 'கேமரா ஸ்கேன் மட்டும்' : 'Camera QR Only'}
+                <span className="text-[10px] sm:text-[11px] text-slate-400 font-mono">
+                  {lang === 'ta' ? 'கேமரா ஸ்கேன்' : 'Camera QR'}
                 </span>
               </div>
             </div>
@@ -956,46 +956,46 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
             {/* Warning msg if user tries to tap cards manually */}
             {scanWarnMsg && (
               <div className="bg-amber-50 border border-amber-300 text-amber-900 rounded-xl p-2.5 text-xs font-bold flex items-center justify-between gap-2 animate-fadeIn">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 min-w-0">
                   <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                  <span>{scanWarnMsg}</span>
+                  <span className="truncate">{scanWarnMsg}</span>
                 </div>
-                <button type="button" onClick={() => setScanWarnMsg(null)} className="text-amber-700 hover:text-amber-900 font-black cursor-pointer">
+                <button type="button" onClick={() => setScanWarnMsg(null)} className="text-amber-700 hover:text-amber-900 font-black cursor-pointer flex-shrink-0">
                   ✕
                 </button>
               </div>
             )}
 
             {/* 5 Checkpoints Grid */}
-            <div className="grid grid-cols-5 gap-2 sm:gap-3">
+            <div className="grid grid-cols-5 gap-1 sm:gap-2.5 w-full">
               {streetScans.map((scan) => {
                 const isDone = scan.isScanned;
                 return (
                   <div
                     key={scan.id}
                     onClick={() => handleScanCardClick(scan)}
-                    className={`flex flex-col items-center justify-center py-3 px-1 rounded-2xl border-2 text-center select-none cursor-pointer transition active:scale-95 ${
+                    className={`flex flex-col items-center justify-center py-2 sm:py-3 px-0.5 rounded-xl sm:rounded-2xl border sm:border-2 text-center select-none cursor-pointer transition active:scale-95 min-w-0 ${
                       isDone
                         ? 'bg-[#E6F4EA] border-[#00D084] text-slate-900 shadow-2xs'
                         : 'bg-[#FEF2F2] border-[#FCA5A5] text-[#991B1B]'
                     }`}
                     title={isDone ? `Scan ${scan.id} Scanned ✓` : `Scan ${scan.id}: QR Camera scan required`}
                   >
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black mb-1 shadow-2xs ${
+                    <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-black mb-0.5 sm:mb-1 shadow-2xs flex-shrink-0 ${
                       isDone
                         ? 'bg-[#00A86B] text-white'
                         : 'bg-[#EF4444] text-white'
                     }`}>
                       {isDone ? (
-                        <Check className="w-4 h-4 stroke-[3]" />
+                        <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
                       ) : (
-                        <X className="w-4 h-4 stroke-[3]" />
+                        <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
                       )}
                     </div>
-                    <span className="text-xs font-black truncate w-full leading-tight text-slate-900">
+                    <span className="text-[10px] sm:text-xs font-black truncate w-full leading-tight text-slate-900">
                       Scan {scan.id}
                     </span>
-                    <span className={`text-[11px] font-bold mt-0.5 leading-tight ${
+                    <span className={`text-[9px] sm:text-[11px] font-bold mt-0.5 leading-tight truncate w-full ${
                       isDone ? 'text-[#00A86B] font-mono' : 'text-[#DC2626]'
                     }`}>
                       {isDone ? (scan.scannedAt || 'Done ✓') : 'Pending X'}
@@ -1006,15 +1006,15 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
             </div>
 
             {/* Bottom Alert Banner inside Second Card */}
-            <div className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 ${
+            <div className={`p-3 sm:p-3.5 rounded-2xl border flex items-center justify-between gap-2.5 sm:gap-3 ${
               completedScansCount === 5
                 ? 'bg-emerald-50 border-emerald-200 text-[#00875A]'
                 : completedScansCount === 4
                 ? 'bg-amber-50 border-amber-200 text-amber-900'
                 : 'bg-[#FFEAEA] border-[#FCA5A5] text-[#991B1B]'
             }`}>
-              <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-black text-white ${
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center flex-shrink-0 font-black text-white text-sm sm:text-base ${
                   completedScansCount === 5
                     ? 'bg-[#00A86B]'
                     : completedScansCount === 4
@@ -1023,15 +1023,15 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
                 }`}>
                   {completedScansCount === 5 ? '✓' : '!'}
                 </div>
-                <div>
-                  <h5 className="text-sm font-black leading-tight text-[#C53030]">
+                <div className="min-w-0">
+                  <h5 className="text-xs sm:text-sm font-black leading-tight text-[#C53030] truncate">
                     {completedScansCount === 5
                       ? 'STREET COVERED (5/5 CHECKPOINTS)'
                       : completedScansCount === 4
                       ? 'PARTIALLY COVERED (4/5 CHECKPOINTS)'
                       : `NOT COVERED (${completedScansCount}/5 CHECKPOINTS)`}
                   </h5>
-                  <p className="text-xs font-semibold text-[#991B1B] mt-0.5">
+                  <p className="text-[11px] sm:text-xs font-semibold text-[#991B1B] mt-0.5 truncate">
                     {completedScansCount === 5
                       ? 'All 5 checkpoints scanned • 100% Covered ✓'
                       : `${5 - completedScansCount} or fewer checkpoints scanned • Not Covered ⚠️ (${5 - completedScansCount} checkpoint(s) pending)`}
@@ -1176,20 +1176,20 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
 
       {/* EDIT HOUSEHOLD & OFFICER DETAILS MODAL (Image 3 & Image 4 Exact Layout) */}
       {showMoreDetails && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white border-2 border-emerald-500 rounded-[28px] max-w-[640px] w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl animate-scaleIn">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2.5 sm:p-4">
+          <div className="bg-white border-2 border-emerald-500 rounded-[24px] sm:rounded-[28px] max-w-full sm:max-w-[640px] w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl animate-scaleIn">
 
             {/* Modal Header */}
-            <div className="bg-[#166534] text-white px-4 py-3 flex items-center justify-between border-b border-emerald-800">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                  <Pencil className="w-5 h-5 text-white" />
+            <div className="bg-[#166534] text-white px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between border-b border-emerald-800">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <Pencil className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-base sm:text-lg font-black text-white tracking-tight leading-tight">
+                  <h3 className="text-sm sm:text-lg font-black text-white tracking-tight leading-tight truncate">
                     ✏️ Edit Household &amp; Officer Details
                   </h3>
-                  <p className="text-xs font-semibold text-emerald-100 truncate mt-0.5 font-mono">
+                  <p className="text-[10px] sm:text-xs font-semibold text-emerald-100 truncate mt-0.5 font-mono">
                     {formData.houseId || 'HID100101'} • {formData.streetName || 'Kamaraj Salai'} • {formData.ward || 'Ward 12'}
                   </p>
                 </div>
@@ -1197,7 +1197,7 @@ export const SWMSHouseholdFormView: React.FC<SWMSHouseholdFormViewProps> = ({
               <button
                 type="button"
                 onClick={() => setShowMoreDetails(false)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer flex-shrink-0"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer flex-shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
