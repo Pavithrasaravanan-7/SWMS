@@ -480,25 +480,54 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
         </div>
 
         {/* Center Square Viewfinder Window — compact sizing for clean spacing */}
-        <div className="z-20 relative w-40 h-40 xs:w-48 xs:h-48 sm:w-64 sm:h-64 my-auto flex-shrink-0 pointer-events-none">
-          {/* 4 corner L-brackets */}
-          <span className="absolute top-0 left-0 w-7 sm:w-10 h-7 sm:h-10 border-t-4 border-l-4 border-emerald-400 rounded-tl-2xl drop-shadow-[0_0_8px_#10B981]" />
-          <span className="absolute top-0 right-0 w-7 sm:w-10 h-7 sm:h-10 border-t-4 border-r-4 border-emerald-400 rounded-tr-2xl drop-shadow-[0_0_8px_#10B981]" />
-          <span className="absolute bottom-0 left-0 w-7 sm:w-10 h-7 sm:h-10 border-b-4 border-l-4 border-emerald-400 rounded-bl-2xl drop-shadow-[0_0_8px_#10B981]" />
-          <span className="absolute bottom-0 right-0 w-7 sm:w-10 h-7 sm:h-10 border-b-4 border-r-4 border-emerald-400 rounded-br-2xl drop-shadow-[0_0_8px_#10B981]" />
-
-          {/* Sleek laser scan beam */}
-          {!isSuccessFlash && (
-            <div className="absolute left-1 right-1 h-[2px] bg-emerald-400 shadow-[0_0_8px_#10B981] animate-[scan_2s_ease-in-out_infinite]" />
-          )}
-
-          {/* Success green fill overlay */}
-          {isSuccessFlash && (
-            <div className="absolute inset-0 rounded-2xl bg-emerald-600/40 flex items-center justify-center animate-pulse">
-              <div className="w-14 h-14 sm:w-18 sm:h-18 rounded-full bg-white flex items-center justify-center shadow-2xl">
-                <CheckCircle2 className="w-9 h-9 sm:w-11 sm:h-11 text-emerald-600" />
+        <div className="z-20 relative w-40 h-40 xs:w-48 xs:h-48 sm:w-64 sm:h-64 my-auto flex-shrink-0">
+          {/* If camera unavailable, render fallback UI inside viewfinder to match deployed layout */}
+          {cameraError ? (
+            <div className="absolute inset-0 bg-black/80 rounded-2xl flex flex-col items-center justify-center p-4 text-center">
+              <div className="w-20 h-20 rounded-full border-2 border-[#1E7A38] bg-emerald-900/10 flex items-center justify-center mb-3">
+                <Camera className="w-10 h-10 text-[#1E7A38]" />
+              </div>
+              <div className="text-sm font-black text-white mb-2">{lang === 'ta' ? 'கேமரா கிடைக்கவில்லை' : 'Camera Not Available'}</div>
+              <div className="text-xs text-white/70 mb-3 max-w-xs">{cameraError}</div>
+              <div className="flex gap-2 w-full max-w-xs">
+                <button
+                  onClick={() => startCamera(cameraFacing)}
+                  className="flex-1 bg-[#1E7A38] hover:bg-[#166534] text-white font-black text-xs px-3 py-2 rounded-xl transition shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>{lang === 'ta' ? 'மீண்டும் முயற்சி' : 'Retry Camera'}</span>
+                </button>
+                <button
+                  onClick={handleSreeNagarScan}
+                  className="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs px-3 py-2 rounded-xl transition shadow-lg active:scale-95 flex items-center justify-center gap-2 border border-amber-400"
+                >
+                  <Route className="w-4 h-4" />
+                  <span>{lang === 'ta' ? 'ஸ்ரீ நகர் ஸ்கேன்' : 'Test Scan'}</span>
+                </button>
               </div>
             </div>
+          ) : (
+          {/* 4 corner L-brackets */}
+            <>
+              <span className="absolute top-0 left-0 w-7 sm:w-10 h-7 sm:h-10 border-t-4 border-l-4 border-emerald-400 rounded-tl-2xl drop-shadow-[0_0_8px_#10B981]" />
+              <span className="absolute top-0 right-0 w-7 sm:w-10 h-7 sm:h-10 border-t-4 border-r-4 border-emerald-400 rounded-tr-2xl drop-shadow-[0_0_8px_#10B981]" />
+              <span className="absolute bottom-0 left-0 w-7 sm:w-10 h-7 sm:h-10 border-b-4 border-l-4 border-emerald-400 rounded-bl-2xl drop-shadow-[0_0_8px_#10B981]" />
+              <span className="absolute bottom-0 right-0 w-7 sm:w-10 h-7 sm:h-10 border-b-4 border-r-4 border-emerald-400 rounded-br-2xl drop-shadow-[0_0_8px_#10B981]" />
+
+              {/* Sleek laser scan beam */}
+              {!isSuccessFlash && (
+                <div className="absolute left-1 right-1 h-[2px] bg-emerald-400 shadow-[0_0_8px_#10B981] animate-[scan_2s_ease-in-out_infinite]" />
+              )}
+
+              {/* Success green fill overlay */}
+              {isSuccessFlash && (
+                <div className="absolute inset-0 rounded-2xl bg-emerald-600/40 flex items-center justify-center animate-pulse">
+                  <div className="w-14 h-14 sm:w-18 sm:h-18 rounded-full bg-white flex items-center justify-center shadow-2xl">
+                    <CheckCircle2 className="w-9 h-9 sm:w-11 sm:h-11 text-emerald-600" />
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -511,36 +540,7 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
           </div>
         )}
 
-        {/* Camera error fallback overlay */}
-        {cameraError && (
-          <div className="absolute inset-0 z-40 bg-black flex flex-col items-center justify-center p-6 text-center gap-4">
-            <div className="w-14 h-14 rounded-full border-2 border-[#1E7A38] bg-emerald-950 flex items-center justify-center">
-              <Camera className="w-7 h-7 text-[#1E7A38]" />
-            </div>
-            <div>
-              <h3 className="text-sm font-black text-white mb-1">
-                {lang === 'ta' ? 'கேமரா கிடைக்கவில்லை' : 'Camera Not Available'}
-              </h3>
-              <p className="text-xs text-white/60 max-w-xs leading-relaxed">{cameraError}</p>
-            </div>
-            <div className="flex flex-col gap-2 w-full max-w-xs">
-              <button
-                onClick={() => startCamera(cameraFacing)}
-                className="w-full bg-[#1E7A38] hover:bg-[#166534] text-white font-black text-xs px-4 py-3 rounded-xl transition shadow-lg active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <RefreshCw className="w-4 h-4" />
-                {lang === 'ta' ? 'கேமரா திறக்க முயற்சி' : 'Retry Camera'}
-              </button>
-              <button
-                onClick={handleSreeNagarScan}
-                className="w-full bg-amber-500 hover:bg-amber-400 text-black font-black text-xs px-4 py-3 rounded-xl transition shadow-lg active:scale-95 flex items-center justify-center gap-2 cursor-pointer border border-amber-400"
-              >
-                <Route className="w-4 h-4" />
-                {lang === 'ta' ? 'ஸ்ரீ நகர் ஸ்கேன் (சோதனை)' : 'Sree Nagar Test Scan'}
-              </button>
-            </div>
-          </div>
-        )}
+        {/* cameraError UI is rendered inside the viewfinder area for a consistent layout */}
       </div>
 
       {/* ── 3. BOTTOM TOOLBAR ── */}
