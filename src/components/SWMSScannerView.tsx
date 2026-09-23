@@ -350,6 +350,30 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
 
   return (
     <div className="flex flex-col h-full min-h-screen w-full max-w-full bg-black text-white overflow-hidden relative select-none font-sans">
+      <style>{`
+        #${readerElementId} img,
+        #${readerElementId} svg,
+        #${readerElementId} canvas,
+        #${readerElementId} button,
+        #${readerElementId} span,
+        #${readerElementId} a,
+        #${readerElementId} [id*="__scan_region"] img,
+        #${readerElementId} [id*="__scan_region"] svg,
+        #${readerElementId} [id*="__dashboard"] {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          width: 0 !important;
+          height: 0 !important;
+          pointer-events: none !important;
+        }
+        #${readerElementId} video {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+          display: block !important;
+        }
+      `}</style>
 
       {/* ── 1. TOP BAR ── */}
       <div className="flex-shrink-0 z-30 flex items-center justify-between px-3 py-2 bg-[#121212] border-b border-white/10">
