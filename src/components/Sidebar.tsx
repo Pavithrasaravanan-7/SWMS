@@ -94,6 +94,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       image: AI_PREDICTION_ICON_URL,
       badge: 'AI',
     },
+    {
+      id: 'qr-management' as NavigationTab,
+      label: lang === 'ta' ? 'QR மேலாண்மை' : 'QR Management',
+      shortLabel: lang === 'ta' ? 'QR மேலாண்மை' : 'QR Management',
+      type: 'icon',
+      icon: QrCode,
+      badge: 'QR',
+    },
   ];
 
   return (
@@ -271,6 +279,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-2 py-0.5 rounded-md uppercase tracking-wider">
               AI
+            </span>
+          </button>
+
+          {/* 7. QR Management Tab (QR Checkpoint Admin) */}
+          <button
+            onClick={() => handleTabClick('qr-management')}
+            className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl font-bold text-sm transition-all text-left cursor-pointer ${
+              activeTab === 'qr-management'
+                ? 'bg-[#E9F5ED] text-[#1E7A38] shadow-xs border border-emerald-300/80'
+                : 'text-gray-700 hover:bg-gray-100 hover:text-[#1E7A38]'
+            }`}
+          >
+            <div className="flex items-center gap-3.5">
+              <div
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors shadow-xs ${
+                  activeTab === 'qr-management'
+                    ? 'bg-[#1E7A38] text-white'
+                    : 'bg-white text-[#1E7A38] border border-emerald-300'
+                }`}
+              >
+                <QrCode className="w-6 h-6" />
+              </div>
+              <span className="text-base font-bold">{lang === 'ta' ? 'QR மேலாண்மை' : 'QR Management'}</span>
+            </div>
+            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-2 py-0.5 rounded-md uppercase tracking-wider">
+              QR
             </span>
           </button>
         </div>

@@ -377,6 +377,13 @@ export const CommissionerConsole: React.FC<CommissionerConsoleProps> = ({
             </div>
           )}
 
+          {/* TAB: QR CHECKPOINT MANAGEMENT (QR code creation & administration) */}
+          {activeTab === 'qr-management' && (
+            <div className="space-y-6">
+              <QRCheckpointManagementView token={token || 'demo-token'} />
+            </div>
+          )}
+
           {/* TAB 8: SBM ADMIN VIEW */}
           {activeTab === 'sbm-admin' && (
             <div className="space-y-6">
