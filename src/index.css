@@ -462,12 +462,11 @@ button, input, optgroup, select, textarea {
    lightweight container utility, and minor font scaling).
    ========================== */
 
-/* Make images and svgs fluid by default so cards and lists
-   collapse properly on narrow viewports */
-img, svg {
+/* Make images and svgs fluid by default (except html5-qrcode container) */
+:not(#gpay-style-qr-reader) > img,
+:not(#gpay-style-qr-reader) > svg {
   max-width: 100%;
   height: auto;
-  display: block;
 }
 
 /* Simple centered responsive container utility */
@@ -511,4 +510,24 @@ button, .btn-interactive {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   FINAL HARD OVERRIDE: Suppress all html5-qrcode injected images/icons
+   This completely removes the camera-off white icon and dashboard SVG!
+   ════════════════════════════════════════════════════════════════════ */
+#gpay-style-qr-reader img,
+#gpay-style-qr-reader svg,
+#gpay-style-qr-reader canvas,
+#gpay-style-qr-reader button,
+#gpay-style-qr-reader span,
+#gpay-style-qr-reader div:not(:has(video)),
+#gpay-style-qr-reader [id*="__scan_region"] img,
+#gpay-style-qr-reader [id*="__scan_region"] svg {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
 }
