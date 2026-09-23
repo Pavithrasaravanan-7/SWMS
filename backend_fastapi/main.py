@@ -1,4 +1,12 @@
 import os
+import sys
+from pathlib import Path
+
+# Ensure backend_fastapi directory is in Python path for imports
+_backend_dir = str(Path(__file__).parent.resolve())
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
 import io
 import base64
 import hashlib

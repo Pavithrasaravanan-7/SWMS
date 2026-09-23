@@ -507,8 +507,7 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
               </div>
             </div>
           ) : (
-          {/* 4 corner L-brackets */}
-            <>
+            <React.Fragment>
               <span className="absolute top-0 left-0 w-7 sm:w-10 h-7 sm:h-10 border-t-4 border-l-4 border-emerald-400 rounded-tl-2xl drop-shadow-[0_0_8px_#10B981]" />
               <span className="absolute top-0 right-0 w-7 sm:w-10 h-7 sm:h-10 border-t-4 border-r-4 border-emerald-400 rounded-tr-2xl drop-shadow-[0_0_8px_#10B981]" />
               <span className="absolute bottom-0 left-0 w-7 sm:w-10 h-7 sm:h-10 border-b-4 border-l-4 border-emerald-400 rounded-bl-2xl drop-shadow-[0_0_8px_#10B981]" />
@@ -527,7 +526,7 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
                   </div>
                 </div>
               )}
-            </>
+            </React.Fragment>
           )}
         </div>
 
