@@ -265,17 +265,26 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
       if (errMsg.includes('NotAllowedError') || errMsg.includes('Permission')) {
         setCameraError(
           lang === 'ta'
-            ? 'கேமரா அனுமதி தேவைப்படுகிறது. பிரவுசரில் கேமரா அனுமதியை வழங்கவும் அல்லது கீழே உள்ள "லேப்டாப் / டெஸ்ட் ஸ்கேன்" பொத்தானைப் பயன்படுத்தவும்.'
+            ? 'கேமரா அனுமதி தேவைப்படுகிறது. பிரவுசரில் கேமரா அனுமதியை வழங்கவும் அல்லது கீழே உள்ள "டெஸ்ட் ஸ்கேன்" பொத்தானைப் பயன்படுத்தவும்.'
             : 'Camera permission is required. Please allow camera access in browser settings, or click "Test Scan" below.'
         );
       } else {
         setCameraError(
           lang === 'ta'
-            ? 'நேரடி கேமரா கிடைக்கவில்லை. சோதிக்க கீழே உள்ள "லேப்டாப் / டெஸ்ட் ஸ்கேன்" பொத்தானைப் அழுத்தவும்.'
+            ? 'நேரடி கேமரா கிடைக்கவில்லை. சோதிக்க கீழே உள்ள "டெஸ்ட் ஸ்கேன்" பொத்தானைப் அழுத்தவும்.'
             : 'Live camera stream is unavailable. Click "Test Scan" below to simulate scanning.'
         );
       }
       setIsCameraActive(false);
+      // Clean DOM container to remove injected raw html5qrcode SVGs/IMGs
+      try {
+        const container = document.getElementById(readerElementId);
+        if (container) {
+          Array.from(container.children).forEach(child => {
+            if (child.tagName !== 'VIDEO') child.remove();
+          });
+        }
+      } catch {}
     }
   };
 
@@ -291,6 +300,14 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
       }
     }
     setIsCameraActive(false);
+    try {
+      const container = document.getElementById(readerElementId);
+      if (container) {
+        Array.from(container.children).forEach(child => {
+          if (child.tagName !== 'VIDEO') child.remove();
+        });
+      }
+    } catch {}
   };
 
   // Auto start camera on component mount

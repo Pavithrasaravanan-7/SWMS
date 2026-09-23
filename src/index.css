@@ -91,6 +91,36 @@ button, input, optgroup, select, textarea {
   line-height: 1.5 !important;
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   SWMS QR SCANNER SUPPRESSION RULES
+   Hide raw html5-qrcode injected SVG corners, camera-off SVG images,
+   dashboards, and buttons globally across the app.
+   ════════════════════════════════════════════════════════════════════ */
+#gpay-style-qr-reader img,
+#gpay-style-qr-reader svg,
+#gpay-style-qr-reader canvas,
+#gpay-style-qr-reader button,
+#gpay-style-qr-reader span,
+#gpay-style-qr-reader a,
+#gpay-style-qr-reader [id*="__scan_region"] img,
+#gpay-style-qr-reader [id*="__scan_region"] svg,
+#gpay-style-qr-reader [id*="__scan_region"] canvas,
+#gpay-style-qr-reader [id*="__dashboard"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+}
+
+#gpay-style-qr-reader video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
 /* Leaflet map base container guarantees */
 .leaflet-container {
   width: 100% !important;
