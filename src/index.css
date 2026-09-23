@@ -424,3 +424,61 @@ button, input, optgroup, select, textarea {
   background-size: 200% 200%;
   animation: softGlowMesh 10s ease infinite;
 }
+
+/* ==========================
+   Mobile / Touch Responsiveness
+   Added small, safe helpers that improve mobile rendering
+   without changing component markup (touch targets, images,
+   lightweight container utility, and minor font scaling).
+   ========================== */
+
+/* Make images and svgs fluid by default so cards and lists
+   collapse properly on narrow viewports */
+img, svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Simple centered responsive container utility */
+.container-responsive {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Touch-friendly controls and avoid accidental double-tap highlights */
+button, .btn-interactive {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+}
+
+/* Slightly reduce base font on very small screens and increase
+   spacing for tappable areas. Tailwind still controls most layout
+   so these are conservative fallbacks. */
+@media (max-width: 640px) {
+  html {
+    font-size: 15px;
+  }
+
+  /* Make clickable pills and header buttons easier to hit */
+  .btn-interactive, button, .rounded-full {
+    min-height: 40px;
+    min-width: 40px;
+  }
+
+  /* Ensure maps and other 100%-height containers remain usable */
+  .leaflet-container {
+    height: 56vh !important;
+  }
+
+  /* Utility: truncate long labels in compact UI */
+  .text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

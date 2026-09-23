@@ -182,12 +182,12 @@ export const SWMSCollectionDashboardView: React.FC<SWMSCollectionDashboardViewPr
       {/* ── GREEN CCMC HEADER (admin-style) ── */}
       <header className="w-full select-none text-white shadow-md sticky top-0 z-30 bg-[#1E7A38]">
         {/* Top Main Green Bar - matches admin Header (#1E7A38) */}
-        <div className="bg-[#1E7A38] px-3 sm:px-4 lg:px-5 pt-2 pb-2.5 border-b border-[#166534] flex items-center justify-between gap-1.5 sm:gap-4">
+        <div className="bg-[#1E7A38] px-2.5 sm:px-4 lg:px-5 pt-2 pb-2 border-b border-[#166534] flex items-center justify-between gap-1 sm:gap-4">
           {/* Left: CCMC Emblem + Smart City Logo + Municipal Titles */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-1 overflow-hidden">
             <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
               <div
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400 bg-white p-0.5 shadow-sm relative flex-shrink-0 flex items-center justify-center"
+                className="w-7 h-7 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400 bg-white p-0.5 shadow-sm relative flex-shrink-0 flex items-center justify-center"
                 title="Coimbatore City Municipal Corporation Emblem"
               >
                 <img
@@ -199,7 +199,7 @@ export const SWMSCollectionDashboardView: React.FC<SWMSCollectionDashboardViewPr
                 />
               </div>
               <div
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400 bg-white p-0.5 shadow-sm relative flex-shrink-0 flex items-center justify-center"
+                className="w-7 h-7 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400 bg-white p-0.5 shadow-sm relative flex-shrink-0 flex items-center justify-center"
                 title="Smart City Mission"
               >
                 <img
@@ -215,8 +215,8 @@ export const SWMSCollectionDashboardView: React.FC<SWMSCollectionDashboardViewPr
             {/* Municipal Titles - Mobile stacked, Desktop single line (like admin) */}
             <div className="min-w-0 flex flex-col justify-center">
               <div className="sm:hidden flex flex-col leading-none">
-                <div className="text-[12px] font-black tracking-tight text-white truncate leading-tight drop-shadow-xs">Coimbatore City</div>
-                <div className="text-[10px] font-black tracking-tight text-amber-300 truncate leading-tight mt-0.5 drop-shadow-xs overflow-visible">Municipal Corporation</div>
+                <div className="text-[11px] font-black tracking-tight text-white truncate leading-tight drop-shadow-xs">Coimbatore City</div>
+                <div className="text-[9.5px] font-black tracking-tight text-amber-300 truncate leading-tight mt-0.5 drop-shadow-xs">Municipal Corporation</div>
               </div>
               <div className="hidden sm:flex sm:items-center sm:gap-2 leading-tight">
                 <span className="text-sm lg:text-base font-black tracking-tight text-white whitespace-nowrap drop-shadow-xs">Coimbatore City Municipal Corporation</span>
@@ -225,7 +225,7 @@ export const SWMSCollectionDashboardView: React.FC<SWMSCollectionDashboardViewPr
           </div>
 
           {/* Right: Vehicle Pill + Language + Logout */}
-          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 flex-shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 flex-shrink-0">
 
             {/* Vehicle / Worker pill (like admin profile pill) — icon-only on mobile, full on larger */}
             <div
@@ -295,29 +295,29 @@ export const SWMSCollectionDashboardView: React.FC<SWMSCollectionDashboardViewPr
               className="sm:hidden p-1.5 rounded-full bg-[#E11D48] hover:bg-[#BE123C] active:bg-[#9F1239] text-white shadow-md border border-rose-400/50 cursor-pointer active:scale-95 flex-shrink-0 flex items-center justify-center"
               title="Logout Portal / வெளியேறு"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
         {/* Line 2 (Mobile only): Full-width vehicle/worker pill */}
-        <div className="sm:hidden flex items-center gap-2 px-3 pb-2 pt-1 border-t border-[#166534]">
+        <div className="sm:hidden flex items-center justify-between gap-1 px-2.5 pb-1.5 pt-1 border-t border-[#166534] bg-[#166534]/50">
           <div
-            className="flex items-center gap-2 bg-[#166534] hover:bg-[#113B22] border border-emerald-400/40 rounded-full pl-1.5 pr-2.5 py-1 shadow-sm flex-shrink-0"
+            className="flex items-center gap-1.5 bg-[#166534] border border-emerald-400/40 rounded-full pl-1 pr-2 py-0.5 shadow-sm flex-shrink-0 max-w-[65%]"
             title={`${vehicleNo}`}
           >
-            <div className="w-6 h-6 rounded-md bg-white shadow-xs flex items-center justify-center border border-emerald-200 flex-shrink-0 overflow-hidden" title="Assigned Vehicle">
-              {isPushcart ? <UserCheck className="w-3.5 h-3.5 text-[#1E7A38]" /> : <Truck className="w-3.5 h-3.5 text-[#1E7A38]" />}
+            <div className="w-5 h-5 rounded-md bg-white shadow-xs flex items-center justify-center border border-emerald-200 flex-shrink-0 overflow-hidden" title="Assigned Vehicle">
+              {isPushcart ? <UserCheck className="w-3 h-3 text-[#1E7A38]" /> : <Truck className="w-3 h-3 text-[#1E7A38]" />}
             </div>
-            <div className="text-left leading-tight">
-              <div className="text-[11px] font-black text-white font-mono whitespace-nowrap truncate max-w-[140px]">{vehicleNumber || vehicleNo}</div>
-              <div className="text-[9px] font-semibold text-emerald-200 tracking-wider leading-none mt-0.5">{vehicleType}</div>
+            <div className="text-left leading-none min-w-0">
+              <div className="text-[10px] font-black text-white font-mono truncate">{vehicleNumber || vehicleNo}</div>
+              <div className="text-[8.5px] font-semibold text-emerald-200 tracking-wider truncate mt-0.5">{vehicleType}</div>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-[10px] font-bold text-emerald-100 truncate">East Zone</span>
+          <div className="flex items-center gap-1 min-w-0 flex-shrink-0">
+            <span className="text-[9.5px] font-bold text-emerald-100 truncate">East Zone</span>
             <span className="w-1 h-1 rounded-full bg-amber-300 flex-shrink-0"></span>
-            <span className="text-[10px] font-bold text-amber-300 truncate">Ward 24</span>
+            <span className="text-[9.5px] font-bold text-amber-300 truncate">Ward 24</span>
           </div>
         </div>
       </header>

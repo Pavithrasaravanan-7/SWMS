@@ -342,7 +342,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           />
 
           {/* Drawer Panel */}
-          <div className="relative w-4/5 max-w-xs bg-[#F2F4F3] min-h-screen shadow-2xl flex flex-col justify-between p-4 z-10 animate-in slide-in-from-left duration-250 border-r border-gray-200 overflow-y-auto">
+          <div className="relative w-full sm:w-4/5 max-w-xs bg-[#F2F4F3] min-h-screen shadow-2xl flex flex-col justify-between p-4 z-10 animate-in slide-in-from-left duration-250 border-r border-gray-200 overflow-y-auto">
             <div className="space-y-4">
               {/* Drawer Header */}
               <div className="flex items-center justify-between pb-3 border-b border-gray-200">
@@ -377,7 +377,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <button
                       key={item.id}
                       onClick={() => handleTabClick(item.id)}
-                      className={`w-full flex items-center justify-between p-2.5 rounded-2xl font-bold text-sm transition-all text-left cursor-pointer ${
+                      className={`w-full flex items-center justify-between p-3 rounded-2xl font-bold text-sm transition-all text-left cursor-pointer ${
                         isActive
                           ? 'bg-[#E9F5ED] text-[#1E7A38] shadow-xs border border-emerald-300/80'
                           : 'text-gray-700 hover:bg-gray-100 hover:text-[#1E7A38]'

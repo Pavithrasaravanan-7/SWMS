@@ -94,10 +94,11 @@ export const Header: React.FC<HeaderProps> = ({
           {onToggleMobileMenu && (
             <button
               onClick={onToggleMobileMenu}
-              className="lg:hidden p-1.5 sm:p-2 rounded-xl bg-[#166534] hover:bg-[#113B22] text-emerald-100 border border-emerald-400/30 transition-all flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-amber-400 cursor-pointer"
+              className="lg:hidden p-2 rounded-xl bg-[#166534] hover:bg-[#113B22] text-emerald-100 border border-emerald-400/30 transition-all flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-amber-400 cursor-pointer"
               aria-label="Toggle Navigation Drawer"
             >
-              {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+              {/* larger hit area for touch devices */}
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           )}
 
