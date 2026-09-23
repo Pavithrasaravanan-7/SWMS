@@ -278,7 +278,7 @@ export const SWMSWorkerApp: React.FC<SWMSWorkerAppProps> = ({
 
         {/* VIEW 2: SCANNER PAGE */}
         {activeTab === 'scan' && (
-          <div className="flex-1 w-full h-full flex flex-col overflow-hidden pb-20 relative">
+          <div className="flex-1 w-full h-full min-h-full flex flex-col overflow-hidden bg-black relative">
             <SWMSScannerView
               lang={lang}
               onSetLanguage={onSetLanguage}

@@ -395,12 +395,12 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
       </div>
 
       {/* ── FULL SCREEN CAMERA ── */}
-      <div className="relative flex-1 w-full h-full overflow-hidden">
+      <div className="relative flex-1 w-full h-full overflow-hidden bg-black">
 
-        {/* Html5Qrcode video container */}
+        {/* Html5Qrcode video container — hide injected img/buttons to prevent camera-off icon overlap */}
         <div
           id={readerElementId}
-          className="absolute inset-0 w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover"
+          className="absolute inset-0 w-full h-full bg-black [&_video]:w-full [&_video]:h-full [&_video]:object-cover [&_img]:hidden [&_button]:hidden [&_a]:hidden [&_span]:hidden"
         />
 
         {/* Dark vignette overlay — corners dark, center clear */}
@@ -411,30 +411,32 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
         />
 
         {/* ── SCAN FRAME (GPay-style) ── */}
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center pointer-events-none gap-4">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-between pt-16 pb-24 sm:pt-20 sm:pb-28 pointer-events-none px-4">
 
-          {/* Top label */}
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black tracking-wide transition-all ${
-            isSuccessFlash
-              ? 'bg-[#1E7A38] text-white scale-105'
-              : 'bg-white/90 text-[#1E7A38]'
-          }`}>
-            {isSuccessFlash
-              ? <><CheckCircle2 className="w-4 h-4" /> {lang === 'ta' ? 'ஸ்கேன் வெற்றி!' : 'Scan Successful!'}</>
-              : <><span className="w-2 h-2 rounded-full bg-[#1E7A38] animate-ping inline-block" />{lang === 'ta' ? 'QR கோட்டை கட்டத்தில் வையுங்கள்' : 'Place QR code inside the frame'}</>
-            }
+          {/* Top label & Scanned Result */}
+          <div className="flex flex-col items-center gap-1.5 min-w-0">
+            <div className={`flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-black tracking-wide transition-all shadow-md ${
+              isSuccessFlash
+                ? 'bg-[#1E7A38] text-white scale-105'
+                : 'bg-white/95 text-[#1E7A38] backdrop-blur-md'
+            }`}>
+              {isSuccessFlash
+                ? <><CheckCircle2 className="w-4 h-4" /> {lang === 'ta' ? 'ஸ்கேன் வெற்றி!' : 'Scan Successful!'}</>
+                : <><span className="w-2 h-2 rounded-full bg-[#1E7A38] animate-ping inline-block" />{lang === 'ta' ? 'QR கோட்டை கட்டத்தில் வையுங்கள்' : 'Place QR code inside the frame'}</>
+              }
+            </div>
+
+            {/* Scanned QR code badge — shows after a successful scan */}
+            {isSuccessFlash && scannedResult && (
+              <div className="px-4 py-1.5 rounded-2xl bg-black/80 backdrop-blur-md border border-[#1E7A38] text-white shadow-lg">
+                <div className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider text-center">{lang === 'ta' ? 'ஸ்கேன் செய்யப்பட்ட QR' : 'Scanned QR'}</div>
+                <div className="text-xs sm:text-sm font-black font-mono tracking-widest text-center mt-0.5">{scannedResult}</div>
+              </div>
+            )}
           </div>
 
-          {/* Scanned QR code badge — shows after a successful scan */}
-          {isSuccessFlash && scannedResult && (
-            <div className="px-4 py-2 rounded-2xl bg-black/70 backdrop-blur-md border border-[#1E7A38] text-white">
-              <div className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider text-center">{lang === 'ta' ? 'ஸ்கேன் செய்யப்பட்ட QR' : 'Scanned QR'}</div>
-              <div className="text-sm sm:text-base font-black font-mono tracking-widest text-center mt-0.5">{scannedResult}</div>
-            </div>
-          )}
-
           {/* The square scan window */}
-          <div className="relative w-64 h-64 sm:w-72 sm:h-72">
+          <div className="relative w-56 h-56 xs:w-64 xs:h-64 sm:w-72 sm:h-72 my-auto flex-shrink-0">
 
             {/* Semi-transparent cutout sides */}
             <div className="absolute inset-0 rounded-2xl overflow-hidden">
@@ -442,10 +444,10 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
             </div>
 
             {/* 4 corner L-brackets — GPay signature */}
-            <span className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-[#1E7A38] rounded-tl-2xl drop-shadow-[0_0_8px_#1E7A38]" />
-            <span className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-[#1E7A38] rounded-tr-2xl drop-shadow-[0_0_8px_#1E7A38]" />
-            <span className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-[#1E7A38] rounded-bl-2xl drop-shadow-[0_0_8px_#1E7A38]" />
-            <span className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-[#1E7A38] rounded-br-2xl drop-shadow-[0_0_8px_#1E7A38]" />
+            <span className="absolute top-0 left-0 w-8 sm:w-10 h-8 sm:h-10 border-t-4 border-l-4 border-[#1E7A38] rounded-tl-2xl drop-shadow-[0_0_8px_#1E7A38]" />
+            <span className="absolute top-0 right-0 w-8 sm:w-10 h-8 sm:h-10 border-t-4 border-r-4 border-[#1E7A38] rounded-tr-2xl drop-shadow-[0_0_8px_#1E7A38]" />
+            <span className="absolute bottom-0 left-0 w-8 sm:w-10 h-8 sm:h-10 border-b-4 border-l-4 border-[#1E7A38] rounded-bl-2xl drop-shadow-[0_0_8px_#1E7A38]" />
+            <span className="absolute bottom-0 right-0 w-8 sm:w-10 h-8 sm:h-10 border-b-4 border-r-4 border-[#1E7A38] rounded-br-2xl drop-shadow-[0_0_8px_#1E7A38]" />
 
             {/* Animated laser scan line */}
             {!isSuccessFlash && (
@@ -455,8 +457,8 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
             {/* Success green fill overlay */}
             {isSuccessFlash && (
               <div className="absolute inset-0 rounded-2xl bg-[#1E7A38]/40 flex items-center justify-center animate-pulse">
-                <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-2xl">
-                  <CheckCircle2 className="w-12 h-12 text-[#1E7A38]" />
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white flex items-center justify-center shadow-2xl">
+                  <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12 text-[#1E7A38]" />
                 </div>
               </div>
             )}
@@ -464,7 +466,7 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
 
           {/* Bottom hint */}
           {!isSuccessFlash && (
-            <div className="text-[11px] text-white/60 font-medium text-center px-8">
+            <div className="text-[11px] text-white/70 font-medium text-center px-4 bg-black/40 backdrop-blur-xs py-1 rounded-full border border-white/10">
               {lang === 'ta'
                 ? 'தானாக ஸ்கேன் ஆகும் — பட்டன் அழுத்த வேண்டாம்'
                 : 'Auto-detects instantly • No button needed'}
@@ -473,12 +475,12 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
         </div>
 
         {/* ── BOTTOM TOOLBAR (floats over camera) ── */}
-        <div className="absolute bottom-0 left-0 right-0 z-30 pb-6 pt-4 flex flex-col items-center gap-3 bg-gradient-to-t from-black/80 to-transparent pointer-events-auto">
+        <div className="absolute bottom-0 left-0 right-0 z-30 pb-5 pt-3 flex flex-col items-center gap-2 bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-auto">
 
           {/* Flip camera button */}
           <button
             onClick={handleFlipCamera}
-            className="flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/20 text-white font-black text-xs px-5 py-2.5 rounded-full transition active:scale-95 cursor-pointer"
+            className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white font-black text-xs px-4 py-2 rounded-full transition active:scale-95 cursor-pointer shadow-md"
           >
             <SwitchCamera className="w-4 h-4" />
             {cameraFacing === 'environment'
@@ -490,10 +492,10 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
           <div className="flex items-center gap-2 flex-wrap justify-center px-4">
             <button
               onClick={handleQuickTestScan}
-              className="flex items-center gap-2 bg-[#1E7A38] hover:bg-[#166534] text-white font-black text-xs px-5 py-2.5 rounded-full transition active:scale-95 cursor-pointer shadow-lg border border-emerald-400"
+              className="flex items-center gap-2 bg-[#1E7A38] hover:bg-[#166534] text-white font-black text-xs px-6 py-2 rounded-full transition active:scale-95 cursor-pointer shadow-xl border border-emerald-400"
             >
               <QrCode className="w-4 h-4" />
-              {lang === 'ta' ? 'ஸ்கேன்' : 'Scan'}
+              {lang === 'ta' ? 'டெஸ்ட் ஸ்கேன்' : 'Scan'}
             </button>
           </div>
         </div>
