@@ -414,70 +414,70 @@ export const SWMSCollectionDashboardView: React.FC<SWMSCollectionDashboardViewPr
                 <button
                   type="button"
                   onClick={onOpenStreetCoverageView}
-                  className="w-full bg-[#044D29] hover:bg-[#033A1F] text-white p-3.5 rounded-2xl border-2 border-emerald-400 shadow-md flex items-center justify-between transition active:scale-[0.98] cursor-pointer"
+                  className="w-full bg-[#044D29] hover:bg-[#033A1F] text-white p-3 sm:p-3.5 rounded-2xl border-2 border-emerald-400 shadow-md flex items-center justify-between transition active:scale-[0.98] cursor-pointer gap-2"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-black text-white text-base">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 flex items-center justify-center font-black text-white text-sm sm:text-base flex-shrink-0">
                       📍
                     </div>
-                    <div className="text-left">
-                      <div className="text-[11px] font-black uppercase tracking-wider text-amber-300">
+                    <div className="text-left min-w-0 flex-1">
+                      <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-amber-300">
                         {lang === 'ta' ? 'அதிகாரி ஸ்கேன் பக்கம்' : 'Field Officer Scan Page'}
                       </div>
-                      <div className="text-sm sm:text-base font-black text-white leading-tight uppercase font-mono">
+                      <div className="text-xs sm:text-base font-black text-white leading-tight uppercase font-mono truncate">
                         {latestStreetName} • {latestVehicleType} ({latestScansCount}/5 SCANNED)
                       </div>
                     </div>
                   </div>
-                  <div className="bg-[#FF9E00] text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-1">
-                    <span>{lang === 'ta' ? 'பக்கத்தைத் திற' : 'Open Page'}</span>
+                  <div className="bg-[#FF9E00] text-slate-950 font-black text-[11px] sm:text-xs px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl shadow-xs flex items-center gap-1 flex-shrink-0">
+                    <span>{lang === 'ta' ? 'திற' : 'Open'}</span>
                     <span>→</span>
                   </div>
                 </button>
               )}
 
               {/* ── KPI CARDS (Google colors, full color cover, no icons) ── */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
                 <button
                   onClick={() => setViewFilter('collected')}
                   className="rounded-2xl shadow-md overflow-hidden text-left cursor-pointer active:scale-[0.98] transition"
                 >
-                  <div className="bg-[#34A853] p-3.5 text-white">
-                    <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-white/90 leading-snug">{lang === 'ta' ? 'சேகரிக்கப்பட்டது' : 'Total Collected'}</div>
-                    <div className="text-3xl sm:text-4xl lg:text-5xl font-black mt-1"><AnimatedCounter value={liveCollected} /></div>
-                    <div className="text-[11px] text-white/85 font-semibold mt-0.5">○ {liveCollected}/{liveTotalCheckpoints} {lang === 'ta' ? 'புள்ளிகள் சேகரிக்கப்பட்டது' : 'checkpoints collected'} ({liveCoveragePercent}%)</div>
+                  <div className="bg-[#34A853] p-3 sm:p-3.5 text-white">
+                    <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-white/90 leading-snug truncate">{lang === 'ta' ? 'சேகரிக்கப்பட்டது' : 'Total Collected'}</div>
+                    <div className="text-2xl sm:text-4xl lg:text-5xl font-black mt-1"><AnimatedCounter value={liveCollected} /></div>
+                    <div className="text-[10px] sm:text-[11px] text-white/85 font-semibold mt-0.5 truncate">○ {liveCollected}/{liveTotalCheckpoints} {lang === 'ta' ? 'சேகரிக்கப்பட்டது' : 'collected'} ({liveCoveragePercent}%)</div>
                   </div>
                 </button>
                 <button
                   onClick={() => setViewFilter('notcollected')}
                   className="rounded-2xl shadow-md overflow-hidden text-left cursor-pointer active:scale-[0.98] transition"
                 >
-                  <div className="bg-[#EA4335] p-3.5 text-white">
-                    <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-white/90 leading-snug">{lang === 'ta' ? 'சேகரிக்கவில்லை' : 'Not Collected'}</div>
-                    <div className="text-3xl sm:text-4xl lg:text-5xl font-black mt-1"><AnimatedCounter value={liveNotCollected} /></div>
-                    <div className="text-[11px] text-white/85 font-semibold mt-0.5">✕ {liveNotCollected}/{liveTotalCheckpoints} {lang === 'ta' ? 'புள்ளிகள் நிலுவையில்' : 'checkpoints pending'}</div>
+                  <div className="bg-[#EA4335] p-3 sm:p-3.5 text-white">
+                    <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-white/90 leading-snug truncate">{lang === 'ta' ? 'சேகரிக்கவில்லை' : 'Not Collected'}</div>
+                    <div className="text-2xl sm:text-4xl lg:text-5xl font-black mt-1"><AnimatedCounter value={liveNotCollected} /></div>
+                    <div className="text-[10px] sm:text-[11px] text-white/85 font-semibold mt-0.5 truncate">✕ {liveNotCollected}/{liveTotalCheckpoints} {lang === 'ta' ? 'நிலுவையில்' : 'pending'}</div>
                   </div>
                 </button>
                 <button
                   onClick={() => setViewFilter('frequent')}
                   className="rounded-2xl shadow-md overflow-hidden text-left cursor-pointer active:scale-[0.98] transition"
                 >
-                  <div className="bg-[#FBBC05] p-3.5 text-slate-950">
-                    <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-900 leading-snug">{lang === 'ta' ? 'அடிக்கடி சேகரிக்கவில்லை' : 'Frequently Not Collected'}</div>
-                    <div className="text-3xl sm:text-4xl lg:text-5xl font-black mt-1">
+                  <div className="bg-[#FBBC05] p-3 sm:p-3.5 text-slate-950">
+                    <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-900 leading-snug truncate">{lang === 'ta' ? 'அடிக்கடி சேகரிக்கவில்லை' : 'Frequently Not Collected'}</div>
+                    <div className="text-2xl sm:text-4xl lg:text-5xl font-black mt-1">
                       <AnimatedCounter value={liveMissedStreets} />
                     </div>
-                    <div className="text-[11px] text-slate-700 font-semibold mt-0.5">{lang === 'ta' ? 'சேகரிக்காத தெருக்கள்' : liveMissedStreets === 1 ? 'street missed today' : 'streets missed today'}</div>
+                    <div className="text-[10px] sm:text-[11px] text-slate-700 font-semibold mt-0.5 truncate">{lang === 'ta' ? 'சேகரிக்காத தெருக்கள்' : liveMissedStreets === 1 ? 'street missed' : 'streets missed'}</div>
                   </div>
                 </button>
                 <button
                   onClick={() => setViewFilter('total')}
                   className="rounded-2xl shadow-md overflow-hidden text-left cursor-pointer active:scale-[0.98] transition"
                 >
-                  <div className="bg-[#4285F4] p-3.5 text-white">
-                    <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-white/90 leading-snug">{lang === 'ta' ? 'மொத்த QR' : 'Total QR'}</div>
-                    <div className="text-3xl sm:text-4xl lg:text-5xl font-black mt-1"><AnimatedCounter value={liveTotalCheckpoints} /></div>
-                    <div className="text-[11px] text-white/85 font-semibold mt-0.5">{latestScansCount}/5 {lang === 'ta' ? 'சரிபார்ப்பு புள்ளிகள்' : 'checkpoints scanned'}</div>
+                  <div className="bg-[#4285F4] p-3 sm:p-3.5 text-white">
+                    <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-white/90 leading-snug truncate">{lang === 'ta' ? 'மொத்த QR' : 'Total QR'}</div>
+                    <div className="text-2xl sm:text-4xl lg:text-5xl font-black mt-1"><AnimatedCounter value={liveTotalCheckpoints} /></div>
+                    <div className="text-[10px] sm:text-[11px] text-white/85 font-semibold mt-0.5 truncate">{latestScansCount}/5 {lang === 'ta' ? 'ஸ்கேன் செய்யப்பட்டது' : 'scanned'}</div>
                   </div>
                 </button>
               </div>
