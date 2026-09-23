@@ -178,7 +178,7 @@ export const SWMSCollectionDashboardView: React.FC<SWMSCollectionDashboardViewPr
   };
 
   return (
-    <div className="w-full min-h-screen bg-[#F6F9F7] pb-28 font-sans">
+    <div className="w-full min-h-screen bg-[#F6F9F7] pb-28 font-sans max-w-full overflow-x-hidden">
       {/* ── GREEN CCMC HEADER (admin-style) ── */}
       <header className="w-full select-none text-white shadow-md sticky top-0 z-30 bg-[#1E7A38]">
         {/* Top Main Green Bar - matches admin Header (#1E7A38) */}
@@ -414,18 +414,21 @@ export const SWMSCollectionDashboardView: React.FC<SWMSCollectionDashboardViewPr
                 <button
                   type="button"
                   onClick={onOpenStreetCoverageView}
-                  className="w-full bg-[#044D29] hover:bg-[#033A1F] text-white p-3 sm:p-3.5 rounded-2xl border-2 border-emerald-400 shadow-md flex items-center justify-between transition active:scale-[0.98] cursor-pointer gap-2"
+                  className="w-full bg-[#044D29] hover:bg-[#033A1F] text-white p-3 sm:p-3.5 rounded-2xl border-2 border-emerald-400 shadow-md flex items-center justify-between transition active:scale-[0.98] cursor-pointer gap-2 max-w-full overflow-hidden"
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 flex items-center justify-center font-black text-white text-sm sm:text-base flex-shrink-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/20 flex items-center justify-center font-black text-white text-xs sm:text-base flex-shrink-0">
                       📍
                     </div>
                     <div className="text-left min-w-0 flex-1">
-                      <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-amber-300">
+                      <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-amber-300 truncate">
                         {lang === 'ta' ? 'அதிகாரி ஸ்கேன் பக்கம்' : 'Field Officer Scan Page'}
                       </div>
-                      <div className="text-xs sm:text-base font-black text-white leading-tight uppercase font-mono truncate">
-                        {latestStreetName} • {latestVehicleType} ({latestScansCount}/5 SCANNED)
+                      <div className="text-xs sm:text-sm font-black text-white leading-tight uppercase font-mono truncate">
+                        {latestStreetName}
+                      </div>
+                      <div className="text-[10px] sm:text-xs font-bold text-emerald-200 truncate mt-0.5 font-mono">
+                        {latestVehicleType} ({latestScansCount}/5 {lang === 'ta' ? 'ஸ்கேன்' : 'SCANNED'})
                       </div>
                     </div>
                   </div>

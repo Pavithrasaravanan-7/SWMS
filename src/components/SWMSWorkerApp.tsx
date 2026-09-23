@@ -253,10 +253,10 @@ export const SWMSWorkerApp: React.FC<SWMSWorkerAppProps> = ({
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col min-h-screen relative bg-white font-sans overflow-hidden">
+    <div className="w-full flex-1 flex flex-col min-h-screen relative bg-white font-sans overflow-x-hidden">
 
       {/* App Main Content Stage */}
-      <div className="flex-1 overflow-y-auto relative bg-white flex flex-col">
+      <div className="flex-1 relative bg-white flex flex-col min-h-0 w-full">
 
         {/* VIEW 1: FIELD COLLECTION DASHBOARD (LANDING) */}
         {activeTab === 'history' && (
@@ -331,7 +331,7 @@ export const SWMSWorkerApp: React.FC<SWMSWorkerAppProps> = ({
 
         {/* VIEW 3: POST-SCAN COLLECTION FORM (QR CHECKPOINT FLOW) */}
         {activeTab === 'collectform' && resolution && (
-          <div className="flex-1 overflow-y-auto pb-28 h-full">
+          <div className="flex-1 overflow-y-auto w-full h-full min-h-0">
             <SWMSCollectionFormView
               lang={lang}
               token={token ?? null}
@@ -348,7 +348,7 @@ export const SWMSWorkerApp: React.FC<SWMSWorkerAppProps> = ({
 
         {/* VIEW 4: LEGACY HOUSEHOLD FORM ENTRY */}
         {activeTab === 'form' && (
-          <div className="flex-1 overflow-y-auto pb-28 h-full">
+          <div className="flex-1 flex flex-col w-full h-full min-h-0">
             <SWMSHouseholdFormView
               scannedHouseId={scannedHouseId}
               lang={lang}
