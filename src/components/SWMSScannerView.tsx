@@ -438,7 +438,7 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
       </div>
 
       {/* ── 2. CAMERA VIEWPORT & OVERLAYS CONTAINER ── */}
-      <div className="relative flex-1 w-full flex flex-col justify-between items-center overflow-hidden bg-black py-3 px-4 min-h-0">
+      <div className="relative flex-1 w-full flex flex-col justify-between items-center overflow-hidden bg-black py-4 px-4 min-h-0">
 
         {/* Html5Qrcode video container — hide injected img/buttons to prevent raw camera-off icon bleed */}
         <div
@@ -455,7 +455,7 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
         />
 
         {/* Top Status Label / Scanned Result Badge */}
-        <div className="z-20 flex flex-col items-center gap-1.5 min-w-0 pointer-events-none mt-1">
+        <div className="z-20 flex flex-col items-center gap-1.5 min-w-0 pointer-events-none mb-2">
           <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black tracking-wide transition-all shadow-lg ${
             isSuccessFlash
               ? 'bg-[#1E7A38] text-white scale-105'
@@ -479,13 +479,13 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
           )}
         </div>
 
-        {/* Center Square Viewfinder Window */}
-        <div className="z-20 relative w-48 h-48 xs:w-56 xs:h-56 sm:w-64 sm:h-64 my-auto flex-shrink-0 pointer-events-none">
+        {/* Center Square Viewfinder Window — compact sizing for clean spacing */}
+        <div className="z-20 relative w-40 h-40 xs:w-48 xs:h-48 sm:w-64 sm:h-64 my-auto flex-shrink-0 pointer-events-none">
           {/* 4 corner L-brackets */}
-          <span className="absolute top-0 left-0 w-8 sm:w-10 h-8 sm:h-10 border-t-4 border-l-4 border-emerald-400 rounded-tl-2xl drop-shadow-[0_0_8px_#10B981]" />
-          <span className="absolute top-0 right-0 w-8 sm:w-10 h-8 sm:h-10 border-t-4 border-r-4 border-emerald-400 rounded-tr-2xl drop-shadow-[0_0_8px_#10B981]" />
-          <span className="absolute bottom-0 left-0 w-8 sm:w-10 h-8 sm:h-10 border-b-4 border-l-4 border-emerald-400 rounded-bl-2xl drop-shadow-[0_0_8px_#10B981]" />
-          <span className="absolute bottom-0 right-0 w-8 sm:w-10 h-8 sm:h-10 border-b-4 border-r-4 border-emerald-400 rounded-br-2xl drop-shadow-[0_0_8px_#10B981]" />
+          <span className="absolute top-0 left-0 w-7 sm:w-10 h-7 sm:h-10 border-t-4 border-l-4 border-emerald-400 rounded-tl-2xl drop-shadow-[0_0_8px_#10B981]" />
+          <span className="absolute top-0 right-0 w-7 sm:w-10 h-7 sm:h-10 border-t-4 border-r-4 border-emerald-400 rounded-tr-2xl drop-shadow-[0_0_8px_#10B981]" />
+          <span className="absolute bottom-0 left-0 w-7 sm:w-10 h-7 sm:h-10 border-b-4 border-l-4 border-emerald-400 rounded-bl-2xl drop-shadow-[0_0_8px_#10B981]" />
+          <span className="absolute bottom-0 right-0 w-7 sm:w-10 h-7 sm:h-10 border-b-4 border-r-4 border-emerald-400 rounded-br-2xl drop-shadow-[0_0_8px_#10B981]" />
 
           {/* Sleek laser scan beam */}
           {!isSuccessFlash && (
@@ -504,7 +504,7 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
 
         {/* Bottom Hint */}
         {!isSuccessFlash && (
-          <div className="z-20 text-[11px] text-white/80 font-semibold text-center px-3 bg-black/60 backdrop-blur-md py-1 rounded-full border border-white/15 pointer-events-none mb-1">
+          <div className="z-20 text-[11px] text-white/80 font-semibold text-center px-3.5 bg-black/60 backdrop-blur-md py-1.5 rounded-full border border-white/15 pointer-events-none mt-2">
             {lang === 'ta'
               ? 'தானாக ஸ்கேன் ஆகும் — பட்டன் அழுத்த வேண்டாம்'
               : 'Auto-detects instantly • No button needed'}
@@ -532,13 +532,6 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
                 {lang === 'ta' ? 'கேமரா திறக்க முயற்சி' : 'Retry Camera'}
               </button>
               <button
-                onClick={handleQuickTestScan}
-                className="w-full bg-[#1E7A38] hover:bg-[#166534] text-white font-black text-xs px-4 py-3 rounded-xl transition shadow-lg active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <QrCode className="w-4 h-4" />
-                {lang === 'ta' ? 'சோதனை ஸ்கேன் (டெமோ QR)' : 'Test Scan (Demo QR)'}
-              </button>
-              <button
                 onClick={handleSreeNagarScan}
                 className="w-full bg-amber-500 hover:bg-amber-400 text-black font-black text-xs px-4 py-3 rounded-xl transition shadow-lg active:scale-95 flex items-center justify-center gap-2 cursor-pointer border border-amber-400"
               >
@@ -550,13 +543,13 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
         )}
       </div>
 
-      {/* ── 3. BOTTOM TOOLBAR (Clean non-overlapping row) ── */}
-      <div className="flex-shrink-0 z-30 bg-[#121212] border-t border-white/10 py-2.5 px-4 flex items-center justify-center gap-3">
+      {/* ── 3. BOTTOM TOOLBAR ── */}
+      <div className="flex-shrink-0 z-30 bg-[#121212] border-t border-white/10 py-3 px-4 flex items-center justify-center">
         {/* Flip camera button */}
         <button
           type="button"
           onClick={handleFlipCamera}
-          className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 border border-white/20 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition active:scale-95 cursor-pointer shadow-md"
+          className="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/20 text-white font-extrabold text-xs px-6 py-2.5 rounded-xl transition active:scale-95 cursor-pointer shadow-md"
         >
           <SwitchCamera className="w-4 h-4 text-emerald-400" />
           <span>
@@ -565,18 +558,10 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
               : (lang === 'ta' ? 'பின் கேமரா' : 'Rear Camera')}
           </span>
         </button>
-
-        {/* Quick Test Scan button */}
-        <button
-          type="button"
-          onClick={handleQuickTestScan}
-          className="flex items-center gap-1.5 bg-[#1E7A38] hover:bg-[#166534] text-white font-black text-xs px-5 py-2.5 rounded-xl transition active:scale-95 cursor-pointer shadow-xl border border-emerald-400/50"
-        >
-          <QrCode className="w-4 h-4 text-white" />
-          <span>{lang === 'ta' ? 'டெஸ்ட் ஸ்கேன்' : 'Test Scan'}</span>
-        </button>
       </div>
 
     </div>
   );
 };
+
+export default SWMSScannerView;
