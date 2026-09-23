@@ -366,7 +366,7 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full min-h-screen w-full max-w-full bg-black text-white overflow-hidden relative select-none font-sans">
+    <div className="flex flex-col h-full min-h-screen w-full max-w-full bg-[#0B132B] text-white overflow-hidden relative select-none font-sans">
       <style>{`
         #${readerElementId} *:not(video) {
           display: none !important;
@@ -384,166 +384,120 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
         }
       `}</style>
 
-      {/* ── 1. TOP BAR ── */}
-      <div className="flex-shrink-0 z-30 flex items-center justify-between px-3 py-2 bg-[#121212] border-b border-white/10">
-        {/* Back */}
-        {onBackToDashboard ? (
-          <button
-            onClick={onBackToDashboard}
-            className="w-9 h-9 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center border border-white/20 cursor-pointer active:scale-95 transition"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-        ) : (
-          <div className="w-9" />
-        )}
+      {/* ── 1. TOP BAR (Dark Midnight Navy matching screenshot) ── */}
+      <div className="flex-shrink-0 z-30 bg-[#0B132B] pt-3 pb-3 px-4 flex flex-col items-center gap-2 border-b border-white/10 shadow-md">
+        {/* Row 1: Back + Status Pill + Sound Control */}
+        <div className="w-full flex items-center justify-between">
+          {onBackToDashboard ? (
+            <button
+              onClick={onBackToDashboard}
+              className="w-9 h-9 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center border border-white/20 cursor-pointer active:scale-95 transition"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+          ) : (
+            <div className="w-9" />
+          )}
 
-        {/* Title */}
-        <div className="flex-1 text-center">
-          <div className="text-xs font-black text-white tracking-wider uppercase">
-            {lang === 'ta' ? 'QR ஸ்கேனர்' : 'QR Scanner'}
+          {/* Top Status Pill */}
+          <div className="flex items-center gap-2 bg-white text-[#0B132B] px-4 py-1.5 rounded-full font-extrabold text-xs sm:text-sm shadow-lg border border-slate-200">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0 animate-ping" />
+            <span>{lang === 'ta' ? 'QR கோட்டை கட்டத்தில் வையுங்கள்' : 'Align Door QR Code within frame'}</span>
           </div>
-          <div className="text-[10px] text-emerald-400 font-bold tracking-wider">
-            CCMC • SWMS
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="w-8 h-8 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center border border-white/20 cursor-pointer active:scale-95 transition"
+            >
+              {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5 text-white/40" />}
+            </button>
           </div>
         </div>
 
-        {/* Sound + Flash controls */}
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="w-9 h-9 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center border border-white/20 cursor-pointer active:scale-95 transition"
-          >
-            {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-white/40" />}
-          </button>
-          <button
-            onClick={toggleFlashlight}
-            className={`w-9 h-9 rounded-full flex items-center justify-center border cursor-pointer active:scale-95 transition ${
-              flashlightOn
-                ? 'bg-amber-400 border-amber-300 text-black'
-                : 'bg-white/10 border-white/20 text-white'
-            }`}
-          >
-            {flashlightOn ? <Zap className="w-4 h-4 fill-current" /> : <Zap className="w-4 h-4" />}
-          </button>
+        {/* Row 2: Location & GPS Pill */}
+        <div className="flex items-center gap-1.5 bg-[#060D1E] border border-emerald-500/40 text-emerald-300 px-3.5 py-1 rounded-full text-[11px] font-mono font-bold shadow-inner">
+          <Navigation className="w-3 h-3 text-emerald-400 rotate-45" />
+          <span>11.0168° N, 76.9558° E • Gandhipuram, Ward 12</span>
         </div>
       </div>
 
-      {/* ── 2. CAMERA VIEWPORT & OVERLAYS CONTAINER ── */}
-      <div className="relative flex-1 w-full flex flex-col justify-between items-center overflow-hidden bg-black py-4 px-4 min-h-0">
+      {/* ── 2. CAMERA VIEWPORT & VIEWFINDER ── */}
+      <div className="relative flex-1 w-full flex flex-col justify-center items-center overflow-hidden bg-black py-4 px-4 min-h-0">
 
-        {/* Html5Qrcode video container — hide injected img/buttons to prevent raw camera-off icon bleed */}
+        {/* Html5Qrcode video container */}
         <div
           id={readerElementId}
-          className="absolute inset-0 w-full h-full bg-black [&_video]:w-full [&_video]:h-full [&_video]:object-cover [&_img]:hidden! [&_button]:hidden! [&_a]:hidden! [&_span]:hidden!"
+          className="absolute inset-0 w-full h-full bg-black"
         />
 
         {/* Dark vignette overlay */}
         <div
           className="absolute inset-0 z-10 pointer-events-none"
           style={{
-            background: 'radial-gradient(ellipse 60% 60% at 50% 50%, transparent 0%, rgba(0,0,0,0.75) 100%)'
+            background: 'radial-gradient(ellipse 65% 65% at 50% 50%, transparent 0%, rgba(0,0,0,0.75) 100%)'
           }}
         />
 
-        {/* Top Status Label / Scanned Result Badge */}
-        <div className="z-20 flex flex-col items-center gap-1.5 min-w-0 pointer-events-none mb-2">
-          <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black tracking-wide transition-all shadow-lg ${
-            isSuccessFlash
-              ? 'bg-[#1E7A38] text-white scale-105'
-              : 'bg-white text-[#1E7A38] shadow-md'
-          }`}>
-            {isSuccessFlash ? (
-              <><CheckCircle2 className="w-4 h-4" /> {lang === 'ta' ? 'ஸ்கேன் வெற்றி!' : 'Scan Successful!'}</>
-            ) : (
-              <>
-                <span className="w-2 h-2 rounded-full bg-emerald-600 flex-shrink-0 animate-ping" />
-                <span>{lang === 'ta' ? 'QR கோட்டை கட்டத்தில் வையுங்கள்' : 'Place QR code inside the frame'}</span>
-              </>
-            )}
-          </div>
+        {/* Viewfinder Window (exact match with media_1790162413143.png) */}
+        <div className="z-20 relative w-56 h-56 xs:w-64 xs:h-64 sm:w-72 sm:h-72 my-auto flex-shrink-0 flex items-center justify-center">
+          {/* Top-Left Corner */}
+          <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-white rounded-tl-xl drop-shadow-[0_0_8px_#10B981] z-20" />
+          <div className="absolute top-1 left-1 w-8 h-8 rounded-tl-lg bg-emerald-500/20 border-t-2 border-l-2 border-emerald-400 z-10" />
 
-          {isSuccessFlash && scannedResult && (
-            <div className="px-4 py-1.5 rounded-xl bg-black/90 border border-[#1E7A38] text-white shadow-xl">
-              <div className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider text-center">{lang === 'ta' ? 'ஸ்கேன் செய்யப்பட்ட QR' : 'Scanned QR'}</div>
-              <div className="text-xs sm:text-sm font-black font-mono tracking-widest text-center mt-0.5">{scannedResult}</div>
+          {/* Top-Right Corner */}
+          <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-white rounded-tr-xl drop-shadow-[0_0_8px_#10B981] z-20" />
+          <div className="absolute top-1 right-1 w-8 h-8 rounded-tr-lg bg-emerald-500/20 border-t-2 border-r-2 border-emerald-400 z-10" />
+
+          {/* Bottom-Left Corner */}
+          <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-white rounded-bl-xl drop-shadow-[0_0_8px_#10B981] z-20" />
+          <div className="absolute bottom-1 left-1 w-8 h-8 rounded-bl-lg bg-emerald-500/20 border-b-2 border-l-2 border-emerald-400 z-10" />
+
+          {/* Bottom-Right Corner */}
+          <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-white rounded-br-xl drop-shadow-[0_0_8px_#10B981] z-20" />
+          <div className="absolute bottom-1 right-1 w-8 h-8 rounded-br-lg bg-emerald-500/20 border-b-2 border-r-2 border-emerald-400 z-10" />
+
+          {/* Laser scan line */}
+          {!isSuccessFlash && (
+            <div className="absolute left-2 right-2 h-[2.5px] bg-emerald-400 shadow-[0_0_12px_#10B981] animate-[scan_2s_ease-in-out_infinite] z-20" />
+          )}
+
+          {/* Camera Off Placeholder matching media_1790162413143.png when camera initializing or off */}
+          {!isCameraActive && !isSuccessFlash && (
+            <div className="flex flex-col items-center justify-center text-center p-4 z-10">
+              <div className="relative flex items-center justify-center">
+                <svg className="w-24 h-24 text-white opacity-90 drop-shadow-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                  <line x1="2" y1="2" x2="22" y2="22"/>
+                </svg>
+                <div className="absolute w-10 h-10 rounded-full bg-white border-2 border-emerald-500 shadow-xl flex flex-col items-center justify-center">
+                  <QrCode className="w-5 h-5 text-emerald-600" />
+                  <span className="text-[7px] font-black text-emerald-800 tracking-tighter uppercase leading-none">QR</span>
+                </div>
+              </div>
             </div>
           )}
-        </div>
 
-        {/* Center Square Viewfinder Window */}
-        <div className="z-20 relative w-48 h-48 xs:w-56 xs:h-56 sm:w-64 sm:h-64 my-auto flex-shrink-0">
-          <span className="absolute top-0 left-0 w-7 sm:w-10 h-7 sm:h-10 border-t-4 border-l-4 border-emerald-400 rounded-tl-2xl drop-shadow-[0_0_8px_#10B981]" />
-          <span className="absolute top-0 right-0 w-7 sm:w-10 h-7 sm:h-10 border-t-4 border-r-4 border-emerald-400 rounded-tr-2xl drop-shadow-[0_0_8px_#10B981]" />
-          <span className="absolute bottom-0 left-0 w-7 sm:w-10 h-7 sm:h-10 border-b-4 border-l-4 border-emerald-400 rounded-bl-2xl drop-shadow-[0_0_8px_#10B981]" />
-          <span className="absolute bottom-0 right-0 w-7 sm:w-10 h-7 sm:h-10 border-b-4 border-r-4 border-emerald-400 rounded-br-2xl drop-shadow-[0_0_8px_#10B981]" />
-
-          {/* Sleek laser scan beam */}
-          {!isSuccessFlash && !cameraError && (
-            <div className="absolute left-1 right-1 h-[2px] bg-emerald-400 shadow-[0_0_8px_#10B981] animate-[scan_2s_ease-in-out_infinite]" />
-          )}
-
-          {/* Success green fill overlay */}
+          {/* Success Flash Overlay */}
           {isSuccessFlash && (
-            <div className="absolute inset-0 rounded-2xl bg-emerald-600/40 flex items-center justify-center animate-pulse">
-              <div className="w-14 h-14 sm:w-18 sm:h-18 rounded-full bg-white flex items-center justify-center shadow-2xl">
-                <CheckCircle2 className="w-9 h-9 sm:w-11 sm:h-11 text-emerald-600" />
+            <div className="absolute inset-0 rounded-2xl bg-emerald-600/40 flex items-center justify-center animate-pulse z-30">
+              <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-2xl">
+                <CheckCircle2 className="w-10 h-10 text-emerald-600" />
               </div>
             </div>
           )}
         </div>
-
-        {/* Bottom Hint */}
-        {!isSuccessFlash && !cameraError && (
-          <div className="z-20 text-[11px] text-white/80 font-semibold text-center px-3.5 bg-black/60 backdrop-blur-md py-1.5 rounded-full border border-white/15 pointer-events-none mt-2">
-            {lang === 'ta'
-              ? 'தானாக ஸ்கேன் ஆகும் — பட்டன் அழுத்த வேண்டாம்'
-              : 'Auto-detects instantly • No button needed'}
-          </div>
-        )}
-
-        {/* Camera error fallback overlay — full overlay so text and buttons render cleanly */}
-        {cameraError && (
-          <div className="absolute inset-0 z-40 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center gap-4">
-            <div className="w-16 h-16 rounded-full border-2 border-emerald-500/40 bg-emerald-950/60 flex items-center justify-center shadow-lg">
-              <Camera className="w-8 h-8 text-emerald-400" />
-            </div>
-            <div className="max-w-xs space-y-1">
-              <h3 className="text-sm font-black text-white">
-                {lang === 'ta' ? 'கேமரா கிடைக்கவில்லை' : 'Camera Not Available'}
-              </h3>
-              <p className="text-xs text-white/70 leading-relaxed">
-                {cameraError}
-              </p>
-            </div>
-            <div className="flex flex-col gap-2.5 w-full max-w-xs pt-2">
-              <button
-                type="button"
-                onClick={() => startCamera(cameraFacing)}
-                className="w-full bg-[#1E7A38] hover:bg-[#166534] text-white font-black text-xs px-4 py-3 rounded-xl transition shadow-lg active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>{lang === 'ta' ? 'கேமரா திறக்க முயற்சி' : 'Retry Camera'}</span>
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ── 3. BOTTOM TOOLBAR ── */}
-      <div className="flex-shrink-0 z-30 bg-[#121212] border-t border-white/10 py-3 px-4 flex items-center justify-center">
-        {/* Flip camera button */}
+      <div className="flex-shrink-0 z-30 bg-[#0B132B] py-4 px-4 flex items-center justify-center border-t border-white/10">
         <button
           type="button"
           onClick={handleFlipCamera}
-          className="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/20 text-white font-extrabold text-xs px-6 py-2.5 rounded-xl transition active:scale-95 cursor-pointer shadow-md"
+          className="flex items-center gap-2 bg-white text-[#0B132B] hover:bg-slate-100 font-extrabold text-xs sm:text-sm px-6 py-2.5 rounded-full transition active:scale-95 cursor-pointer shadow-xl border border-slate-200"
         >
-          <SwitchCamera className="w-4 h-4 text-emerald-400" />
-          <span>
-            {cameraFacing === 'environment'
-              ? (lang === 'ta' ? 'முன் கேமரா' : 'Front Camera')
-              : (lang === 'ta' ? 'பின் கேமரா' : 'Rear Camera')}
-          </span>
+          <SwitchCamera className="w-4 h-4 text-emerald-600" />
+          <span>{cameraFacing === 'environment' ? 'Rear' : 'Front'}</span>
         </button>
       </div>
 
