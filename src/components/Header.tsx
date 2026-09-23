@@ -150,11 +150,11 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="text-[10px] font-black tracking-tight text-amber-300 truncate leading-tight mt-0.5 drop-shadow-xs">
                 Municipal Corporation
               </div>
-              <div className="text-[9px] font-bold text-cyan-300 tracking-wide uppercase truncate leading-tight mt-0.5">
-                {userRole === 'admin' 
-                  ? (lang === 'ta' ? 'ஆணையர் நிர்வாகம்' : "COMMISSIONER'S REVIEW") 
-                  : (lang === 'ta' ? 'களப் பணியாளர்' : 'SANITARY FIELD WORKER')}
-              </div>
+              {userRole !== 'admin' && (
+                <div className="text-[9px] font-bold text-cyan-300 tracking-wide uppercase truncate leading-tight mt-0.5">
+                  {lang === 'ta' ? 'களப் பணியாளர்' : 'SANITARY FIELD WORKER'}
+                </div>
+              )}
             </div>
 
             {/* Desktop View: Single horizontal line (>= sm) */}
@@ -162,9 +162,11 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="text-sm lg:text-base font-black tracking-tight text-white whitespace-nowrap drop-shadow-xs">
                 Coimbatore City Municipal Corporation
               </span>
-              <span className="text-xs lg:text-sm font-black tracking-wider text-amber-300 uppercase whitespace-nowrap drop-shadow-xs">
-                • {userRole === 'admin' ? "COMMISSIONER'S REVIEW" : "SANITARY FIELD WORKER"}
-              </span>
+              {userRole !== 'admin' && (
+                <span className="text-xs lg:text-sm font-black tracking-wider text-amber-300 uppercase whitespace-nowrap drop-shadow-xs">
+                  • {lang === 'ta' ? 'களப் பணியாளர்' : 'SANITARY FIELD WORKER'}
+                </span>
+              )}
             </div>
           </div>
         </div>
