@@ -254,11 +254,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
         </div>
 
-        {/* Corporation Name */}
-        <h1 className="text-sm xs:text-base sm:text-lg md:text-[21px] font-black text-[#15251D] tracking-tight leading-tight mb-2.5 px-1 max-w-full text-center">
-          <span className="block sm:inline">Coimbatore City </span>
-          <span className="inline">Municipal Corporation</span>
+        {/* Corporation Name in ALL CAPS */}
+        <h1 className="text-sm xs:text-base sm:text-lg md:text-[20px] font-black text-[#15251D] uppercase tracking-wide leading-snug mb-1 px-1 max-w-full text-center">
+          COIMBATORE CITY MUNICIPAL CORPORATION
         </h1>
+
+        {/* Integrated Command and Control Center Subtitle in ALL CAPS */}
+        <div className="text-[11px] sm:text-[13px] font-black text-[#1E7A38] uppercase tracking-wider text-center mb-3 px-2">
+          INTEGRATED COMMAND AND CONTROL CENTER
+        </div>
 
         {/* SWMS Subtitle */}
         <div className="flex flex-col items-center gap-1.5 mb-5">

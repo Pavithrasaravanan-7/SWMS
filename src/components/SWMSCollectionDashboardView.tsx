@@ -388,10 +388,11 @@ export const SWMSCollectionDashboardView: React.FC<SWMSCollectionDashboardViewPr
           }
 
           const isPushcartType = latestVehicleType === 'PUSH CART' || latestVehicleNo.includes('PUSH');
+          const minScansNeeded = isPushcartType ? 1 : 3;
           const liveTotalCheckpoints = isPushcartType ? 1 : 5;
 
-          const isFullyCovered = latestScansCount === liveTotalCheckpoints;
-          const isPartiallyCovered = latestScansCount > 0 && latestScansCount < liveTotalCheckpoints;
+          const isFullyCovered = latestScansCount >= minScansNeeded;
+          const isPartiallyCovered = latestScansCount > 0 && latestScansCount < minScansNeeded;
 
           const liveCollected = latestScansCount;
           const liveNotCollected = Math.max(0, liveTotalCheckpoints - latestScansCount);
@@ -400,10 +401,10 @@ export const SWMSCollectionDashboardView: React.FC<SWMSCollectionDashboardViewPr
           const liveCoveragePercent = Math.round((latestScansCount / liveTotalCheckpoints) * 100);
 
           const liveOverallStatus = isFullyCovered
-            ? (lang === 'ta' ? 'முழுமையாக மூடப்பட்டது (100%)' : '100% Covered')
+            ? (lang === 'ta' ? 'சேகரிக்கப்பட்டது (Collected)' : 'Collected (At least 3 Scans Done)')
             : isPartiallyCovered
-            ? (lang === 'ta' ? `பகுதி மூடப்பட்டது (${liveCoveragePercent}%)` : `Partially Covered (${liveCoveragePercent}%)`)
-            : (lang === 'ta' ? 'மூடப்படவில்லை (Not Covered)' : 'Not Covered');
+            ? (lang === 'ta' ? `பகுதி சேகரிப்பு (${latestScansCount}/5 ஸ்கேன்)` : `Partially Scanned (${latestScansCount}/5 Scanned)`)
+            : (lang === 'ta' ? 'உள்நுழைந்தது (0/5 ஸ்கேன்)' : 'Logged In (0/5 Scanned)');
 
           const totalStreets = stats?.totalStreets ?? 1;
 

@@ -170,6 +170,8 @@ export const RecentCollectionTable: React.FC<RecentCollectionTableProps> = ({
                 return i < scannedCount || item.status === 'Collected';
               });
               
+              const minScansForCollected = isPushCart ? 1 : 3;
+              
               return (
                 <tr key={item.id} className="hover:bg-gray-50/80 transition-colors">
                   <td className="px-4 py-3.5 text-center font-bold text-gray-700">
@@ -177,8 +179,10 @@ export const RecentCollectionTable: React.FC<RecentCollectionTableProps> = ({
                   </td>
 
                   <td className="px-4 py-3.5 whitespace-nowrap text-gray-700 font-semibold text-xs">
-                    {!isShiftPending && scannedCount > 0 ? (
-                      item.date
+                    {!isShiftPending ? (
+                      <span className="font-semibold text-emerald-950">
+                        {item.date && item.date !== 'Shift Pending' ? item.date : (item.scannedAt && item.scannedAt !== 'Shift Pending' ? item.scannedAt : 'Today, Logged')}
+                      </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-800 border border-rose-200 px-2 py-0.5 rounded font-bold text-[11px]">
                         🕒 {lang === 'ta' ? 'இன்று உள்நுழையவில்லை' : 'Not Logged In Today'}
@@ -206,7 +210,7 @@ export const RecentCollectionTable: React.FC<RecentCollectionTableProps> = ({
                       </span>
                       <div className="flex items-center gap-1">
                         <span className={`text-[11px] font-black px-1.5 py-0.5 rounded-md ${
-                          !isShiftPending && scannedCount === totalScans
+                          !isShiftPending && scannedCount >= minScansForCollected
                             ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                             : !isShiftPending && scannedCount > 0
                             ? 'bg-amber-100 text-amber-900 border border-amber-300'
@@ -250,17 +254,21 @@ export const RecentCollectionTable: React.FC<RecentCollectionTableProps> = ({
                   </td>
 
                   <td className="px-3 py-3.5 text-center whitespace-nowrap">
-                    {isShiftPending || scannedCount === 0 ? (
+                    {isShiftPending ? (
                       <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-[#FCE8E6] text-[#C5221F] border border-rose-200/80">
                         {lang === 'ta' ? 'இன்று உள்நுழையவில்லை' : 'Not Logged In Today'}
                       </span>
-                    ) : item.status === 'Collected' ? (
+                    ) : (scannedCount >= minScansForCollected || item.status === 'Collected') ? (
                       <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-[#E6F4EA] text-[#1E7A38] border border-emerald-200/80">
                         {lang === 'ta' ? 'சேகரிக்கப்பட்டது' : 'Collected'}
                       </span>
-                    ) : (
+                    ) : scannedCount > 0 ? (
                       <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-300">
                         {lang === 'ta' ? 'பகுதி சேகரிப்பு' : 'Partial Scan'}
+                      </span>
+                    ) : (
+                      <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-900 border border-blue-300">
+                        {lang === 'ta' ? 'உள்நுழைந்தது' : 'Logged In'}
                       </span>
                     )}
                   </td>

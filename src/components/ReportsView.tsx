@@ -1214,31 +1214,67 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
 
   // Derived Street Reports from real QR Vehicle data & active collection records
   const realStreetReports = useMemo<StreetReportItem[]>(() => {
+    let scansObj: Record<string, any[]> = {};
+    try {
+      const raw = localStorage.getItem('ccmc_street_5scans');
+      if (raw) scansObj = JSON.parse(raw);
+    } catch {}
+
+    const workerLoginTs = localStorage.getItem('ccmc_worker_login_timestamp');
+    const isGlobalWorkerLoggedIn = !!workerLoginTs;
+
     return REAL_QR_VEHICLE_REPORTS.map((vr, i) => {
+      const stName = vr.assignedStreets[0] || 'sree nagar';
       const matchedRecord = records.find(r => 
-        (r.streetName && r.streetName.toLowerCase().trim() === vr.assignedStreets[0]?.toLowerCase().trim()) ||
+        (r.streetName && r.streetName.toLowerCase().trim() === stName.toLowerCase().trim()) ||
         (r.vehicleNo && r.vehicleNo.replace(/[\s\-_]/g, '').toUpperCase() === vr.vehicleNo.replace(/[\s\-_]/g, '').toUpperCase())
       );
 
-      const status = matchedRecord 
-        ? (matchedRecord.status === 'Collected' ? 'Collected' : 'Not Collected')
-        : 'Collected';
+      const isPushCart = (vr.type || '').toLowerCase().includes('push') || vr.vehicleNo.includes('PUSH');
+      const minScansNeeded = isPushCart ? 1 : 3;
+
+      let scannedCount = 0;
+      if (scansObj[stName] && Array.isArray(scansObj[stName])) {
+        scannedCount = scansObj[stName].filter((s: any) => s.isScanned).length;
+      } else if (matchedRecord) {
+        scannedCount = typeof matchedRecord.completedScansCount === 'number'
+          ? matchedRecord.completedScansCount
+          : (matchedRecord.status === 'Collected' ? 5 : 0);
+      }
+
+      // Check if worker logged in today for this vehicle/street
+      const isVehicleWorkerLoggedIn = matchedRecord ? true : (i === 0 && isGlobalWorkerLoggedIn);
+
+      let computedStatus = 'Not Logged In Today';
+      if (!isVehicleWorkerLoggedIn) {
+        computedStatus = lang === 'ta' ? 'இன்று உள்நுழையவில்லை' : 'Not Logged In Today';
+      } else if (scannedCount >= minScansNeeded) {
+        computedStatus = 'Collected';
+      } else if (scannedCount > 0) {
+        computedStatus = 'Partial Scan';
+      } else {
+        computedStatus = 'Logged';
+      }
+
+      const timeCompletedStr = isVehicleWorkerLoggedIn
+        ? (matchedRecord?.time || (matchedRecord?.submittedAt ? matchedRecord.submittedAt.split(',')[1]?.trim() : '08:30 AM'))
+        : (lang === 'ta' ? 'இன்று உள்நுழையவில்லை' : 'Not Logged In Today');
 
       return {
         id: `STR-24${(i + 1).toString().padStart(2, '0')}`,
-        streetName: vr.assignedStreets[0] || 'sree nagar',
+        streetName: stName,
         ward: vr.ward,
         zone: vr.zone,
         totalHouses: vr.targetHouseholds,
-        coveredHouses: status === 'Collected' ? vr.targetHouseholds : 0,
+        coveredHouses: computedStatus === 'Collected' ? vr.targetHouseholds : (computedStatus === 'Partial Scan' ? Math.round(vr.targetHouseholds * 0.5) : 0),
         workerName: vr.driverName,
         vehicleNo: vr.vehicleNo,
-        status: status,
-        timeCompleted: matchedRecord?.time || '08:30 AM',
-        reasonIfNotCollected: status === 'Not Collected' ? (matchedRecord?.remarks || 'Pending Inspection') : undefined
+        status: computedStatus as any,
+        timeCompleted: timeCompletedStr,
+        reasonIfNotCollected: computedStatus === 'Collected' ? undefined : (computedStatus === 'Not Logged In Today' ? 'Shift Pending' : 'Pending Checkpoints')
       };
     });
-  }, [records]);
+  }, [records, lang]);
 
   // Filtered Streets / Daily Collection Records
   const filteredStreetReports = useMemo(() => {
@@ -1870,24 +1906,38 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                           <td className="p-3 font-semibold text-gray-700">{item.zone}</td>
                           <td className="p-3 text-right font-bold">{item.totalHouseholds}</td>
                           <td className="p-3 text-right font-bold text-emerald-800">{item.collectedHouseholds}</td>
-                          <td className="p-3 text-center">
+                          <td className="p-3 text-center whitespace-nowrap">
                             <span
                               className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
                                 item.status === 'Collected'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : 'bg-rose-100 text-rose-800'
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                  : item.status === 'Partial Scan'
+                                  ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                  : item.status === 'Logged'
+                                  ? 'bg-blue-100 text-blue-900 border border-blue-300'
+                                  : 'bg-rose-100 text-rose-800 border border-rose-300'
                               }`}
                             >
-                              {item.status}
+                              {item.status === 'Collected'
+                                ? (lang === 'ta' ? 'சேகரிக்கப்பட்டது' : 'Collected')
+                                : item.status === 'Partial Scan'
+                                ? (lang === 'ta' ? 'பகுதி சேகரிப்பு' : 'Partial Scan')
+                                : item.status === 'Logged'
+                                ? (lang === 'ta' ? 'உள்நுழைந்தது' : 'Logged In')
+                                : (lang === 'ta' ? 'இன்று உள்நுழையவில்லை' : 'Not Logged In Today')}
                             </span>
                           </td>
                           <td className="p-3 font-medium text-gray-800">{item.workerName}</td>
                           <td className="p-3 font-semibold text-gray-700">{item.vehicleNo}</td>
-                          <td className="p-3 text-[11px] text-gray-600">
-                            {item.status === 'Collected' ? (
-                              <span className="text-emerald-700 font-semibold">Logged {item.timeCompleted}</span>
+                          <td className="p-3 text-[11px] font-semibold whitespace-nowrap">
+                            {item.status === 'Not Logged In Today' || item.timeCompleted.includes('Not Logged') ? (
+                              <span className="text-rose-600 font-semibold bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                                🕒 {lang === 'ta' ? 'இன்று உள்நுழையவில்லை' : 'Not Logged In Today'}
+                              </span>
                             ) : (
-                              <span className="text-rose-600 font-semibold">{item.reasonIfNotCollected}</span>
+                              <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                Logged {item.timeCompleted}
+                              </span>
                             )}
                           </td>
                         </tr>
