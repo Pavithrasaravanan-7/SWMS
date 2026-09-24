@@ -215,11 +215,12 @@ export const SWMSCollectionDashboardView: React.FC<SWMSCollectionDashboardViewPr
             {/* Municipal Titles - Mobile stacked, Desktop single line (like admin) */}
             <div className="min-w-0 flex flex-col justify-center">
               <div className="sm:hidden flex flex-col leading-none">
-                <div className="text-[11px] font-black tracking-tight text-white truncate leading-tight drop-shadow-xs">Coimbatore City</div>
-                <div className="text-[9.5px] font-black tracking-tight text-amber-300 truncate leading-tight mt-0.5 drop-shadow-xs">Municipal Corporation</div>
+                <div className="text-[11px] font-black tracking-tight text-white truncate leading-tight drop-shadow-xs">Coimbatore City Municipal Corporation</div>
+                <div className="text-[9.5px] font-black tracking-tight text-amber-300 uppercase truncate leading-tight mt-0.5 drop-shadow-xs">Integrated Command and Control Center</div>
               </div>
-              <div className="hidden sm:flex sm:items-center sm:gap-2 leading-tight">
+              <div className="hidden sm:flex sm:flex-col sm:justify-center leading-tight">
                 <span className="text-sm lg:text-base font-black tracking-tight text-white whitespace-nowrap drop-shadow-xs">Coimbatore City Municipal Corporation</span>
+                <span className="text-[10px] lg:text-[11px] font-black tracking-wider text-amber-300 uppercase whitespace-nowrap drop-shadow-xs mt-0.5">Integrated Command and Control Center (ICCC)</span>
               </div>
             </div>
           </div>

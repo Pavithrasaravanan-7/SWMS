@@ -141,35 +141,40 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Municipal Title - Responsive Layout: Desktop single line, Mobile stacked */}
-          <div className="min-w-0 flex flex-col justify-center">
-            {/* Mobile View: Stacked line-by-line (< sm) */}
-            <div className="sm:hidden flex flex-col justify-center leading-none">
-              <div className="text-[12px] font-black tracking-tight text-white truncate leading-tight drop-shadow-xs">
-                Coimbatore City
-              </div>
-              <div className="text-[10px] font-black tracking-tight text-amber-300 truncate leading-tight mt-0.5 drop-shadow-xs">
-                Municipal Corporation
-              </div>
-              {userRole !== 'admin' && (
-                <div className="text-[9px] font-bold text-cyan-300 tracking-wide uppercase truncate leading-tight mt-0.5">
-                  {lang === 'ta' ? 'களப் பணியாளர்' : 'SANITARY FIELD WORKER'}
+            {/* Municipal Title - Responsive Layout: Desktop single line, Mobile stacked */}
+            <div className="min-w-0 flex flex-col justify-center">
+              {/* Mobile View: Stacked line-by-line (< sm) */}
+              <div className="sm:hidden flex flex-col justify-center leading-none">
+                <div className="text-[12px] font-black tracking-tight text-white truncate leading-tight drop-shadow-xs">
+                  Coimbatore City Municipal Corporation
                 </div>
-              )}
-            </div>
+                <div className="text-[9.5px] font-black tracking-tight text-amber-300 uppercase truncate leading-tight mt-0.5 drop-shadow-xs">
+                  Integrated Command and Control Center
+                </div>
+                {userRole !== 'admin' && (
+                  <div className="text-[9px] font-bold text-cyan-300 tracking-wide uppercase truncate leading-tight mt-0.5">
+                    {lang === 'ta' ? 'களப் பணியாளர்' : 'SANITARY FIELD WORKER'}
+                  </div>
+                )}
+              </div>
 
-            {/* Desktop View: Single horizontal line (>= sm) */}
-            <div className="hidden sm:flex sm:items-center sm:gap-2 leading-tight">
-              <span className="text-sm lg:text-base font-black tracking-tight text-white whitespace-nowrap drop-shadow-xs">
-                Coimbatore City Municipal Corporation
-              </span>
-              {userRole !== 'admin' && (
-                <span className="text-xs lg:text-sm font-black tracking-wider text-amber-300 uppercase whitespace-nowrap drop-shadow-xs">
-                  • {lang === 'ta' ? 'களப் பணியாளர்' : 'SANITARY FIELD WORKER'}
-                </span>
-              )}
+              {/* Desktop View: Single horizontal line (>= sm) */}
+              <div className="hidden sm:flex sm:flex-col sm:justify-center leading-tight">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm lg:text-base font-black tracking-tight text-white whitespace-nowrap drop-shadow-xs">
+                    Coimbatore City Municipal Corporation
+                  </span>
+                  {userRole !== 'admin' && (
+                    <span className="text-xs lg:text-sm font-black tracking-wider text-amber-300 uppercase whitespace-nowrap drop-shadow-xs">
+                      • {lang === 'ta' ? 'களப் பணியாளர்' : 'SANITARY FIELD WORKER'}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] lg:text-[11px] font-black tracking-wider text-amber-300 uppercase whitespace-nowrap drop-shadow-xs mt-0.5">
+                  Integrated Command and Control Center (ICCC)
+                </div>
+              </div>
             </div>
-          </div>
         </div>
 
         {/* Right Side: User Profile + Language + Logout */}

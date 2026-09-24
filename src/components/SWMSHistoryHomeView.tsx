@@ -473,23 +473,20 @@ export const SWMSHistoryHomeView: React.FC<SWMSHistoryHomeViewProps> = ({
               {/* Mobile View: Stacked line-by-line (< sm) */}
               <div className="sm:hidden flex flex-col justify-center leading-none">
                 <div className="text-[12px] font-black tracking-tight text-white truncate leading-tight drop-shadow-xs">
-                  Coimbatore City
+                  Coimbatore City Municipal Corporation
                 </div>
-                <div className="text-[10px] font-black tracking-tight text-amber-300 truncate leading-tight mt-0.5 drop-shadow-xs">
-                  Municipal Corporation
-                </div>
-                <div className="text-[9px] font-bold text-cyan-300 tracking-wide uppercase truncate leading-tight mt-0.5">
-                  USER
+                <div className="text-[9.5px] font-black tracking-tight text-amber-300 uppercase truncate leading-tight mt-0.5 drop-shadow-xs">
+                  Integrated Command and Control Center
                 </div>
               </div>
 
               {/* Desktop View: Single horizontal line (>= sm) */}
-              <div className="hidden sm:flex sm:items-center sm:gap-2 leading-tight">
+              <div className="hidden sm:flex sm:flex-col sm:justify-center leading-tight">
                 <span className="text-sm lg:text-base font-black tracking-tight text-white whitespace-nowrap drop-shadow-xs">
                   Coimbatore City Municipal Corporation
                 </span>
-                <span className="text-xs lg:text-sm font-black tracking-wider text-amber-300 uppercase whitespace-nowrap drop-shadow-xs">
-                  • USER
+                <span className="text-[10px] lg:text-[11px] font-black tracking-wider text-amber-300 uppercase whitespace-nowrap drop-shadow-xs mt-0.5">
+                  Integrated Command and Control Center (ICCC)
                 </span>
               </div>
             </div>
