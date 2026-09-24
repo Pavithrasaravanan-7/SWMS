@@ -166,15 +166,47 @@ export const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = (
               </span>
               <span className="text-[11px] font-semibold text-gray-400">Scale: 0 - 1000</span>
             </div>
-            <div className="h-64 w-full pt-2">
+            <div className="h-72 w-full pt-2">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={HOUSEHOLD_RISK_DATA} margin={{ top: 25, right: 10, left: -15, bottom: 25 }}>
+                <BarChart data={HOUSEHOLD_RISK_DATA} margin={{ top: 25, right: 10, left: -15, bottom: 35 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                   <XAxis
                     dataKey="category"
-                    tick={{ fontSize: 10, fill: '#334155', fontWeight: 700 }}
                     interval={0}
-                    height={45}
+                    height={50}
+                    tick={(props: any) => {
+                      const { x, y, payload } = props;
+                      const rawText = payload.value || '';
+                      let line1 = rawText;
+                      let line2 = '';
+
+                      if (rawText.includes('Regularly')) {
+                        line1 = lang === 'ta' ? 'முறையாக' : 'Regularly';
+                        line2 = lang === 'ta' ? 'சேகரித்தது (80-100%)' : 'Collected (80-100%)';
+                      } else if (rawText.includes('Occasionally')) {
+                        line1 = lang === 'ta' ? 'அவ்வப்போது' : 'Occasionally';
+                        line2 = lang === 'ta' ? 'தவறியது (50-79%)' : 'Missed (50-79%)';
+                      } else if (rawText.includes('Frequently')) {
+                        line1 = lang === 'ta' ? 'அடிக்கடி தவறின' : 'Frequently Missed';
+                        line2 = lang === 'ta' ? 'ஆபத்து (20-49%)' : 'High Risk (20-49%)';
+                      } else if (rawText.includes('Critical')) {
+                        line1 = lang === 'ta' ? 'மிகவும் தீவிர' : 'Critical';
+                        line2 = lang === 'ta' ? 'ஆபத்து (0-19%)' : 'High Risk (0-19%)';
+                      }
+
+                      return (
+                        <g transform={`translate(${x},${y})`}>
+                          <text x={0} y={10} textAnchor="middle" fill="#0F172A" fontSize={11} fontWeight={800}>
+                            {line1}
+                          </text>
+                          {line2 && (
+                            <text x={0} y={24} textAnchor="middle" fill="#475569" fontSize={10} fontWeight={700}>
+                              {line2}
+                            </text>
+                          )}
+                        </g>
+                      );
+                    }}
                   />
                   <YAxis domain={[0, 1000]} ticks={[0, 250, 500, 750, 1000]} tick={{ fontSize: 11, fill: '#64748B', fontWeight: 600 }} />
                   <Tooltip
