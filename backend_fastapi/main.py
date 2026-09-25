@@ -219,6 +219,14 @@ def to_checkpoint_schema(db: Session, st: models.StreetModel, cp: models.QRCheck
     rec = get_checkpoint_record(db, cp, cdate)
     status_v = rec.status if rec else "Pending"
     worker = db.query(models.WorkerModel).filter(models.WorkerModel.id == cp.worker_id).first() if cp.worker_id else None
+    
+    photos_list = []
+    if rec and getattr(rec, 'photos', None):
+        try:
+            photos_list = json.loads(rec.photos)
+        except Exception:
+            photos_list = []
+
     return schemas.CheckpointSchema(
         qrId=cp.qr_code,
         position=cp.position,
@@ -230,6 +238,7 @@ def to_checkpoint_schema(db: Session, st: models.StreetModel, cp: models.QRCheck
         status=status_v,
         recordedAt=rec.scanned_at.strftime("%Y-%m-%d %H:%M:%S") if rec else None,
         remarks=rec.remarks if rec else None,
+        photos=photos_list,
         zoneCode=cp.zone_code,
         checkpointNumber=cp.seq,
         households=cp.households,
@@ -980,6 +989,7 @@ def submit_collection(
         )
 
     assignment = build_assignment(db, user)
+    photos_json = json.dumps(data.photos) if data.photos else None
     record = models.CollectionRecordModel(
         record_no=f"CCM-{cdate.replace('-', '')}-{secrets.token_hex(4).upper()}",
         qr_code=qr_id,
@@ -993,6 +1003,7 @@ def submit_collection(
         latitude=data.latitude,
         longitude=data.longitude,
         collection_date=cdate,
+        photos=photos_json,
     )
     db.add(record)
     db.commit()

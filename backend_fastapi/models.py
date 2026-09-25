@@ -164,6 +164,7 @@ class CollectionRecordModel(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     collection_date = Column(String, nullable=False, index=True)  # "YYYY-MM-DD" cycle key
+    photos = Column(Text, nullable=True)  # JSON-encoded array of scan proof photos
 
 
 class AuthTokenModel(Base):

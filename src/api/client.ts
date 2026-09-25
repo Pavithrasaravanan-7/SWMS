@@ -225,6 +225,7 @@ export interface CollectionSubmitPayload {
   remarks?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  photos?: string[] | null;
 }
 
 export const submitCollection = (token: string, payload: CollectionSubmitPayload) =>

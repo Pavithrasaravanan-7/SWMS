@@ -19,6 +19,9 @@ import {
   Navigation,
   Users,
   Building2,
+  Camera,
+  ImagePlus,
+  Trash2,
 } from 'lucide-react';
 import { submitCollection } from '../api/client';
 import type { CheckpointResolveResponse, CheckpointStatus, NotCollectedReasonOption } from '../types';
@@ -80,6 +83,9 @@ export const SWMSCollectionFormView: React.FC<SWMSCollectionFormViewProps> = ({
   const [saved, setSaved] = useState(false);
   const [showCollectedAnim, setShowCollectedAnim] = useState(false);
 
+  // 5 mandatory scan photos for Tata Ace
+  const [formPhotos, setFormPhotos] = useState<(string | null)[]>([null, null, null, null, null]);
+
   useEffect(() => {
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -91,13 +97,49 @@ export const SWMSCollectionFormView: React.FC<SWMSCollectionFormViewProps> = ({
   }, []);
 
   const isPushcart = !!assignment?.isPushcart;
+  const isTataAce = !isPushcart || (assignment?.vehicleType || '').toUpperCase().includes('TATA') || (checkpoint.streetName || '').toLowerCase().includes('nagar') || (checkpoint.streetName || '').toLowerCase().includes('veedhi');
   const statusMeta = STATUS_META[checkpoint.status];
+
+  const handlePhotoSlotChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setFormPhotos(prev => {
+        const next = [...prev];
+        next[index] = result;
+        return next;
+      });
+      setSaveError(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removePhotoSlot = (index: number) => {
+    setFormPhotos(prev => {
+      const next = [...prev];
+      next[index] = null;
+      return next;
+    });
+  };
 
   const handleSave = async () => {
     setSaveError(null);
 
     if (!status) {
       setSaveError(lang === 'ta' ? 'சேகரிப்பு நிலையைத் தேர்ந்தெடுக்கவும்.' : 'Please select a collection status.');
+      return;
+    }
+
+    // Check mandatory 5 photos for Tata Ace
+    const validPhotos = formPhotos.filter((p): p is string => Boolean(p));
+    if (isTataAce && validPhotos.length < 5) {
+      setSaveError(
+        lang === 'ta'
+          ? `Tata Ace வாகனத்திற்கு 5 புகைப்படங்கள் எடுப்பது கட்டாயமாகும் (${validPhotos.length}/5 புகைப்படங்கள் எடுக்கப்பட்டுள்ளன).`
+          : `5 photos are mandatory for Tata Ace vehicle scan (${validPhotos.length}/5 photos uploaded).`
+      );
       return;
     }
 
@@ -131,6 +173,7 @@ export const SWMSCollectionFormView: React.FC<SWMSCollectionFormViewProps> = ({
         remarks,
         latitude: coords?.lat ?? null,
         longitude: coords?.lng ?? null,
+        photos: validPhotos.length > 0 ? validPhotos : null,
       });
       if (!result?.success) {
         setSaveError(result?.message || 'Submission failed.');
@@ -442,6 +485,74 @@ export const SWMSCollectionFormView: React.FC<SWMSCollectionFormViewProps> = ({
                       {lang === 'ta' ? 'காரணத்துடன்' : 'With reason'}
                     </div>
                   </button>
+                </div>
+
+                {/* ── 4. MANDATORY 5 SCAN PHOTOS (TATA ACE & COLLECTION PROOF) ── */}
+                <div className="mt-5 border-t border-slate-100 pt-4 space-y-3">
+                  <div className="flex items-center justify-between bg-sky-50 border border-sky-200 rounded-2xl p-3">
+                    <div className="flex items-center gap-2">
+                      <Camera className="w-5 h-5 text-sky-700" />
+                      <div>
+                        <div className="text-xs font-black text-sky-900 uppercase tracking-wide">
+                          {lang === 'ta' ? '5 கட்டாய புகைப்படங்கள் (5 mandatory scan photos)' : '5 Mandatory Scan Photos (Tata Ace)'}
+                        </div>
+                        <div className="text-[11px] text-sky-700 font-semibold">
+                          {lang === 'ta' ? 'அனைத்து 5 புகைப்படங்களும் கட்டாயமாகும்' : 'All 5 photo angles are required for verification'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={`text-xs font-black px-2.5 py-1 rounded-full border ${
+                      formPhotos.filter(Boolean).length === 5
+                        ? 'bg-emerald-100 border-emerald-300 text-emerald-800'
+                        : 'bg-amber-100 border-amber-300 text-amber-900'
+                    }`}>
+                      {formPhotos.filter(Boolean).length}/5 {lang === 'ta' ? 'முடிந்தது' : 'Done'}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+                    {[
+                      { num: 1, labelEn: 'Front', labelTa: 'முன்பக்கம்' },
+                      { num: 2, labelEn: 'Left Side', labelTa: 'இடது' },
+                      { num: 3, labelEn: 'Right Side', labelTa: 'வலது' },
+                      { num: 4, labelEn: 'Rear Area', labelTa: 'பின்பக்கம்' },
+                      { num: 5, labelEn: 'Proof', labelTa: 'சான்று' },
+                    ].map((slot, idx) => (
+                      <div key={slot.num} className="relative flex flex-col items-center">
+                        <label className={`w-full aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition relative overflow-hidden bg-slate-50 ${
+                          formPhotos[idx] ? 'border-emerald-500 bg-emerald-50/40' : 'border-sky-300 hover:border-sky-500 hover:bg-sky-50/50'
+                        }`}>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => handlePhotoSlotChange(idx, e)}
+                            className="hidden"
+                          />
+                          {formPhotos[idx] ? (
+                            <>
+                              <img src={formPhotos[idx]!} alt={`Photo ${slot.num}`} className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={(e) => { e.preventDefault(); removePhotoSlot(idx); }}
+                                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 hover:bg-rose-600 text-white flex items-center justify-center cursor-pointer border border-white/30"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center text-center p-1">
+                              <Camera className="w-4 h-4 text-sky-600 mb-0.5" />
+                              <span className="text-[10px] font-black text-slate-700 leading-tight">#{slot.num}</span>
+                              <span className="text-[9px] font-semibold text-slate-500 truncate max-w-full">
+                                {lang === 'ta' ? slot.labelTa : slot.labelEn}
+                              </span>
+                            </div>
+                          )}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Remarks when Not Collected */}

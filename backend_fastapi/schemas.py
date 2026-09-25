@@ -56,6 +56,7 @@ class CheckpointSchema(BaseModel):
     status: str = "Pending"          # "Collected" | "Not Collected" | "Pending"
     recordedAt: Optional[str] = None
     remarks: Optional[str] = None
+    photos: Optional[List[str]] = []
     # Rich checkpoint details (fetched AFTER scan, not encoded in the QR)
     zoneCode: Optional[str] = None
     checkpointNumber: Optional[int] = None
@@ -126,6 +127,7 @@ class CollectionSubmitRequest(BaseModel):
     remarks: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    photos: Optional[List[str]] = []
 
 
 class CollectionRecordResponseSchema(BaseModel):
@@ -149,6 +151,7 @@ class CollectionRecordResponseSchema(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     collectionDate: Optional[str] = None
+    photos: Optional[List[str]] = []
 
     class Config:
         from_attributes = True

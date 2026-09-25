@@ -54,6 +54,7 @@ export interface SWMSHouseholdRecord {
   completedScansCount?: number;
   streetScans?: StreetScanPoint[];
   proofPhoto?: string;
+  photos?: string[];
 }
 
 export interface AreaWardStats {
@@ -165,6 +166,7 @@ export interface CollectionRecord {
   coordinates?: { lat: number; lng: number };
   locationName?: string;
   proofPhoto?: string;
+  photos?: string[];
   proofTimestamp?: string;
   reasonIfNotCollected?: string;
   completedScansCount?: number;
@@ -494,6 +496,7 @@ export interface QRCheckpoint {
   status: CheckpointStatus;
   recordedAt?: string | null;
   remarks?: string | null;
+  photos?: string[] | null;
   // Rich checkpoint details (fetched AFTER scan, not encoded in the QR)
   zoneCode?: string | null;
   checkpointNumber?: number | null;

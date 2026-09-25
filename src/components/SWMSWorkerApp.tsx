@@ -426,15 +426,17 @@ export const SWMSWorkerApp: React.FC<SWMSWorkerAppProps> = ({
                 ))}
               </div>
 
-              {/* ── PROOF PHOTOS (EVIDENCE) — captured after every scan ── */}
+              {/* ── PROOF PHOTOS (EVIDENCE) — 5 mandatory photos for Tata Ace ── */}
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                 <div className="flex items-center gap-2 bg-sky-50 border-b border-sky-100 px-4 py-2.5">
                   <Camera className="w-4 h-4 text-sky-700" />
                   <span className="text-[11px] font-black uppercase tracking-wide text-sky-800">
-                    {lang === 'ta' ? 'சான்று புகைப்படங்கள்' : 'Proof Photos (Evidence)'}
+                    {lang === 'ta' ? 'Tata Ace 5 சான்று புகைப்படங்கள் (Mandatory)' : 'Tata Ace 5 Proof Photos (Mandatory)'}
                   </span>
-                  <span className="ml-auto text-[11px] font-black text-sky-700">
-                    {scanPhotos.length} {lang === 'ta' ? 'புகைப்படம்' : 'photo(s)'}
+                  <span className={`ml-auto text-[11px] font-black px-2 py-0.5 rounded-full border ${
+                    scanPhotos.length >= 5 ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-amber-100 border-amber-300 text-amber-900'
+                  }`}>
+                    {scanPhotos.length}/5 {lang === 'ta' ? 'புகைப்படங்கள்' : 'photos'}
                   </span>
                 </div>
 
@@ -448,47 +450,52 @@ export const SWMSWorkerApp: React.FC<SWMSWorkerAppProps> = ({
                     onChange={handlePhotoSelect}
                     className="hidden"
                   />
+
+                  {scanPhotos.length < 5 && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2 text-xs font-bold text-amber-900">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div>{lang === 'ta' ? 'Tata Ace வாகனத்திற்கு 5 புகைப்படங்கள் எடுப்பது கட்டாயமாகும்.' : '5 photos are mandatory for Tata Ace vehicle scan.'}</div>
+                        <div className="text-[11px] text-amber-700 font-semibold mt-0.5">
+                          {lang === 'ta' ? `இன்னும் ${5 - scanPhotos.length} புகைப்படங்கள் தேவை.` : `${5 - scanPhotos.length} photo(s) remaining.`}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <button
                     onClick={() => photoInputRef.current?.click()}
                     disabled={scanPhotos.some(p => p.status === 'uploading')}
                     className="w-full flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-black py-3.5 rounded-2xl shadow-md active:scale-[0.98] transition cursor-pointer"
                   >
                     <ImagePlus className="w-4.5 h-4.5" />
-                    {lang === 'ta' ? '📷 புகைப்படம் எடு / இணை' : '📷 Capture / Attach Photo'}
+                    {lang === 'ta' ? '📷 புகைப்படம் எடு / இணை (Add Photos)' : '📷 Capture / Attach Scan Photos'}
                   </button>
-                  <p className="text-[11px] text-slate-400 font-semibold text-center">
-                    {lang === 'ta' ? 'ஒவ்வொரு ஸ்கேனுக்கும் சேகரிப்பு ஆதார புகைப்படத்தை பதிவேற்றவும். புகைப்படங்கள் உடனே சேவையகத்தில் பதிவேற்றப்படும்.' : 'Take an evidence photo of the collection for this scan. Uploads to the server automatically.'}
-                  </p>
 
                   {scanPhotos.length > 0 && (
-                    <div className="grid grid-cols-3 gap-2.5">
-                      {scanPhotos.map(photo => (
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {scanPhotos.map((photo, idx) => (
                         <div key={photo.id} className="relative rounded-xl overflow-hidden border border-slate-200 aspect-square bg-slate-50">
-                          <img src={photo.dataUrl} alt="scan evidence" className="w-full h-full object-cover" />
+                          <img src={photo.dataUrl} alt={`scan evidence ${idx + 1}`} className="w-full h-full object-cover" />
+                          <div className="absolute top-1 left-1 bg-black/60 text-white text-[9px] font-black px-1 rounded">
+                            #{idx + 1}
+                          </div>
                           {photo.status === 'uploading' && (
-                            <div className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center gap-1">
-                              <Loader2 className="w-5 h-5 text-white animate-spin" />
-                              <span className="text-[9px] font-black text-white uppercase">Uploading</span>
+                            <div className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center gap-0.5">
+                              <Loader2 className="w-4 h-4 text-white animate-spin" />
                             </div>
                           )}
                           {photo.status === 'done' && (
-                            <div className="absolute inset-x-0 bottom-0 bg-black/55 flex items-center justify-center gap-1 py-1">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                              <span className="text-[9px] font-black text-emerald-300 uppercase">Uploaded</span>
-                            </div>
-                          )}
-                          {photo.status === 'error' && (
-                            <div className="absolute inset-0 bg-black/65 flex items-center justify-center gap-1">
-                              <XCircle className="w-4 h-4 text-rose-400" />
-                              <span className="text-[9px] font-black text-rose-300 uppercase">Failed</span>
+                            <div className="absolute inset-x-0 bottom-0 bg-black/60 flex items-center justify-center py-0.5">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                             </div>
                           )}
                           <button
                             onClick={() => removePhoto(photo.id)}
-                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-rose-600 text-white flex items-center justify-center cursor-pointer border border-white/20"
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 hover:bg-rose-600 text-white flex items-center justify-center cursor-pointer border border-white/20"
                             aria-label="Remove photo"
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <Trash2 className="w-2.5 h-2.5" />
                           </button>
                         </div>
                       ))}
@@ -498,11 +505,19 @@ export const SWMSWorkerApp: React.FC<SWMSWorkerAppProps> = ({
               </div>
 
               <button
-                onClick={handleOpenScanner}
-                className="w-full flex items-center justify-center gap-2 bg-[#1E7A38] hover:bg-[#166534] text-white font-black py-3 rounded-2xl shadow-md active:scale-95 transition cursor-pointer"
+                onClick={() => {
+                  if (scannedRouteData?.vehicleType === 'TATA ACE' && scanPhotos.length < 5) {
+                    alert(lang === 'ta' ? `Tata Ace வாகனத்திற்கு 5 புகைப்படங்கள் எடுப்பது கட்டாயமாகும் (${scanPhotos.length}/5 எடுக்கப்பட்டுள்ளன).` : `5 photos are mandatory for Tata Ace vehicle scan (${scanPhotos.length}/5 captured).`);
+                    return;
+                  }
+                  handleOpenScanner();
+                }}
+                className={`w-full flex items-center justify-center gap-2 text-white font-black py-3.5 rounded-2xl shadow-md active:scale-95 transition cursor-pointer ${
+                  scanPhotos.length >= 5 ? 'bg-[#1E7A38] hover:bg-[#166534]' : 'bg-slate-700 hover:bg-slate-800'
+                }`}
               >
                 <QrCode className="w-4 h-4" />
-                {lang === 'ta' ? 'மீண்டும் ஸ்கேன் செய்' : 'Scan Next QR'}
+                {scanPhotos.length >= 5 ? (lang === 'ta' ? 'அடுத்த QR ஸ்கேன் செய் (5/5 புகைப்படங்கள் பெறப்பட்டன)' : 'Scan Next QR (5/5 Photos Complete)') : (lang === 'ta' ? 'மீண்டும் ஸ்கேன் செய்' : 'Scan Next QR')}
               </button>
             </div>
           </div>

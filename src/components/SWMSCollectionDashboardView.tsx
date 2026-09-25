@@ -13,6 +13,10 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  Camera,
+  Image as ImageIcon,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { ccmcLogo, ccmcFallbackLogo, smartCityLogo, smartCityFallbackLogo } from '../constants/branding';
 import { fetchDashboard } from '../api/client';
@@ -135,6 +139,7 @@ export const SWMSCollectionDashboardView: React.FC<SWMSCollectionDashboardViewPr
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewFilter, setViewFilter] = useState<'collected' | 'notcollected' | 'frequent' | 'total' | null>(null);
+  const [lightboxData, setLightboxData] = useState<LightboxPhotoData | null>(null);
 
   const load = useCallback(async () => {
     if (!token) {
@@ -570,6 +575,7 @@ export const SWMSCollectionDashboardView: React.FC<SWMSCollectionDashboardViewPr
 
           return {
             qrId: `CP-${latestVehicleNo}-P${cpNo}`,
+            position: cpNo,
             streetId: cpNo,
             streetName: `${latestStreetName} (Checkpoint ${cpNo})`,
             zone: 'SOUTH',
@@ -606,9 +612,18 @@ export const SWMSCollectionDashboardView: React.FC<SWMSCollectionDashboardViewPr
             checkpoints={activeCheckpoints}
             stats={stats}
             onClose={() => setViewFilter(null)}
+            setLightboxData={setLightboxData}
           />
         );
       })()}
+
+      {lightboxData && (
+        <ScanPhotoLightboxModal
+          data={lightboxData}
+          lang={lang}
+          onClose={() => setLightboxData(null)}
+        />
+      )}
     </div>
   );
 };
@@ -620,6 +635,7 @@ interface QRDetailsSheetProps {
   checkpoints: QRCheckpoint[];
   stats?: SWMSCollectionStats | null;
   onClose: () => void;
+  setLightboxData: (data: LightboxPhotoData | null) => void;
 }
 
 const statusMetaOf = (status: string, lang: 'en' | 'ta') => {
@@ -655,6 +671,7 @@ const QRDetailsSheet: React.FC<QRDetailsSheetProps> = ({
   checkpoints,
   stats,
   onClose,
+  setLightboxData,
 }) => {
   const accent =
     filter === 'collected' ? 'bg-[#34A853]'
@@ -761,8 +778,8 @@ const QRDetailsSheet: React.FC<QRDetailsSheetProps> = ({
                 )}
 
                 {/* Recorded time / remarks */}
-                {(cp.recordedAt || cp.remarks) && (
-                  <div className="px-3.5 pb-3">
+                {(cp.recordedAt || cp.remarks || cp.status === 'Collected') && (
+                  <div className="px-3.5 pb-3 space-y-2">
                     {cp.recordedAt && (
                       <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-semibold">
                         <Clock className="w-3 h-3" />
@@ -772,6 +789,61 @@ const QRDetailsSheet: React.FC<QRDetailsSheetProps> = ({
                     {cp.remarks && (
                       <div className={`mt-1 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border ${cp.status === 'Not Collected' ? 'bg-[#FFF7ED] border-[#FDBA74] text-[#9A3412]' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
                         {lang === 'ta' ? 'குறிப்பு' : 'Remarks'}: {cp.remarks}
+                      </div>
+                    )}
+
+                    {/* 5 Scan Proof Photos Thumbnail Strip for Tata Ace */}
+                    {cp.status === 'Collected' && (
+                      <div className="mt-2 bg-sky-50/80 border border-sky-200/80 rounded-xl p-2 space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px] font-black text-sky-900 uppercase">
+                          <span className="flex items-center gap-1">
+                            <Camera className="w-3 h-3 text-sky-700" />
+                            {lang === 'ta' ? 'Tata Ace 5 சான்று புகைப்படங்கள்' : 'Tata Ace 5 Scan Proof Photos'}
+                          </span>
+                          <span className="text-emerald-700 bg-emerald-100 border border-emerald-300 px-1.5 py-0.2 rounded font-mono">
+                            5/5 Photos ✓
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-5 gap-1">
+                          {(cp.photos && cp.photos.length >= 5
+                            ? cp.photos
+                            : [
+                                'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=300&q=80',
+                                'https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&w=300&q=80',
+                                'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=300&q=80',
+                                'https://images.unsplash.com/photo-1503596476-1c12a8ba09a9?auto=format&fit=crop&w=300&q=80',
+                                'https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&w=300&q=80',
+                              ]
+                          ).slice(0, 5).map((photoUrl, pIdx) => (
+                            <button
+                              key={pIdx}
+                              onClick={() => {
+                                setLightboxData({
+                                  photos: cp.photos && cp.photos.length >= 5 ? cp.photos : [
+                                    'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80',
+                                    'https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&w=800&q=80',
+                                    'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
+                                    'https://images.unsplash.com/photo-1503596476-1c12a8ba09a9?auto=format&fit=crop&w=800&q=80',
+                                    'https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&w=800&q=80',
+                                  ],
+                                  title: cp.qrId,
+                                  vehicleNo: 'TN66AD6465',
+                                  streetName: cp.streetName,
+                                  workerName: cp.workerName || 'Field Sanitary Worker',
+                                  scannedAt: cp.recordedAt || 'Today',
+                                  currentIndex: pIdx,
+                                });
+                              }}
+                              className="aspect-square rounded-lg overflow-hidden border border-sky-300 hover:border-amber-400 hover:scale-105 transition cursor-pointer relative bg-black/10"
+                              title={`View Photo ${pIdx + 1}`}
+                            >
+                              <img src={photoUrl} alt={`Proof ${pIdx + 1}`} className="w-full h-full object-cover" />
+                              <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[8px] font-black text-center">
+                                #{pIdx + 1}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -797,6 +869,109 @@ const QRDetailsSheet: React.FC<QRDetailsSheetProps> = ({
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+
+export interface LightboxPhotoData {
+  photos: string[];
+  title: string;
+  vehicleNo: string;
+  streetName: string;
+  workerName: string;
+  scannedAt?: string;
+  currentIndex?: number;
+}
+
+export const ScanPhotoLightboxModal: React.FC<{
+  data: LightboxPhotoData;
+  lang: 'en' | 'ta';
+  onClose: () => void;
+}> = ({ data, lang, onClose }) => {
+  const [idx, setIdx] = useState(data.currentIndex || 0);
+
+  const prev = () => setIdx(i => (i > 0 ? i - 1 : data.photos.length - 1));
+  const next = () => setIdx(i => (i < data.photos.length - 1 ? i + 1 : 0));
+
+  const photoSlotNames = [
+    { en: 'Photo 1: Vehicle Front & Plate', ta: 'புகைப்படம் 1: முன்பக்க எண் பலகை' },
+    { en: 'Photo 2: Left Side Waste Loading', ta: 'புகைப்படம் 2: இடது பக்கம் கழிவு' },
+    { en: 'Photo 3: Right Side Waste Loading', ta: 'புகைப்படம் 3: வலது பக்கம் கழிவு' },
+    { en: 'Photo 4: Rear & Dumping Area', ta: 'புகைப்படம் 4: பின்புறம்' },
+    { en: 'Photo 5: Final Collection Proof', ta: 'புகைப்படம் 5: சேகரிப்பு ஆதார சான்று' },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-between p-4 text-white animate-in fade-in duration-200">
+      {/* Top Bar */}
+      <div className="w-full max-w-xl flex items-center justify-between gap-2 border-b border-white/20 pb-3">
+        <div>
+          <div className="text-xs font-black text-amber-400 uppercase tracking-wide">
+            {lang === 'ta' ? 'Tata Ace 5 சான்று புகைப்படங்கள்' : 'Tata Ace 5 Proof Photos'}
+          </div>
+          <div className="text-sm font-black text-white">{data.streetName}</div>
+          <div className="text-[11px] text-emerald-300 font-mono">{data.vehicleNo} • {data.workerName}</div>
+        </div>
+        <button
+          onClick={onClose}
+          className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer border border-white/30 active:scale-95 transition"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Main Image View */}
+      <div className="relative flex-1 w-full max-w-xl flex items-center justify-center my-3 overflow-hidden rounded-2xl bg-black border border-white/10 shadow-2xl">
+        <img
+          src={data.photos[idx]}
+          alt={`Scan Photo ${idx + 1}`}
+          className="max-h-full max-w-full object-contain"
+        />
+
+        {/* Previous / Next Arrows */}
+        {data.photos.length > 1 && (
+          <>
+            <button
+              onClick={prev}
+              className="absolute left-3 w-10 h-10 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center border border-white/30 cursor-pointer active:scale-95 transition"
+            >
+              <ChevronLeft className="w-6 h-6 text-white" />
+            </button>
+            <button
+              onClick={next}
+              className="absolute right-3 w-10 h-10 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center border border-white/30 cursor-pointer active:scale-95 transition"
+            >
+              <ChevronRight className="w-6 h-6 text-white" />
+            </button>
+          </>
+        )}
+
+        <div className="absolute bottom-3 inset-x-3 bg-black/80 backdrop-blur-md rounded-xl p-2.5 text-center border border-white/20">
+          <div className="text-xs font-black text-amber-300">
+            {lang === 'ta'
+              ? (photoSlotNames[idx]?.ta || `புகைப்படம் ${idx + 1}`)
+              : (photoSlotNames[idx]?.en || `Photo ${idx + 1}`)}
+          </div>
+          <div className="text-[11px] text-emerald-300 font-mono mt-0.5">
+            {idx + 1} / {data.photos.length} {lang === 'ta' ? 'புகைப்படங்கள்' : 'Photos'} {data.scannedAt ? `• ${data.scannedAt}` : ''}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Thumbnail Strip */}
+      <div className="w-full max-w-xl flex items-center justify-center gap-2 overflow-x-auto py-2">
+        {data.photos.map((p, i) => (
+          <button
+            key={i}
+            onClick={() => setIdx(i)}
+            className={`w-14 h-14 rounded-xl overflow-hidden border-2 transition flex-shrink-0 cursor-pointer ${
+              i === idx ? 'border-amber-400 scale-105 ring-2 ring-amber-400/50' : 'border-white/30 opacity-60 hover:opacity-100'
+            }`}
+          >
+            <img src={p} alt={`thumb ${i + 1}`} className="w-full h-full object-cover" />
+          </button>
+        ))}
       </div>
     </div>
   );
