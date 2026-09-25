@@ -112,20 +112,31 @@ export const RecentCollectionTable: React.FC<RecentCollectionTableProps> = ({
               const stName = item.streetName || item.street;
               const isTodaySubmitted = (ts?: string): boolean => {
                 if (!ts || ts === 'Shift Pending' || ts === 'Not Logged In') return false;
+                const s = String(ts).trim();
                 const today = new Date();
                 const d = String(today.getDate()).padStart(2, '0');
                 const dSingle = String(today.getDate());
                 const m = String(today.getMonth() + 1).padStart(2, '0');
                 const mSingle = String(today.getMonth() + 1);
                 const y = String(today.getFullYear());
-                const datePart = ts.split(',')[0].trim();
-                return (
+                const datePart = s.split(',')[0].trim();
+                if (
                   datePart.includes(`${m}/${d}/${y}`) ||
                   datePart.includes(`${mSingle}/${dSingle}/${y}`) ||
                   datePart.includes(`${d}/${m}/${y}`) ||
                   datePart.includes(`${dSingle}/${mSingle}/${y}`) ||
-                  datePart.includes(`${y}-${m}-${d}`)
-                );
+                  datePart.includes(`${y}-${m}-${d}`) ||
+                  s.includes(`${y}-${m}-${d}`)
+                ) {
+                  return true;
+                }
+                try {
+                  const p = new Date(s);
+                  if (!isNaN(p.getTime()) && p.getFullYear() === today.getFullYear() && p.getMonth() === today.getMonth() && p.getDate() === today.getDate()) {
+                    return true;
+                  }
+                } catch {}
+                return !s.includes('Not Logged');
               };
 
               const isShiftPending = item.date === 'Shift Pending' || 
@@ -295,7 +306,7 @@ export const RecentCollectionTable: React.FC<RecentCollectionTableProps> = ({
           onClick={onViewAllReports}
           className="px-7 py-2 border-2 border-[#1E7A38] text-[#1E7A38] hover:bg-[#1E7A38] hover:text-white font-bold rounded-xl text-sm transition-all focus:outline-none cursor-pointer"
         >
-          {lang === 'ta' ? 'அனைத்து அறிக்கைகளையும் காண்க' : 'View All Reports'}
+          {lang === 'ta' ? 'அனைத்து பதிவுகளையும் காண்க' : 'View All Records'}
         </button>
       </div>
 

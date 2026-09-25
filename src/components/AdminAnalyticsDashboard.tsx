@@ -177,30 +177,31 @@ export const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = (
                     tick={(props: any) => {
                       const { x, y, payload } = props;
                       const rawText = payload.value || '';
+                      const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
                       let line1 = rawText;
                       let line2 = '';
 
                       if (rawText.includes('Regularly')) {
-                        line1 = lang === 'ta' ? 'முறையாக' : 'Regularly';
-                        line2 = lang === 'ta' ? 'சேகரித்தது (80-100%)' : 'Collected (80-100%)';
+                        line1 = lang === 'ta' ? (isMobile ? 'முறையாக' : 'முறையாக சேகரித்தது') : (isMobile ? 'Regular' : 'Regularly');
+                        line2 = isMobile ? '80-100%' : (lang === 'ta' ? 'சேகரித்தது (80-100%)' : 'Collected (80-100%)');
                       } else if (rawText.includes('Occasionally')) {
-                        line1 = lang === 'ta' ? 'அவ்வப்போது' : 'Occasionally';
-                        line2 = lang === 'ta' ? 'தவறியது (50-79%)' : 'Missed (50-79%)';
+                        line1 = lang === 'ta' ? 'அவ்வப்போது' : (isMobile ? 'Occasional' : 'Occasionally');
+                        line2 = isMobile ? '50-79%' : (lang === 'ta' ? 'தவறியது (50-79%)' : 'Missed (50-79%)');
                       } else if (rawText.includes('Frequently')) {
-                        line1 = lang === 'ta' ? 'அடிக்கடி தவறின' : 'Frequently Missed';
-                        line2 = lang === 'ta' ? 'ஆபத்து (20-49%)' : 'High Risk (20-49%)';
+                        line1 = lang === 'ta' ? (isMobile ? 'அடிக்கடி' : 'அடிக்கடி தவறின') : (isMobile ? 'Freq. Missed' : 'Frequently Missed');
+                        line2 = isMobile ? '20-49%' : (lang === 'ta' ? 'ஆபத்து (20-49%)' : 'High Risk (20-49%)');
                       } else if (rawText.includes('Critical')) {
-                        line1 = lang === 'ta' ? 'மிகவும் தீவிர' : 'Critical';
-                        line2 = lang === 'ta' ? 'ஆபத்து (0-19%)' : 'High Risk (0-19%)';
+                        line1 = lang === 'ta' ? (isMobile ? 'தீவிர ஆபத்து' : 'மிகவும் தீவிர') : (isMobile ? 'Critical' : 'Critical');
+                        line2 = isMobile ? '0-19%' : (lang === 'ta' ? 'ஆபத்து (0-19%)' : 'High Risk (0-19%)');
                       }
 
                       return (
                         <g transform={`translate(${x},${y})`}>
-                          <text x={0} y={10} textAnchor="middle" fill="#0F172A" fontSize={11} fontWeight={800}>
+                          <text x={0} y={isMobile ? 8 : 10} textAnchor="middle" fill="#0F172A" fontSize={isMobile ? 9.5 : 11} fontWeight={800}>
                             {line1}
                           </text>
                           {line2 && (
-                            <text x={0} y={24} textAnchor="middle" fill="#475569" fontSize={10} fontWeight={700}>
+                            <text x={0} y={isMobile ? 20 : 24} textAnchor="middle" fill="#475569" fontSize={isMobile ? 8.5 : 10} fontWeight={700}>
                               {line2}
                             </text>
                           )}

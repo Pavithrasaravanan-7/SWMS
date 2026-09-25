@@ -394,19 +394,18 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       }
     } else if (activeReportType === 'daily' || activeReportType === 'street') {
       headers = isTa
-        ? ['வ.எண்', 'தேதி', 'நேரம்', 'மண்டலம்', 'வார்டு', 'தெரு பெயர்', 'ஒதுக்கப்பட்ட பணியாளர்', 'வாகன எண்', 'நிலை', 'காரணம் / குறிப்பு']
-        : ['S.No', 'Date', 'Time', 'Zone', 'Ward', 'Street Name', 'Assigned Worker', 'Vehicle Plate', 'Status', 'Missed Reason'];
+        ? ['வ.எண்', 'மண்டலம்', 'வார்டு', 'தெரு பெயர்', 'வீடுகள்', 'சேகரிக்கப்பட்டவை', 'ஒதுக்கப்பட்ட பணியாளர்', 'வாகன எண்', 'நிலை']
+        : ['S.No', 'Zone', 'Ward', 'Street Name', 'Households', 'Collected', 'Assigned Worker', 'Vehicle Plate', 'Status'];
       rows = filteredStreetReports.map((s, i) => [
         i + 1,
-        selectedDate,
-        s.timeCompleted || (isTa ? 'நிலுவையில்' : 'Pending'),
         translateZone(s.zone, lang),
         s.ward,
         s.streetName,
+        s.totalHouseholds || s.totalHouses || 0,
+        s.collectedHouseholds || s.coveredHouses || 0,
         s.workerName,
         s.vehicleNo,
         translateStatus(s.status, lang),
-        translateStatus(s.reasonIfNotCollected || 'N/A', lang),
       ]);
     } else if (activeReportType === 'zone') {
       if (forPDF) {
@@ -1243,7 +1242,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       }
 
       // Check if worker logged in today for this vehicle/street
-      const isVehicleWorkerLoggedIn = matchedRecord ? true : (i === 0 && isGlobalWorkerLoggedIn);
+      const isVehicleWorkerLoggedIn = matchedRecord ? true : (isGlobalWorkerLoggedIn || true);
 
       let computedStatus = 'Not Logged In Today';
       if (!isVehicleWorkerLoggedIn) {
@@ -1260,13 +1259,17 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         ? (matchedRecord?.time || (matchedRecord?.submittedAt ? matchedRecord.submittedAt.split(',')[1]?.trim() : '08:30 AM'))
         : (lang === 'ta' ? 'இன்று உள்நுழையவில்லை' : 'Not Logged In Today');
 
+      const coveredCount = computedStatus === 'Collected' ? vr.targetHouseholds : (computedStatus === 'Partial Scan' ? Math.round(vr.targetHouseholds * 0.5) : (scannedCount > 0 ? Math.round(vr.targetHouseholds * (scannedCount / (isPushCart ? 1 : 5))) : 0));
+
       return {
         id: `STR-24${(i + 1).toString().padStart(2, '0')}`,
         streetName: stName,
         ward: vr.ward,
         zone: vr.zone,
         totalHouses: vr.targetHouseholds,
-        coveredHouses: computedStatus === 'Collected' ? vr.targetHouseholds : (computedStatus === 'Partial Scan' ? Math.round(vr.targetHouseholds * 0.5) : 0),
+        coveredHouses: coveredCount,
+        totalHouseholds: vr.targetHouseholds,
+        collectedHouseholds: coveredCount,
         workerName: vr.driverName,
         vehicleNo: vr.vehicleNo,
         status: computedStatus as any,
@@ -1884,14 +1887,13 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                       <th className="p-3 text-right">Collected</th>
                       <th className="p-3 text-center">Status</th>
                       <th className="p-3">Worker & Crew</th>
-                      <th className="p-3">Vehicle</th>
-                      <th className="p-3">Timestamp / Reason</th>
+                      <th className="p-3 font-bold">{lang === 'ta' ? 'வாகனம்' : 'Vehicle'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 font-medium">
                     {filteredStreetReports.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="p-8 text-center text-gray-500">
+                        <td colSpan={8} className="p-8 text-center text-gray-500">
                           No collection records match the selected status ({dailyStatusFilter}) and zone filters.
                         </td>
                       </tr>
@@ -1904,7 +1906,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                             <div className="text-[11px] text-gray-500">{item.ward}</div>
                           </td>
                           <td className="p-3 font-semibold text-gray-700">{item.zone}</td>
-                          <td className="p-3 text-right font-bold">{item.totalHouseholds}</td>
+                          <td className="p-3 text-right font-bold text-gray-900">{item.totalHouseholds}</td>
                           <td className="p-3 text-right font-bold text-emerald-800">{item.collectedHouseholds}</td>
                           <td className="p-3 text-center whitespace-nowrap">
                             <span
@@ -1929,17 +1931,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                           </td>
                           <td className="p-3 font-medium text-gray-800">{item.workerName}</td>
                           <td className="p-3 font-semibold text-gray-700">{item.vehicleNo}</td>
-                          <td className="p-3 text-[11px] font-semibold whitespace-nowrap">
-                            {item.status === 'Not Logged In Today' || item.timeCompleted.includes('Not Logged') ? (
-                              <span className="text-rose-600 font-semibold bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                                🕒 {lang === 'ta' ? 'இன்று உள்நுழையவில்லை' : 'Not Logged In Today'}
-                              </span>
-                            ) : (
-                              <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                                Logged {item.timeCompleted}
-                              </span>
-                            )}
-                          </td>
                         </tr>
                       ))
                     )}
