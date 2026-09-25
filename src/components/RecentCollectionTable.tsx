@@ -27,11 +27,14 @@ export const RecentCollectionTable: React.FC<RecentCollectionTableProps> = ({
 }) => {
   const [selectedZone, setSelectedZone] = useState<string>('All');
   const [previewPhotoRecord, setPreviewPhotoRecord] = useState<CollectionRecord | null>(null);
+  const [showAllRecords, setShowAllRecords] = useState<boolean>(false);
 
   // Compute diverse set of records representing all 5 zones or filter by selected zone
   const displayRecords = useMemo(() => {
-    if (selectedZone !== 'All') {
-      return records.filter((r) => r.zone === selectedZone).slice(0, 5);
+    const filtered = selectedZone === 'All' ? records : records.filter((r) => r.zone === selectedZone);
+
+    if (showAllRecords) {
+      return filtered;
     }
 
     const zones = ['East Zone', 'Central Zone', 'West Zone', 'North Zone', 'South Zone'];
@@ -40,24 +43,24 @@ export const RecentCollectionTable: React.FC<RecentCollectionTableProps> = ({
 
     // Select 1 record from each zone first to showcase all zones
     zones.forEach((z) => {
-      const match = records.find((r) => (r.zone === z || (z === 'North Zone' && r.ward === 'Ward 35') || (z === 'South Zone' && r.ward === 'Ward 75')) && !addedIds.has(r.id));
+      const match = filtered.find((r) => (r.zone === z || (z === 'North Zone' && r.ward === 'Ward 35') || (z === 'South Zone' && r.ward === 'Ward 75')) && !addedIds.has(String(r.id)));
       if (match) {
         diverse.push({ ...match, zone: z });
-        addedIds.add(match.id);
+        addedIds.add(String(match.id));
       }
     });
 
     // Fill remaining slots up to 5 if any zone didn't match
-    for (const r of records) {
+    for (const r of filtered) {
       if (diverse.length >= 5) break;
-      if (!addedIds.has(r.id)) {
+      if (!addedIds.has(String(r.id))) {
         diverse.push(r);
-        addedIds.add(r.id);
+        addedIds.add(String(r.id));
       }
     }
 
     return diverse;
-  }, [records, selectedZone]);
+  }, [records, selectedZone, showAllRecords]);
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200/90 shadow-2xs overflow-hidden">
@@ -300,13 +303,22 @@ export const RecentCollectionTable: React.FC<RecentCollectionTableProps> = ({
         </table>
       </div>
 
-      {/* Footer View All Reports Button */}
-      <div className="p-4 bg-white border-t border-gray-100 flex justify-center">
+      {/* Footer View All Records Button */}
+      <div className="p-4 bg-white border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="text-xs font-bold text-gray-500">
+          {lang === 'ta'
+            ? `காண்பிக்கப்படும் பதிவுகள்: ${displayRecords.length} / ${records.length}`
+            : `Showing ${displayRecords.length} of ${records.length} total records`}
+        </div>
         <button
-          onClick={onViewAllReports}
-          className="px-7 py-2 border-2 border-[#1E7A38] text-[#1E7A38] hover:bg-[#1E7A38] hover:text-white font-bold rounded-xl text-sm transition-all focus:outline-none cursor-pointer"
+          onClick={() => {
+            setShowAllRecords(prev => !prev);
+          }}
+          className="px-7 py-2 border-2 border-[#1E7A38] bg-[#1E7A38] text-white hover:bg-[#166534] font-bold rounded-xl text-sm transition-all focus:outline-none cursor-pointer active:scale-95 shadow-xs"
         >
-          {lang === 'ta' ? 'அனைத்து பதிவுகளையும் காண்க' : 'View All Records'}
+          {showAllRecords
+            ? (lang === 'ta' ? 'குறைவாகக் காண்க (Show Less)' : 'Show Less')
+            : (lang === 'ta' ? `அனைத்து பதிவுகளையும் காண்க (${records.length})` : `View All Records (${records.length})`)}
         </button>
       </div>
 
