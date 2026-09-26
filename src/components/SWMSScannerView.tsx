@@ -617,7 +617,7 @@ export const SWMSScannerView: React.FC<SWMSScannerViewProps> = ({
         )}
 
         {/* Blurry / Focus Helper Tip Pill */}
-        <div className="z-20 mt-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-md border border-white/20 text-slate-200 text-xs px-3 py-1 rounded-full shadow-lg">
+        <div className="z-20 mt-3 flex items-center gap-1.5 bg-[#0B132B]/80 backdrop-blur-md border border-white/20 text-slate-200 text-xs px-3 py-1 rounded-full shadow-lg">
           <Focus className="w-3.5 h-3.5 text-amber-400" />
           <span>
             {lang === 'ta'
